@@ -1,0 +1,138 @@
+/* usforest.css - 울산생명의숲 스타일 기반 */
+
+body {
+    background-color: #ffffff;
+    margin: 0;
+    padding: 0;
+    font-family: 'Noto Sans KR', sans-serif;
+  }
+  
+  /* 카테고리 버튼이 가장 상단에 오도록 수정 */
+  .category-top-bar {
+    background: #ffffff;
+    padding: 1rem;
+    border-bottom: 1px solid #e2e8f0;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  
+  .category-top-bar .category-grid {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 1rem;
+  }
+  
+  .category-top-bar .category-btn {
+    background-color: #f0fff4;
+    border: 1px solid #c6f6d5;
+    color: #2f855a;
+    padding: 0.75rem 1rem;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    width: 100%;
+  }
+  
+  .category-top-bar .category-btn:hover {
+    background-color: #c6f6d5;
+  }
+  
+  .category-top-bar .category-btn.active {
+    background-color: #2f855a;
+    color: white;
+    border-color: #2f855a;
+  }
+  
+  /* 메인 비주얼 배경 */
+  .main-visual {
+    position: relative;
+    height: 500px;
+    overflow: hidden;
+    color: white;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+  }
+  
+  .main-visual .backgroundimg1 {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+    z-index: -1;
+    filter: brightness(0.6);
+  }
+  
+  .sliderkit-text .lviewa {
+    font-size: 3.5rem;
+    font-weight: 800;
+    margin-bottom: 0.5rem;
+  }
+  
+  .sliderkit-text .sviewa {
+    font-size: 1.75rem;
+    font-weight: 400;
+  }
+  
+  /* 콘텐츠 영역 공통 */
+  .container {
+    width: 100%;
+    padding: 3rem 2rem;
+    box-sizing: border-box;
+  }
+  
+  .content-section {
+    margin-bottom: 3rem;
+  }
+  
+  .section-title {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #2f855a;
+    margin-bottom: 1.5rem;
+    border-bottom: 2px solid #c6f6d5;
+    padding-bottom: 0.75rem;
+  }
+  
+  .loading {
+    color: #555;
+    text-align: center;
+    padding: 2rem;
+  }
+  
+  /* 게시글 리스트 */
+  .post-list {
+    background: white;
+    border-radius: 0;
+    box-shadow: none;
+    overflow: hidden;
+    width: 100%;
+    border-top: 1px solid #e2e8f0;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  
+  .post-item {
+    padding: 1.5rem;
+    border-bottom: 1px solid #eee;
+    transition: background 0.2s;
+    width: 100%;
+  }
+  
+  .post-item:hover {
+    background-color: #f7fafc;
+  }
+  
+  .post-title {
+    font-size: 1.25rem;
+    color: #333;
+    font-weight: 500;
+  } 
+  

@@ -2,6 +2,8 @@ import { createBrowserRouter } from 'react-router-dom';
 import App from './App';
 import UserHome from './pages/user/UserHome';
 import AdminDashboard from './pages/admin/AdminDashboard';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
 
 const router = createBrowserRouter([
   {
