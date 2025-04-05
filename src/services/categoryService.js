@@ -3,13 +3,14 @@ import axiosInstance from '../axiosInstance';
 // 카테고리 생성
 export const createCategory = async (data) => {
   try {
+    console.log('Creating category with data:', data); // 요청 데이터 확인
     const response = await axiosInstance.post('/categories', {
-      parentCategoryId: data.parentId,
+      parentCategoryId: data.parentCategoryId,
       name: data.name,
       type: data.type,
-      readAuthority: data.readAuthority ? 'AUTHORIZED' : 'UNAUTHORIZED',
-      writeAuthority: data.writeAuthority ? 'AUTHORIZED' : 'UNAUTHORIZED',
-      order: data.order || 0,
+      readAuthority: data.readAuthority,
+      writeAuthority: data.writeAuthority,
+      order: data.order,
     });
     
     return response.data;

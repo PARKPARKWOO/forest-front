@@ -1,17 +1,23 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useMutation } from '@tanstack/react-query';
-import { createCategory } from '../../services/categoryService';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { createCategory, fetchCategories } from '../../services/categoryService';
 
 export default function CategoryCreate() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: '',
-    type: 'POST', // 기본값
-    readAuthority: true,
-    writeAuthority: true,
+    type: 'POST',
+    readAuthority: 'EVERYONE',
+    writeAuthority: 'EVERYONE',
     parentId: null,
-    order: 0,  // 추가
+    order: 0,
+  });
+
+  // 전체 카테고리 목록 조회
+  const { data: categories } = useQuery({
+    queryKey: ['categories'],
+    queryFn: fetchCategories,
   });
 
   const { mutate: submitCategory, isPending } = useMutation({
@@ -29,8 +35,7 @@ export default function CategoryCreate() {
     e.preventDefault();
     submitCategory({
       ...formData,
-      readAuthority: formData.readAuthority ? 'AUTHORIZED' : 'UNAUTHORIZED',
-      writeAuthority: formData.writeAuthority ? 'AUTHORIZED' : 'UNAUTHORIZED',
+      parentCategoryId: formData.parentId ? Number(formData.parentId) : null,
     });
   };
 
@@ -47,6 +52,27 @@ export default function CategoryCreate() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6 bg-white p-6 rounded-lg shadow">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            부모 카테고리
+          </label>
+          <select
+            value={formData.parentId || ''}
+            onChange={(e) => setFormData({ 
+              ...formData, 
+              parentId: e.target.value ? e.target.value : null 
+            })}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+          >
+            <option value="">최상위 카테고리</option>
+            {categories?.map((category) => (
+              <option key={category.id} value={category.id}>
+                {category.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             카테고리 이름
@@ -74,30 +100,33 @@ export default function CategoryCreate() {
           </select>
         </div>
 
-        <div className="flex gap-4">
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              id="readAuthority"
-              checked={formData.readAuthority}
-              onChange={(e) => setFormData({ ...formData, readAuthority: e.target.checked })}
-              className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
-            />
-            <label htmlFor="readAuthority" className="ml-2 block text-sm text-gray-900">
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               읽기 권한
             </label>
+            <select
+              value={formData.readAuthority}
+              onChange={(e) => setFormData({ ...formData, readAuthority: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+            >
+              <option value="EVERYONE">모든 사용자</option>
+              <option value="PRIVATE">비공개</option>
+            </select>
           </div>
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              id="writeAuthority"
-              checked={formData.writeAuthority}
-              onChange={(e) => setFormData({ ...formData, writeAuthority: e.target.checked })}
-              className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
-            />
-            <label htmlFor="writeAuthority" className="ml-2 block text-sm text-gray-900">
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               쓰기 권한
             </label>
+            <select
+              value={formData.writeAuthority}
+              onChange={(e) => setFormData({ ...formData, writeAuthority: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+            >
+              <option value="EVERYONE">모든 사용자</option>
+              <option value="PRIVATE">비공개</option>
+            </select>
           </div>
         </div>
 

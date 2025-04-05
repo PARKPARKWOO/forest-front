@@ -2,15 +2,17 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { fetchCategories } from '../services/categoryService';
 import kakaoLogo from '../assets/kakao.png';
+import naverLogo from '../assets/naver.png';
 import { useAuth } from '../contexts/AuthContext';
 import { useState } from 'react';
 
 export default function Layout({ children }) {
-  const { isAuthenticated, logout } = useAuth();
+  const { isAuthenticated, logout, userRole } = useAuth();
   const navigate = useNavigate();
   const [hoveredCategory, setHoveredCategory] = useState(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState(null);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const isDevelopment = import.meta.env.MODE === 'development';
 
   const { data: categories, isLoading } = useQuery({
     queryKey: ['categories'],
@@ -20,6 +22,8 @@ export default function Layout({ children }) {
   const kakaoLoginUrl = process.env.NODE_ENV === 'development' 
     ? 'https://woo-auth.duckdns.org/oauth2/authorization/5'
     : 'https://woo-auth.duckdns.org/oauth2/authorization/6';
+
+  const naverLoginUrl = 'https://woo-auth.duckdns.org/oauth2/authorization/8';
 
   const handleLogout = () => {
     logout();
@@ -53,6 +57,15 @@ export default function Layout({ children }) {
                 <img src={kakaoLogo} alt="카카오 로그인" className="h-5 w-auto mr-2" />
                 카카오로 시작하기
               </a>
+              
+              <a 
+                href={naverLoginUrl}
+                className="flex items-center justify-center w-full bg-[#03C75A] hover:bg-[#02b351] 
+                  text-white py-3 rounded-lg transition-colors duration-200"
+              >
+                <img src={naverLogo} alt="네이버 로그인" className="h-5 w-auto mr-2" />
+                네이버로 시작하기
+              </a>
             </div>
           </div>
         </div>
@@ -71,6 +84,15 @@ export default function Layout({ children }) {
               </Link>
 
               <div>
+                {(userRole === 'ROLE_ADMIN' || isDevelopment) && (
+                  <Link 
+                    to="/admin" 
+                    className="px-4 py-2 text-white rounded-full border border-white/30 
+                      hover:bg-white hover:text-green-700 transition-all duration-300 ease-out"
+                  >
+                    관리자 대시보드
+                  </Link>
+                )}
                 {isAuthenticated ? (
                   <button 
                     onClick={handleLogout}
