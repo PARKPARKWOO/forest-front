@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { createPost, uploadImage } from '../../services/postService';
@@ -61,38 +61,47 @@ export default function PostWrite() {
     setImages(prev => [...prev, ...files]);
   };
 
-  const modules = {
-    toolbar: [
-      [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
-      ['bold', 'italic', 'underline', 'strike'],
-      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-      [{ 'color': [] }, { 'background': [] }],
-      [{ 'align': [] }],
-      ['link', 'image'],
-      ['clean']
-    ],
-    clipboard: {
-      matchVisual: false,
-    },
-    imageHandler: async (file) => {
-      try {
-        const url = await uploadImage(file);
-        const editor = quillRef.current.getEditor();
-        const range = editor.getSelection();
-        editor.insertEmbed(range.index, 'image', url);
-      } catch (error) {
-        console.error('이미지 업로드 실패:', error);
-        alert('이미지 업로드에 실패했습니다.');
+  // modules 객체를 useMemo로 메모이제이션
+  const modules = useMemo(() => ({
+    toolbar: {
+      container: [
+        [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+        ['bold', 'italic', 'underline', 'strike'],
+        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+        [{ 'color': [] }, { 'background': [] }],
+        [{ 'align': [] }],
+        ['link', 'image'],
+        ['clean']
+      ],
+      handlers: {
+        image: () => {
+          const input = document.createElement('input');
+          input.setAttribute('type', 'file');
+          input.setAttribute('accept', 'image/*');
+          input.click();
+
+          input.onchange = async () => {
+            const file = input.files[0];
+            try {
+              const imageUrl = await uploadImage(file);
+              const editor = quillRef.current.getEditor();
+              const range = editor.getSelection();
+              editor.insertEmbed(range.index, 'image', imageUrl);
+            } catch (error) {
+              console.error('이미지 업로드 실패:', error);
+              alert('이미지 업로드에 실패했습니다.');
+            }
+          };
+        }
       }
     }
-  };
+  }), []); // 빈 의존성 배열로 한 번만 생성
 
   // 드래그 앤 드롭 핸들러
   const handleDrop = async (event) => {
     event.preventDefault();
     const files = Array.from(event.dataTransfer.files);
     
-    // 이미지 파일만 필터링
     const imageFiles = files.filter(file => file.type.startsWith('image/'));
     
     if (imageFiles.length === 0) {
@@ -102,10 +111,10 @@ export default function PostWrite() {
 
     try {
       for (const file of imageFiles) {
-        const url = await uploadImage(file);
+        const imageUrl = await uploadImage(file);
         const editor = quillRef.current.getEditor();
         const range = editor.getSelection() || { index: editor.getLength() };
-        editor.insertEmbed(range.index, 'image', url);
+        editor.insertEmbed(range.index, 'image', imageUrl);
       }
     } catch (error) {
       console.error('이미지 업로드 실패:', error);
@@ -118,7 +127,6 @@ export default function PostWrite() {
       <h1 className="text-3xl font-bold mb-8">게시글 작성</h1>
       
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* 제목 입력 */}
         <div>
           <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
             제목
@@ -133,13 +141,12 @@ export default function PostWrite() {
           />
         </div>
 
-        {/* 에디터 */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             내용
           </label>
           <div 
-            className="h-96"
+            className="min-h-[500px]"
             onDrop={handleDrop}
             onDragOver={(e) => e.preventDefault()}
           >
@@ -149,12 +156,12 @@ export default function PostWrite() {
               value={content}
               onChange={setContent}
               modules={modules}
-              className="h-80"
+              className="h-[450px]"
+              preserveWhitespace
             />
           </div>
         </div>
 
-        {/* 이미지 업로드 */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             이미지 첨부
@@ -188,7 +195,6 @@ export default function PostWrite() {
           )}
         </div>
 
-        {/* 제출 버튼 */}
         <div className="flex justify-end">
           <button
             type="submit"

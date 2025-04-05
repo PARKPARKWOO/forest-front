@@ -45,14 +45,17 @@ export const deletePost = (categoryId, postId) =>
 export const uploadImage = async (file) => {
   try {
     const formData = new FormData();
-    formData.append('images', file);
+    formData.append('image', file);
     
-    const response = await axiosInstance.post('/posts/upload', formData, {
+    const response = await axiosInstance.post('/images', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
     });
-    return response.data.data; // 업로드된 이미지 URL 반환
+    console.log('Server response:', response.data); // 서버 응답 확인
+    const imageUrl = response.data.data;
+    console.log('Image URL:', imageUrl); // 최종 URL 확인
+    return imageUrl;
   } catch (error) {
     console.error('Error uploading image:', error);
     throw error;

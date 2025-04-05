@@ -70,3 +70,21 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 } */
+
+/* Quill 에디터 이미지 스타일 */
+.ql-editor img {
+  max-width: 100%;
+  height: auto !important;
+  display: block;
+  margin: 1em 0;
+}
+
+/* 에디터 컨테이너 높이 조정 */
+.ql-container {
+  min-height: 400px;
+}
+
+/* 에디터 내용 영역 높이 조정 */
+.ql-editor {
+  min-height: 400px;
+}
