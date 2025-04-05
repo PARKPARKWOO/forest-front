@@ -4,6 +4,7 @@ import UserHome from './pages/user/UserHome';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminHome from './pages/admin/AdminHome';
 import Category from './components/Category';
+import CategoryCreate from './pages/admin/CategoryCreate';
 import PostWrite from './pages/post/PostWrite';
 import PostDetail from './pages/post/PostDetail';
 import Login from './pages/Login';
@@ -14,16 +15,13 @@ const router = createBrowserRouter([
     path: '/',
     element: <App />,
     children: [
-      // 사용자 페이지 영역
       { index: true, element: <UserHome /> },
-      { path: 'category/:categoryId', element: <Category /> },
-      
-      // 관리자 페이지 영역
+      { path: 'admin/category/create', element: <CategoryCreate /> },
       { path: 'admin', element: <AdminDashboard /> },
-      { path: 'admin/home', element: <AdminHome /> },
-      { path: 'login', element: <Login /> },
+      { path: 'category/:categoryId', element: <Category /> },
       { path: 'category/:categoryId/write', element: <PostWrite /> },
       { path: 'post/:postId', element: <PostDetail /> },
+      { path: 'login', element: <Login /> },
     ],
   },
   {
