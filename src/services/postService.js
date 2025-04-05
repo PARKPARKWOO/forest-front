@@ -15,7 +15,7 @@ export const createPost = async (formData) => {
   }
 };
 
-// 게시글 목록 조회 - PaginatedApiResponseBody 형식에 맞춤
+// 카테고리별 게시글 목록 조회
 export const fetchPostsByCategory = async (categoryId) => {
   try {
     const response = await axiosInstance.get(`/posts/${String(categoryId)}`);
@@ -26,11 +26,11 @@ export const fetchPostsByCategory = async (categoryId) => {
   }
 };
 
-// 게시글 상세 조회 - SucceededApiResponseBody 형식에 맞춤
+// 게시글 상세 조회
 export const fetchPostById = async (categoryId, postId) => {
   try {
     const response = await axiosInstance.get(`/posts/detail/${String(categoryId)}/${String(postId)}`);
-    return response.data.data; // SucceededApiResponseBody의 data 필드 반환
+    return response.data.data;
   } catch (error) {
     console.error('Error fetching post:', error);
     throw error;
@@ -52,9 +52,9 @@ export const uploadImage = async (file) => {
         'Content-Type': 'multipart/form-data',
       },
     });
-    console.log('Server response:', response.data); // 서버 응답 확인
+    console.log('Server response:', response.data);
     const imageUrl = response.data.data;
-    console.log('Image URL:', imageUrl); // 최종 URL 확인
+    console.log('Image URL:', imageUrl);
     return imageUrl;
   } catch (error) {
     console.error('Error uploading image:', error);

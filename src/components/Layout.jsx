@@ -8,6 +8,24 @@ import instagramLogo from '../assets/instagram.png';
 import { useAuth } from '../contexts/AuthContext';
 import { useState } from 'react';
 
+const STATIC_CATEGORIES = [
+  {
+    id: 'intro',
+    name: '소개',
+    path: '/intro',
+  },
+  {
+    id: 'programs',
+    name: '프로그램',
+    path: '/programs',
+  },
+  {
+    id: 'donation',
+    name: '후원하기',
+    path: '/donation',
+  },
+];
+
 export default function Layout({ children, showLoginModal, setShowLoginModal }) {
   const { isAuthenticated, logout, userRole } = useAuth();
   const navigate = useNavigate();
@@ -60,122 +78,145 @@ export default function Layout({ children, showLoginModal, setShowLoginModal }) 
         </a>
       </div>
 
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex justify-between items-center h-16 px-4">
-            <Link to="/" className="text-xl font-bold text-green-800">
-              전북생명의숲
-            </Link>
-            <div className="flex items-center">
-              {isAuthenticated ? (
-                <>
-                  {userRole === 'ADMIN' && (
-                    <Link
-                      to="/admin"
-                      className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
-                    >
-                      관리자
-                    </Link>
-                  )}
-                  <button
+      <header className="fixed w-full top-0 z-50 backdrop-blur-sm bg-white/80">
+        <div className="bg-gradient-to-r from-green-700 to-green-600 shadow-lg">
+          <div className="container mx-auto px-6 py-4">
+            <div className="flex justify-between items-center">
+              <Link 
+                to="/" 
+                className="text-2xl font-bold text-white tracking-tight hover:text-green-100 
+                  transform hover:scale-105 transition-all duration-300 ease-out"
+              >
+                전북생명의숲 🌳
+              </Link>
+
+              <div>
+                {(userRole === 'ROLE_ADMIN' || process.env.NODE_ENV === 'development') && (
+                  <Link 
+                    to="/admin" 
+                    className="px-4 py-2 text-white rounded-full border border-white/30 
+                      hover:bg-white hover:text-green-700 transition-all duration-300 ease-out"
+                  >
+                    관리자 대시보드
+                  </Link>
+                )}
+                {isAuthenticated ? (
+                  <button 
                     onClick={handleLogout}
-                    className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
+                    className="px-4 py-2 text-white rounded-full border border-white/30 
+                      hover:bg-white hover:text-green-700 transition-all duration-300 ease-out
+                      transform hover:scale-105 active:scale-95"
                   >
                     로그아웃
                   </button>
-                </>
-              ) : (
-                <button
-                  onClick={() => setShowLoginModal(true)}
-                  className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
-                >
-                  로그인
-                </button>
-              )}
-            </div>
-          </div>
-          <div className="px-4 pb-3">
-            <div className="flex space-x-8">
-              <Link
-                to="/intro"
-                className={`text-gray-600 hover:text-gray-900 px-3 py-2 text-sm font-medium
-                  ${selectedCategoryId === 'intro' ? 'text-green-600 border-b-2 border-green-600' : ''}`}
-                onMouseEnter={() => setHoveredCategory('intro')}
-                onMouseLeave={() => setHoveredCategory(null)}
-                onClick={() => setSelectedCategoryId('intro')}
-              >
-                소개
-              </Link>
-              <Link
-                to="/programs"
-                className={`text-gray-600 hover:text-gray-900 px-3 py-2 text-sm font-medium
-                  ${selectedCategoryId === 'programs' ? 'text-green-600 border-b-2 border-green-600' : ''}`}
-                onMouseEnter={() => setHoveredCategory('programs')}
-                onMouseLeave={() => setHoveredCategory(null)}
-                onClick={() => setSelectedCategoryId('programs')}
-              >
-                프로그램
-              </Link>
-              <Link
-                to="/donation"
-                className={`text-gray-600 hover:text-gray-900 px-3 py-2 text-sm font-medium
-                  ${selectedCategoryId === 'donation' ? 'text-green-600 border-b-2 border-green-600' : ''}`}
-                onMouseEnter={() => setHoveredCategory('donation')}
-                onMouseLeave={() => setHoveredCategory(null)}
-                onClick={() => setSelectedCategoryId('donation')}
-              >
-                후원하기
-              </Link>
-              {!isLoading && categories?.map(category => (
-                <div
-                  key={category.id}
-                  className="relative group"
-                  onMouseEnter={() => setHoveredCategory(category.id)}
-                  onMouseLeave={() => setHoveredCategory(null)}
-                >
-                  <div className="flex items-center">
-                    <Link
-                      to={`/category/${category.id}`}
-                      className={`text-gray-600 hover:text-gray-900 px-3 py-2 text-sm font-medium
-                        ${selectedCategoryId === category.id ? 'text-green-600 border-b-2 border-green-600' : ''}`}
-                      onClick={() => setSelectedCategoryId(category.id)}
-                    >
-                      {category.name}
-                    </Link>
-                    {category.children?.length > 0 && (
-                      <svg 
-                        className="w-4 h-4 ml-1 text-gray-400 group-hover:text-green-600 transition-transform duration-200 transform group-hover:rotate-180" 
-                        fill="none" 
-                        stroke="currentColor" 
-                        viewBox="0 0 24 24"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                      </svg>
-                    )}
-                  </div>
-
-                  {hoveredCategory === category.id && category.children?.length > 0 && (
-                    <div className="absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
-                      {category.children.map(subCategory => (
-                        <Link
-                          key={subCategory.id}
-                          to={`/category/${subCategory.id}`}
-                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700"
-                          onClick={() => setSelectedCategoryId(subCategory.id)}
-                        >
-                          {subCategory.name}
-                        </Link>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
+                ) : (
+                  <button 
+                    onClick={() => setShowLoginModal(true)}
+                    className="px-4 py-2 text-white rounded-full border border-white/30 
+                      hover:bg-white hover:text-green-700 transition-all duration-300"
+                  >
+                    로그인
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
+
+        {/* Category Navigation */}
+        <nav className="border-b border-gray-200/80 bg-white/70">
+          <div className="container mx-auto px-6">
+            <ul className="flex justify-center space-x-2">
+              {/* 정적 카테고리 */}
+              {STATIC_CATEGORIES.map((category) => (
+                <li key={category.id}>
+                  <Link
+                    to={category.path}
+                    className="block px-4 py-4 text-gray-600 hover:text-green-700 
+                      hover:bg-green-50 transition-colors duration-200"
+                  >
+                    {category.name}
+                  </Link>
+                </li>
+              ))}
+
+              {/* 구분선 */}
+              <li className="border-l border-gray-200 mx-2"></li>
+
+              {/* 동적 카테고리 */}
+              {isLoading ? (
+                <li className="py-4 text-gray-600 animate-pulse">카테고리 로딩중...</li>
+              ) : (
+                categories?.map((category) => (
+                  <li 
+                    key={category.id}
+                    className="relative group"
+                    onMouseEnter={() => setHoveredCategory(category.id)}
+                    onMouseLeave={() => setHoveredCategory(null)}
+                  >
+                    <Link
+                      to={`/category/${category.id}`}
+                      className={`block px-6 py-4 text-base font-medium rounded-md
+                        transition-all duration-300 ease-out group-hover:bg-gray-50
+                        ${selectedCategoryId === category.id 
+                          ? 'text-green-700 font-semibold' 
+                          : 'text-gray-700 hover:text-green-700'
+                        }
+                        ${category.children?.length > 0 ? 'pr-8' : ''}
+                      `}
+                      onClick={() => setSelectedCategoryId(category.id)}
+                    >
+                      <span className="relative">
+                        {category.name}
+                        <span className="absolute -bottom-1 left-0 w-full h-0.5 bg-green-600 
+                          transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300" />
+                      </span>
+                      {category.children?.length > 0 && (
+                        <span className="absolute right-2 top-1/2 -translate-y-1/2 transform 
+                          group-hover:translate-y-0 group-hover:rotate-180 transition-all duration-300">
+                          <svg 
+                            className="w-4 h-4 fill-current text-gray-400 group-hover:text-green-600" 
+                            viewBox="0 0 20 20"
+                          >
+                            <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/>
+                          </svg>
+                        </span>
+                      )}
+                    </Link>
+                    
+                    {/* 서브 카테고리 드롭다운 */}
+                    {hoveredCategory === category.id && category.children?.length > 0 && (
+                      <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 
+                        bg-white rounded-xl shadow-lg shadow-green-100/50 min-w-[220px] 
+                        transform opacity-0 -translate-y-2 group-hover:translate-y-0 
+                        group-hover:opacity-100 transition-all duration-300 ease-out 
+                        border border-gray-100/80 overflow-hidden">
+                        <ul className="py-2">
+                          {category.children.map((subCategory) => (
+                            <li key={subCategory.id}>
+                              <Link
+                                to={`/category/${subCategory.id}`}
+                                className="block w-full text-left px-6 py-3 text-gray-600
+                                  hover:text-green-700 hover:bg-green-50/50 text-sm
+                                  transition-all duration-200 ease-out"
+                                onClick={() => setSelectedCategoryId(subCategory.id)}
+                              >
+                                {subCategory.name}
+                              </Link>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </li>
+                ))
+              )}
+            </ul>
+          </div>
+        </nav>
       </header>
 
-      <main className="flex-grow">
+      <main className="container mx-auto px-6 py-10 mt-32">
         {children}
       </main>
 
