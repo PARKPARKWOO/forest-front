@@ -35,4 +35,26 @@ export const fetchProgramById = async (id) => {
     console.error('Error fetching program:', error);
     throw error;
   }
+};
+
+export const applyProgram = async (data) => {
+  try {
+    const formData = new FormData();
+    if (data.file) {
+      formData.append('file', data.file);
+    }
+    formData.append('phoneNumber', data.phoneNumber);
+    formData.append('programId', data.programId);
+    formData.append('depositor', data.depositor);
+
+    const response = await axiosInstance.post('/program/apply', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error applying program:', error);
+    throw error;
+  }
 }; 
