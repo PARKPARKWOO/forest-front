@@ -6,6 +6,24 @@ import naverLogo from '../assets/naver.png';
 import { useAuth } from '../contexts/AuthContext';
 import { useState } from 'react';
 
+const STATIC_CATEGORIES = [
+  {
+    id: 'intro',
+    name: '소개',
+    path: '/intro',
+  },
+  {
+    id: 'programs',
+    name: '프로그램',
+    path: '/programs',
+  },
+  {
+    id: 'donation',
+    name: '후원하기',
+    path: '/donation',
+  },
+];
+
 export default function Layout({ children }) {
   const { isAuthenticated, logout, userRole } = useAuth();
   const navigate = useNavigate();
@@ -120,6 +138,23 @@ export default function Layout({ children }) {
         <nav className="border-b border-gray-200/80 bg-white/70">
           <div className="container mx-auto px-6">
             <ul className="flex justify-center space-x-2">
+              {/* 정적 카테고리 */}
+              {STATIC_CATEGORIES.map((category) => (
+                <li key={category.id}>
+                  <Link
+                    to={category.path}
+                    className="block px-4 py-4 text-gray-600 hover:text-green-700 
+                      hover:bg-green-50 transition-colors duration-200"
+                  >
+                    {category.name}
+                  </Link>
+                </li>
+              ))}
+
+              {/* 구분선 */}
+              <li className="border-l border-gray-200 mx-2"></li>
+
+              {/* 동적 카테고리 */}
               {isLoading ? (
                 <li className="py-4 text-gray-600 animate-pulse">카테고리 로딩중...</li>
               ) : (
