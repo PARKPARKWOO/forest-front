@@ -1,10 +1,11 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import AdminHome from './pages/admin/AdminHome';
 import UserHome from './pages/user/UserHome';
 import CategoryPage from './pages/user/CategoryPage';
 import { AuthProvider } from './contexts/AuthContext';
 import Category from './components/Category';
 import Layout from './components/Layout';
+import Login from './pages/Login';
 
 function App() {
   return (
@@ -12,6 +13,7 @@ function App() {
       <Routes>
         <Route path="/" element={<UserHome />} />
         <Route path="/admin" element={<AdminHome />} />
+        <Route path="/login" element={<Login />} />
         <Route path="/category/:categoryId" element={
           <Layout>
             <Category />
