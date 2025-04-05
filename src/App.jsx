@@ -7,6 +7,7 @@ import Layout from './components/Layout';
 import Login from './pages/Login';
 import PostWrite from './pages/post/PostWrite';
 import PostDetail from './pages/post/PostDetail';
+import AdminDashboard from './pages/admin/AdminDashboard';
 
 function App() {
   return (
@@ -14,7 +15,7 @@ function App() {
       <Layout>
         <Routes>
           <Route path="/" element={<UserHome />} />
-          <Route path="/admin" element={<AdminHome />} />
+          <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/login" element={<Login />} />
           <Route path="/category/:categoryId" element={<Category />} />
           <Route path="/category/:categoryId/write" element={<PostWrite />} />

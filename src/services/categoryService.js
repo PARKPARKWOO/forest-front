@@ -20,15 +20,11 @@ export const fetchCategories = async () => {
   }
 };
 
-export const fetchCategoryById = async (id) => {
+export const fetchCategoryById = async (categoryId) => {
   try {
-    console.log('Fetching category by ID:', id);
-    const response = await fetch(`${API_BASE_URL}/api/v1/categories/detail/${id}`);
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-
-    const result = await response.json();
-    console.log('Category data:', result);
-    return result.data;
+    const response = await axiosInstance.get(`/categories/detail/${categoryId}`);
+    console.log('Category API response:', response.data); // API 응답 확인
+    return response.data.data;
   } catch (error) {
     console.error('Error fetching category:', error);
     throw error;

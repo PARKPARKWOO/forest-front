@@ -18,7 +18,7 @@ export const createPost = async (formData) => {
 // 게시글 목록 조회 - PaginatedApiResponseBody 형식에 맞춤
 export const fetchPostsByCategory = async (categoryId) => {
   try {
-    const response = await axiosInstance.get(`/posts/${categoryId}`);
+    const response = await axiosInstance.get(`/posts/${String(categoryId)}`);
     return response.data.data.contents; // PaginatedApiResponseDto의 contents 필드 반환
   } catch (error) {
     console.error('Error fetching posts:', error);
@@ -27,9 +27,9 @@ export const fetchPostsByCategory = async (categoryId) => {
 };
 
 // 게시글 상세 조회 - SucceededApiResponseBody 형식에 맞춤
-export const fetchPostById = async (postId) => {
+export const fetchPostById = async (categoryId, postId) => {
   try {
-    const response = await axiosInstance.get(`/posts/detail/${postId}`);
+    const response = await axiosInstance.get(`/posts/detail/${String(categoryId)}/${String(postId)}`);
     return response.data.data; // SucceededApiResponseBody의 data 필드 반환
   } catch (error) {
     console.error('Error fetching post:', error);
@@ -39,7 +39,7 @@ export const fetchPostById = async (postId) => {
 
 // 게시글 삭제
 export const deletePost = (categoryId, postId) =>
-  axiosInstance.delete(`/posts/${categoryId}/${postId}`);
+  axiosInstance.delete(`/posts/${String(categoryId)}/${String(postId)}`);
 
 // 이미지 업로드
 export const uploadImage = async (file) => {

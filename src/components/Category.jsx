@@ -11,6 +11,9 @@ const Category = () => {
   const [categoryName, setCategoryName] = useState('');
   const [writeAuthority, setWriteAuthority] = useState(false);
   const [parentCategory, setParentCategory] = useState(null);
+  const [postType, setPostType] = useState(null);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [showModal, setShowModal] = useState(false);
 
   // 게시글 목록 조회
   const { data: posts, isLoading: postsLoading } = useQuery({
@@ -23,10 +26,12 @@ const Category = () => {
     const loadCategoryData = async () => {
       try {
         const currentCategory = await fetchCategoryById(categoryId);
+        console.log('Category Data:', currentCategory);
         setCategoryName(currentCategory.name);
         setWriteAuthority(currentCategory.writeAuthority);
+        setPostType(currentCategory.type);
 
-        if (currentCategory.parentId) {
+        if (currentCategory.parentId && currentCategory.parentId !== "null") {
           const parent = await fetchCategoryById(currentCategory.parentId);
           setParentCategory(parent);
         }
@@ -46,6 +51,12 @@ const Category = () => {
     if (childCategories.length > 0 && parentCategory?.id) {
       navigate(`/category/${parentCategory.id}`);
     }
+  };
+
+  // 모달 닫기 핸들러
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setSelectedImage(null);
   };
 
   if (!categoryName) {
@@ -106,14 +117,21 @@ const Category = () => {
       {/* 게시글 목록 */}
       <div className="bg-white rounded-lg shadow-sm p-6">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-semibold text-gray-800">게시글 목록</h2>
+          <h2 className="text-xl font-semibold text-gray-800">
+            {postType === 'INFORMATION' ? '이미지 목록' : '게시글 목록'}
+          </h2>
           {writeAuthority && (
             <button 
-              onClick={() => navigate(`/category/${categoryId}/write`)}
+              onClick={() => {
+                console.log('Writing post with type:', postType);
+                navigate(`/category/${categoryId}/write`, {
+                  state: { postType }
+                });
+              }}
               className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 
                 transition-colors duration-200 shadow-sm hover:shadow-md"
             >
-              글쓰기
+              {postType === 'INFORMATION' ? '이미지 업로드' : '글쓰기'}
             </button>
           )}
         </div>
@@ -124,40 +142,92 @@ const Category = () => {
           </div>
         ) : posts?.length > 0 ? (
           <div className="space-y-4">
-            {posts.map((post) => (
-              <div 
-                key={post.id}
-                className="border border-gray-200 rounded-lg p-4 hover:border-green-500 
-                  transition-all duration-200 cursor-pointer"
-                onClick={() => navigate(`/post/${post.id}`)}
-              >
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="text-lg font-medium text-gray-800 mb-2">{post.title}</h3>
-                    <p className="text-gray-600 text-sm line-clamp-2">{post.content}</p>
+            {postType === 'INFORMATION' ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {posts.map((post) => (
+                  <div 
+                    key={post.id}
+                    className="group relative"
+                  >
+                    {post.content && post.content.split(',').map((imageUrl, index) => (
+                      <div 
+                        key={index} 
+                        className="aspect-square overflow-hidden rounded-lg shadow-md cursor-pointer"
+                        onClick={() => {
+                          setSelectedImage(imageUrl.trim());
+                          setShowModal(true);
+                        }}
+                      >
+                        <img 
+                          src={imageUrl.trim()} 
+                          alt={`이미지 ${index + 1}`}
+                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                        />
+                      </div>
+                    ))}
+                    <div className="mt-2 text-sm text-gray-500 flex justify-between items-center">
+                      <span>{post.authorName}</span>
+                      <span>{new Date(post.updatedAt).toLocaleDateString()}</span>
+                    </div>
                   </div>
-                  {post.images && post.images.length > 0 && (
-                    <img 
-                      src={post.images[0]} 
-                      alt={post.title}
-                      className="w-20 h-20 object-cover rounded-lg ml-4"
-                    />
-                  )}
-                </div>
-                <div className="flex items-center mt-4 text-sm text-gray-500">
-                  <span>{post.authorName}</span>
-                  <span className="mx-2">•</span>
-                  <span>{new Date(post.updatedAt).toLocaleDateString()}</span>
-                </div>
+                ))}
               </div>
-            ))}
+            ) : (
+              <div className="space-y-4">
+                {posts.map((post) => (
+                  <div 
+                    key={post.id}
+                    className="border border-gray-200 rounded-lg p-4 hover:border-green-500 
+                      transition-all duration-200 cursor-pointer"
+                    onClick={() => navigate(`/post/${post.id}`, {
+                      state: { categoryId, postType }
+                    })}
+                  >
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="text-lg font-medium text-gray-800 mb-2">{post.title}</h3>
+                        <p className="text-gray-600 text-sm line-clamp-2">{post.content}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center mt-4 text-sm text-gray-500">
+                      <span>{post.authorName}</span>
+                      <span className="mx-2">•</span>
+                      <span>{new Date(post.updatedAt).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         ) : (
           <div className="text-center py-8 text-gray-500">
-            등록된 게시글이 없습니다.
+            {postType === 'INFORMATION' ? '등록된 이미지가 없습니다.' : '등록된 게시글이 없습니다.'}
           </div>
         )}
       </div>
+
+      {/* 이미지 모달 */}
+      {showModal && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-80 z-50 flex items-center justify-center"
+          onClick={handleCloseModal}
+        >
+          <div className="relative max-w-[90vw] max-h-[90vh]">
+            <button
+              className="absolute -top-10 right-0 text-white hover:text-gray-300 text-xl"
+              onClick={handleCloseModal}
+            >
+              닫기 ×
+            </button>
+            <img
+              src={selectedImage}
+              alt="확대된 이미지"
+              className="max-w-full max-h-[85vh] object-contain"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
