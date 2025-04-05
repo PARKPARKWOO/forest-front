@@ -1,0 +1,40 @@
+/* styles/main.css
+.app {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .header {
+    position: fixed;
+    width: 100%;
+    top: 0;
+    z-index: 1000;
+    background: white;
+  }
+  
+  .main-nav ul {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+  }
+  
+  .notice-board {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    padding: 2rem;
+  }
+  
+  .gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+  }
+  
+  .footer {
+    margin-top: auto;
+    background: #333;
+    color: white;
+    padding: 2rem;
+  } */
