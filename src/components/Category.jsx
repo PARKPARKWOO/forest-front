@@ -26,7 +26,7 @@ const Category = () => {
     const loadCategoryData = async () => {
       try {
         const currentCategory = await fetchCategoryById(categoryId);
-        console.log('Category Data:', currentCategory);
+        console.log('카테고리 데이터:', currentCategory);
         setCategoryName(currentCategory.name);
         setWriteAuthority(currentCategory.writeAuthority);
         setPostType(currentCategory.type);
@@ -123,7 +123,7 @@ const Category = () => {
           {writeAuthority && (
             <button 
               onClick={() => {
-                console.log('Writing post with type:', postType);
+                console.log('글쓰기 타입:', postType);
                 navigate(`/category/${categoryId}/write`, {
                   state: { postType }
                 });

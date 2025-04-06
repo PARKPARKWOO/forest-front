@@ -12,6 +12,7 @@ import Programs from './pages/static/Programs';
 import Donation from './pages/static/Donation';
 import ProgramCreate from './pages/program/ProgramCreate';
 import ProgramDetail from './pages/program/ProgramDetail';
+import ProgramEdit from './pages/program/ProgramEdit';
 
 const router = createBrowserRouter([
   {
@@ -30,6 +31,7 @@ const router = createBrowserRouter([
       { path: 'post/:postId', element: <PostDetail /> },
       { path: 'programs/create', element: <ProgramCreate /> },
       { path: 'programs/:id', element: <ProgramDetail /> },
+      { path: 'programs/edit/:id', element: <ProgramEdit /> },
     ],
   },
   {

@@ -57,4 +57,52 @@ export const applyProgram = async (data) => {
     console.error('Error applying program:', error);
     throw error;
   }
+};
+
+// 프로그램 신청 목록 조회
+export const fetchProgramApplies = async (programId) => {
+  try {
+    const response = await axiosInstance.get(`/program/${programId}/apply`);
+    return response.data.data;
+  } catch (error) {
+    console.error('Error fetching program applies:', error);
+    throw error;
+  }
+};
+
+// 프로그램 신청 상세 조회
+export const fetchProgramApplyById = async (applyId) => {
+  try {
+    const response = await axiosInstance.get(`/program/apply/${applyId}`);
+    return response.data.data;
+  } catch (error) {
+    console.error('Error fetching program apply:', error);
+    throw error;
+  }
+};
+
+// 프로그램 삭제
+export const deleteProgram = async (programId) => {
+  try {
+    const response = await axiosInstance.delete(`/program/information/${programId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error deleting program:', error);
+    throw error;
+  }
+};
+
+// 프로그램 수정
+export const updateProgram = async (id, formData) => {
+  try {
+    const response = await axiosInstance.put(`/program/information/${id}`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error updating program:', error);
+    throw error;
+  }
 }; 

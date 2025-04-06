@@ -25,7 +25,6 @@ export default function ProgramDetail() {
 
   const handleApplyClick = () => {
     if (!isAuthenticated) {
-      console.log('Opening login modal...'); // 디버깅용 로그
       setShowLoginModal(true);
       return;
     }
@@ -50,31 +49,31 @@ export default function ProgramDetail() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto py-8 px-4">
-      <div className="bg-white rounded-lg shadow-sm p-6">
+    <div className="max-w-4xl mx-auto p-6">
+      <div className="bg-white rounded-lg shadow-sm p-8">
         <div className="flex justify-between items-start mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">{program.title}</h1>
+          <h1 className="text-3xl font-bold text-gray-800">{program.title}</h1>
           <span className={`px-3 py-1 rounded-full text-sm font-medium ${getProgramStatusInfo(program.status).className}`}>
             {getProgramStatusInfo(program.status).text}
           </span>
         </div>
-        
-        <div className="bg-gray-50 p-4 rounded-md mb-6">
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <span className="font-semibold">신청기간:</span>
-              <span className="ml-2">
-                {formatDate(program.applyStartDate)} ~ {formatDate(program.applyEndDate)}
-              </span>
-            </div>
-            <div>
-              <span className="font-semibold">행사일시:</span>
-              <span className="ml-2">{formatDateTime(program.eventDate)}</span>
-            </div>
-            <div>
-              <span className="font-semibold">모집인원:</span>
-              <span className="ml-2">{program.maxParticipants}명</span>
-            </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 bg-gray-50 p-4 rounded-lg">
+          <div>
+            <h3 className="text-sm font-medium text-gray-500 mb-1">신청 기간</h3>
+            <p className="text-gray-900">{formatDate(program.applyStartDate)} ~ {formatDate(program.applyEndDate)}</p>
+          </div>
+          <div>
+            <h3 className="text-sm font-medium text-gray-500 mb-1">행사 일시</h3>
+            <p className="text-gray-900">{formatDateTime(program.eventDate)}</p>
+          </div>
+          <div>
+            <h3 className="text-sm font-medium text-gray-500 mb-1">모집 인원</h3>
+            <p className="text-gray-900">{program.maxParticipants}명</p>
+          </div>
+          <div>
+            <h3 className="text-sm font-medium text-gray-500 mb-1">카테고리</h3>
+            <p className="text-gray-900">{program.categoryName || '일반'}</p>
           </div>
         </div>
 

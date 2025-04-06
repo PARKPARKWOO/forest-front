@@ -24,13 +24,14 @@ export default function Login() {
 
         navigate('/', { replace: true });
       } catch (error) {
-        console.error('Token processing failed:', error);
+        console.error('토큰 처리 실패:', error);
         navigate('/', { replace: true });
       }
     } else {
       navigate('/', { replace: true });
     }
-  }, [login, navigate, location]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // 로딩 중에는 아무것도 표시하지 않음
   return null;
