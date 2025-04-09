@@ -5,6 +5,7 @@ import kakaoLogo from '../assets/kakao.png';
 import naverLogo from '../assets/naver.png';
 import naverbandLogo from '../assets/naverband.svg';
 import instagramLogo from '../assets/instagram.png';
+import logo from '../assets/logo.png';
 import { useAuth } from '../contexts/AuthContext';
 import { useState } from 'react';
 
@@ -81,44 +82,38 @@ export default function Layout({ children, showLoginModal, setShowLoginModal }) 
       </div>
 
       <header className="fixed w-full top-0 z-50 backdrop-blur-sm bg-white/80">
-        <div className="bg-gradient-to-r from-green-700 to-green-600 shadow-lg">
+        <div className="bg-white shadow-md">
           <div className="container mx-auto px-6 py-4">
             <div className="flex justify-between items-center">
-              <Link 
-                to="/" 
-                className="text-2xl font-bold text-white tracking-tight hover:text-green-100 
-                  transform hover:scale-105 transition-all duration-300 ease-out"
-              >
-                전북생명의숲 🌳
+              <Link to="/" className="flex items-center space-x-3">
+                <img src={logo} alt="전북생명의숲 로고" className="h-10 w-auto" />
+                <span className="text-green-700 text-xl font-bold">전북생명의숲</span>
               </Link>
-
-              <div>
-                {(userRole === 'ROLE_ADMIN' || process.env.NODE_ENV === 'development') && (
-                  <Link 
-                    to="/admin" 
-                    className="px-4 py-2 text-white rounded-full border border-white/30 
-                      hover:bg-white hover:text-green-700 transition-all duration-300 ease-out"
-                  >
-                    관리자 대시보드
-                  </Link>
-                )}
+              
+              <div className="flex items-center space-x-4">
                 {isAuthenticated ? (
-                  <button 
+                  <button
                     onClick={handleLogout}
-                    className="px-4 py-2 text-white rounded-full border border-white/30 
-                      hover:bg-white hover:text-green-700 transition-all duration-300 ease-out
-                      transform hover:scale-105 active:scale-95"
+                    className="text-green-700 hover:text-green-500 transition-colors duration-200"
                   >
                     로그아웃
                   </button>
                 ) : (
-                  <button 
+                  <button
                     onClick={() => setShowLoginModal(true)}
-                    className="px-4 py-2 text-white rounded-full border border-white/30 
-                      hover:bg-white hover:text-green-700 transition-all duration-300"
+                    className="text-green-700 hover:text-green-500 transition-colors duration-200"
                   >
                     로그인
                   </button>
+                )}
+                
+                {isAuthenticated && (
+                  <Link
+                    to="/admin"
+                    className="text-green-700 hover:text-green-500 transition-colors duration-200"
+                  >
+                    관리자
+                  </Link>
                 )}
               </div>
             </div>
@@ -240,7 +235,7 @@ export default function Layout({ children, showLoginModal, setShowLoginModal }) 
                   <img src={naverbandLogo} alt="네이버밴드" className="w-6 h-6" />
                 </a>
                 <a 
-                  href="https://www.instagram.com/forestulsan" 
+                  href="https://www.instagram.com/jb_forest/" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="bg-green-700 hover:bg-green-600 p-2 rounded-full transition-colors duration-300"
