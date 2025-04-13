@@ -2,8 +2,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchCategories, deleteCategory } from '../../services/categoryService';
 import { fetchPrograms, deleteProgram, fetchProgramApplies } from '../../services/programService';
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { getProgramStatusInfo } from '../../utils/programStatus';
+import UserManagement from './UserManagement';
 
 export default function AdminDashboard() {
   const queryClient = useQueryClient();
@@ -78,10 +79,7 @@ export default function AdminDashboard() {
                 ? 'bg-green-50 text-green-700 border-l-4 border-green-500' 
                 : 'text-gray-600 hover:bg-gray-50'
             }`}
-            onClick={() => {
-              setActiveMenu('programs');
-              setSelectedProgramId(null);
-            }}
+            onClick={() => setActiveMenu('programs')}
           >
             프로그램 관리
           </button>
@@ -393,6 +391,10 @@ export default function AdminDashboard() {
               </div>
             </form>
           </div>
+        )}
+
+        {activeMenu === 'users' && (
+          <UserManagement />
         )}
       </div>
     </div>

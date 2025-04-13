@@ -1,11 +1,14 @@
 import axios from 'axios';
 
 const axiosInstance = axios.create({
-  baseURL: 'http://localhost:8080/api/v1',
+  baseURL: process.env.NODE_ENV === 'development'
+    ? 'http://localhost:8080/api/v1'
+    : 'https://forest.platformholder.site/api/v1',
   headers: {
     'Content-Type': 'application/json',
   },
 });
+
 
 // 응답 인터셉터 추가
 axiosInstance.interceptors.response.use(
