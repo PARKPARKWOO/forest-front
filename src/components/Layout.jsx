@@ -183,7 +183,7 @@ export default function Layout({ children, showLoginModal, setShowLoginModal }) 
                       )}
                     </Link>
                     
-                    {/* 서브 카테고리 드롭다운 */}
+                    {/* 하위 카테고리 드롭다운 */}
                     {hoveredCategory === category.id && category.children?.length > 0 && (
                       <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 
                         bg-white rounded-xl shadow-lg shadow-green-100/50 min-w-[220px] 
