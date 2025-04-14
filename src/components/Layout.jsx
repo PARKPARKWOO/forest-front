@@ -68,7 +68,7 @@ export default function Layout({ children, showLoginModal, setShowLoginModal }) 
           />
         </a>
         <a 
-          href="https://www.instagram.com/forestulsan" 
+          href="https://www.instagram.com/jb_forest/" 
           target="_blank" 
           rel="noopener noreferrer"
           className="bg-white rounded-full p-2 shadow-lg hover:shadow-xl transition-shadow duration-300 group"
