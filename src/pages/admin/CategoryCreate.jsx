@@ -35,7 +35,7 @@ export default function CategoryCreate() {
     e.preventDefault();
     submitCategory({
       ...formData,
-      parentCategoryId: formData.parentId ? Number(formData.parentId) : null,
+      parentCategoryId: formData.parentId || null,
     });
   };
 
