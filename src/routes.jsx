@@ -13,6 +13,8 @@ import Donation from './pages/static/Donation';
 import ProgramCreate from './pages/program/ProgramCreate';
 import ProgramDetail from './pages/program/ProgramDetail';
 import ProgramEdit from './pages/program/ProgramEdit';
+import ProtectedRoute from './components/ProtectedRoute';
+import UserManagement from './pages/admin/UserManagement';
 
 const router = createBrowserRouter([
   {
@@ -24,8 +26,21 @@ const router = createBrowserRouter([
       { path: 'intro', element: <Intro /> },
       { path: 'programs', element: <Programs /> },
       { path: 'donation', element: <Donation /> },
-      { path: 'admin', element: <AdminDashboard /> },
-      { path: 'admin/category/create', element: <CategoryCreate /> },
+      { path: 'admin', element: (
+        <ProtectedRoute>
+          <AdminDashboard />
+        </ProtectedRoute>
+      ) },
+      { path: 'admin/category/create', element: (
+        <ProtectedRoute>
+          <CategoryCreate />
+        </ProtectedRoute>
+      ) },
+      { path: 'admin/users', element: (
+        <ProtectedRoute>
+          <UserManagement />
+        </ProtectedRoute>
+      ) },
       { path: 'category/:categoryId', element: <Category /> },
       { path: 'category/:categoryId/write', element: <PostWrite /> },
       { path: 'post/:postId', element: <PostDetail /> },

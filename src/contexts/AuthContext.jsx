@@ -1,28 +1,47 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { getCurrentUser } from '../services/userService';
 
 export const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
 
   // 컴포넌트 마운트 시 로컬 스토리지에서 토큰 확인
   useEffect(() => {
-    const accessToken = localStorage.getItem('accessToken');
-    const refreshToken = localStorage.getItem('refreshToken');
-    
-    if (accessToken && refreshToken) {
-      setIsAuthenticated(true);
-      setUser({ accessToken, refreshToken });
-    }
-    
-    setIsInitialized(true);
+    const initializeAuth = async () => {
+      const accessToken = localStorage.getItem('accessToken');
+      const refreshToken = localStorage.getItem('refreshToken');
+      
+      if (accessToken && refreshToken) {
+        try {
+          const userInfo = await getCurrentUser();
+          setUser(userInfo);
+          setIsAuthenticated(true);
+          setIsAdmin(userInfo.role === 'ROLE_ADMIN');
+        } catch (error) {
+          console.error('사용자 정보 조회 실패:', error);
+          logout();
+        }
+      }
+      
+      setIsInitialized(true);
+    };
+
+    initializeAuth();
   }, []);
 
-  const login = (userData) => {
+  const login = async (userData) => {
     setIsAuthenticated(true);
-    setUser(userData);
+    try {
+      const userInfo = await getCurrentUser();
+      setUser(userInfo);
+      setIsAdmin(userInfo.role === 'ROLE_ADMIN');
+    } catch (error) {
+      console.error('사용자 정보 조회 실패:', error);
+    }
   };
 
   const logout = () => {
@@ -30,6 +49,7 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('refreshToken');
     setIsAuthenticated(false);
     setUser(null);
+    setIsAdmin(false);
   };
 
   // 초기화가 완료될 때까지 로딩 상태 표시
@@ -40,7 +60,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, user, login, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, user, isAdmin, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

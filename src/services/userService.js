@@ -23,4 +23,14 @@ export const getUserList = async (page = 1, size = 10) => {
     console.error('사용자 목록 조회 중 오류:', error);
     throw error;
   }
+};
+
+export const getCurrentUser = async () => {
+  try {
+    const response = await axiosInstance.get('/api/v1/users');
+    return response.data.data;
+  } catch (error) {
+    console.error('사용자 정보 조회 중 오류:', error);
+    throw error;
+  }
 }; 

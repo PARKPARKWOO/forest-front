@@ -28,7 +28,7 @@ const STATIC_CATEGORIES = [
 ];
 
 export default function Layout({ children, showLoginModal, setShowLoginModal }) {
-  const { isAuthenticated, logout, userRole } = useAuth();
+  const { isAuthenticated, logout, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [hoveredCategory, setHoveredCategory] = useState(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState(null);
@@ -92,12 +92,23 @@ export default function Layout({ children, showLoginModal, setShowLoginModal }) 
               
               <div className="flex items-center space-x-4">
                 {isAuthenticated ? (
-                  <button
-                    onClick={handleLogout}
-                    className="text-green-700 hover:text-green-500 transition-colors duration-200"
-                  >
-                    로그아웃
-                  </button>
+                  <>
+                    <button
+                      onClick={handleLogout}
+                      className="text-green-700 hover:text-green-500 transition-colors duration-200"
+                    >
+                      로그아웃
+                    </button>
+                    
+                    {isAdmin && (
+                      <Link
+                        to="/admin"
+                        className="text-green-700 hover:text-green-500 transition-colors duration-200"
+                      >
+                        관리자
+                      </Link>
+                    )}
+                  </>
                 ) : (
                   <button
                     onClick={() => setShowLoginModal(true)}
@@ -105,15 +116,6 @@ export default function Layout({ children, showLoginModal, setShowLoginModal }) 
                   >
                     로그인
                   </button>
-                )}
-                
-                {isAuthenticated && (
-                  <Link
-                    to="/admin"
-                    className="text-green-700 hover:text-green-500 transition-colors duration-200"
-                  >
-                    관리자
-                  </Link>
                 )}
               </div>
             </div>
