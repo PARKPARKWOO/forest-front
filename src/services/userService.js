@@ -61,7 +61,7 @@ export const updateUserRole = async (targetId, authorityId) => {
 export const reissueToken = async (refreshToken) => {
   try {
     // 인증 서버의 엔드포인트로 요청
-    const response = await fetch('https://woo-auth.duckdns.org/api/v1/auth/token/reissue', {
+    const response = await fetch('https://auth.platformholder.site/api/v1/auth/token/reissue', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
