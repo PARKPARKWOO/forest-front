@@ -10,7 +10,6 @@ export function AuthProvider({ children }) {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // 초기화 함수
   const initializeAuth = async () => {
     const accessToken = getCookie('accessToken');
     if (accessToken) {
@@ -21,24 +20,19 @@ export function AuthProvider({ children }) {
         setIsAdmin(userData.authorities?.some(auth => auth.authority === 'ROLE_ADMIN'));
       } catch (error) {
         console.error('사용자 정보 로드 실패:', error);
-        // 토큰이 있지만 사용자 정보를 가져오지 못한 경우에도 인증 상태는 유지
         setIsAuthenticated(true);
       }
     }
+    setIsInitialized(true);
   };
 
-  // 컴포넌트 마운트 시 초기화
   useEffect(() => {
     initializeAuth();
   }, []);
 
   const login = async (userData) => {
     try {
-      localStorage.setItem('accessToken', userData.accessToken);
-      localStorage.setItem('refreshToken', userData.refreshToken);
-      
       setIsAuthenticated(true);
-      
       const userInfo = await getCurrentUser();
       setUser(userInfo);
       setIsAdmin(userInfo.role === 'ROLE_ADMIN');

@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { setCookie } from '../utils/cookieUtils';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -17,8 +18,9 @@ export default function Login() {
 
     if (accessToken && refreshToken) {
       try {
-        localStorage.setItem('accessToken', accessToken);
-        localStorage.setItem('refreshToken', refreshToken);
+        // 쿠키에 토큰 저장
+        setCookie('accessToken', accessToken);
+        setCookie('refreshToken', refreshToken);
         
         login({
           accessToken,
@@ -35,8 +37,7 @@ export default function Login() {
       console.log('Login - No tokens received');
       navigate('/', { replace: true });
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [location.search, login, navigate]);
 
   // 로딩 중에는 아무것도 표시하지 않음
   return null;
