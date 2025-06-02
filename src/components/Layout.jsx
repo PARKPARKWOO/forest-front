@@ -39,12 +39,12 @@ export default function Layout({ children, showLoginModal, setShowLoginModal }) 
   });
 
   const kakaoLoginUrl = process.env.NODE_ENV === 'development' 
-    ? 'https://woo-auth.duckdns.org/oauth2/authorization/5'
-    : 'https://woo-auth.duckdns.org/oauth2/authorization/6';
+    ? 'https://auth.platformholder.site/oauth2/authorization/5'
+    : 'https://auth.platformholder.site/oauth2/authorization/6';
 
   const naverLoginUrl = process.env.NODE_ENV === 'development' 
-    ? 'https://woo-auth.duckdns.org/oauth2/authorization/8'
-    : 'https://woo-auth.duckdns.org/oauth2/authorization/9';
+    ? 'https://auth.platformholder.site/oauth2/authorization/8'
+    : 'https://auth.platformholder.site/oauth2/authorization/9';
 
   const handleLogout = () => {
     logout();

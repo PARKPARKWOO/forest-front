@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { getCurrentUser } from '../services/userService';
+import { getCookie, removeCookie } from '../utils/cookieUtils';
 
 export const AuthContext = createContext(null);
 
@@ -9,52 +10,29 @@ export function AuthProvider({ children }) {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // 초기화 함수
   const initializeAuth = async () => {
-    try {
-      const accessToken = localStorage.getItem('accessToken');
-      const refreshToken = localStorage.getItem('refreshToken');
-      
-      console.log('Initializing Auth - Tokens:', { accessToken, refreshToken });
-      
-      if (accessToken && refreshToken) {
-        try {
-          const userInfo = await getCurrentUser();
-          console.log('User Info loaded:', userInfo);
-          
-          setUser(userInfo);
-          setIsAuthenticated(true);
-          setIsAdmin(userInfo.role === 'ROLE_ADMIN');
-        } catch (error) {
-          console.error('사용자 정보 조회 실패:', error);
-          // 에러 발생 시에도 토큰은 유지
-          setIsAuthenticated(true);
-        }
-      } else {
-        console.log('No tokens found in localStorage');
-        setIsAuthenticated(false);
-        setUser(null);
-        setIsAdmin(false);
+    const accessToken = getCookie('accessToken');
+    if (accessToken) {
+      try {
+        const userData = await getCurrentUser();
+        setUser(userData);
+        setIsAuthenticated(true);
+        setIsAdmin(userData.authorities?.some(auth => auth.authority === 'ROLE_ADMIN'));
+      } catch (error) {
+        console.error('사용자 정보 로드 실패:', error);
+        setIsAuthenticated(true);
       }
-    } catch (error) {
-      console.error('Auth initialization error:', error);
-    } finally {
-      setIsInitialized(true);
     }
+    setIsInitialized(true);
   };
 
-  // 컴포넌트 마운트 시 초기화
   useEffect(() => {
     initializeAuth();
   }, []);
 
   const login = async (userData) => {
     try {
-      localStorage.setItem('accessToken', userData.accessToken);
-      localStorage.setItem('refreshToken', userData.refreshToken);
-      
       setIsAuthenticated(true);
-      
       const userInfo = await getCurrentUser();
       setUser(userInfo);
       setIsAdmin(userInfo.role === 'ROLE_ADMIN');
@@ -64,16 +42,11 @@ export function AuthProvider({ children }) {
   };
 
   const logout = () => {
-    try {
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-    } catch (error) {
-      console.error('Logout error:', error);
-    } finally {
-      setIsAuthenticated(false);
-      setUser(null);
-      setIsAdmin(false);
-    }
+    removeCookie('accessToken');
+    removeCookie('refreshToken');
+    setIsAuthenticated(false);
+    setUser(null);
+    setIsAdmin(false);
   };
 
   if (!isInitialized) {
