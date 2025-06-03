@@ -5,7 +5,8 @@ import { getCookie, setCookie, removeCookie } from './utils/cookieUtils';
 const axiosInstance = axios.create({
   baseURL: process.env.NODE_ENV === 'development'
     ? 'http://localhost:8080/api/v1'
-    : 'https://forest.platformholder.site/api/v1'
+    : 'https://forest.platformholder.site/api/v1',
+  withCredentials: true
 });
 
 // 요청 인터셉터
