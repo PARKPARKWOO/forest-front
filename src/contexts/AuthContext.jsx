@@ -11,17 +11,14 @@ export function AuthProvider({ children }) {
   const [isInitialized, setIsInitialized] = useState(false);
 
   const initializeAuth = async () => {
-    const accessToken = getCookie('accessToken');
-    if (accessToken) {
-      try {
-        const userData = await getCurrentUser();
-        setUser(userData);
-        setIsAuthenticated(true);
-        setIsAdmin(userData.authorities?.some(auth => auth.authority === 'ROLE_ADMIN'));
-      } catch (error) {
-        console.error('사용자 정보 로드 실패:', error);
-        setIsAuthenticated(true);
-      }
+    try {
+      const userData = await getCurrentUser();
+      setUser(userData);
+      setIsAuthenticated(true);
+      setIsAdmin(userData.authorities?.some(auth => auth.authority === 'ROLE_ADMIN'));
+    } catch (error) {
+      console.error('사용자 정보 로드 실패:', error);
+      setIsAuthenticated(true);
     }
     setIsInitialized(true);
   };
