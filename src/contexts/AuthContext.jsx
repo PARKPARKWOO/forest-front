@@ -15,7 +15,7 @@ export function AuthProvider({ children }) {
       const userData = await getCurrentUser();
       setUser(userData);
       setIsAuthenticated(true);
-      setIsAdmin(userData.authorities?.some(auth => auth.authority === 'ROLE_ADMIN'));
+      setIsAdmin(userData.role === 'ROLE_ADMIN');
     } catch (error) {
       console.error('사용자 정보 로드 실패:', error);
       setIsAuthenticated(true);
