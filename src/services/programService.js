@@ -16,10 +16,10 @@ export const createProgram = async (formData) => {
 };
 
 // 프로그램 목록 조회
-export const fetchPrograms = async () => {
+export const fetchPrograms = async (page = 1, size = 9) => {
   try {
-    const response = await axiosInstance.get('/program/information');
-    return response.data.data.contents;
+    const response = await axiosInstance.get(`/program/information?page=${page}&size=${size}`);
+    return response.data;
   } catch (error) {
     console.error('Error fetching programs:', error);
     throw error;

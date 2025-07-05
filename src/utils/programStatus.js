@@ -1,24 +1,29 @@
 export const getProgramStatusInfo = (status) => {
   switch (status) {
+    case 'UPCOMING':
+      return {
+        text: '접수전',
+        className: 'bg-green-100 text-green-800'
+      };
     case 'IN_PROGRESS':
       return {
-        text: '모집 진행중',
-        className: 'bg-green-100 text-green-800',
+        text: '접수중',
+        className: 'bg-red-100 text-red-800'
       };
     case 'CLOSED':
       return {
-        text: '모집 종료',
-        className: 'bg-gray-100 text-gray-800',
+        text: '접수마감',
+        className: 'bg-gray-900 text-white'
       };
-    case 'UPCOMING':
+    case 'DONE':
       return {
-        text: '모집 예정',
-        className: 'bg-blue-100 text-blue-800',
+        text: '프로그램 종료',
+        className: 'bg-gray-100 text-gray-800'
       };
     default:
       return {
-        text: '상태 미정',
-        className: 'bg-gray-100 text-gray-600',
+        text: '알 수 없음',
+        className: 'bg-gray-100 text-gray-800'
       };
   }
 }; 

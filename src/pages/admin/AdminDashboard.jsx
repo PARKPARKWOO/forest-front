@@ -296,6 +296,7 @@ export default function AdminDashboard() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">상태</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">신청기간</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">모집인원</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">신청자 수</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">작업</th>
                   </tr>
                 </thead>
@@ -315,6 +316,14 @@ export default function AdminDashboard() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {program.maxParticipants}명
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <span className="font-medium text-green-600">
+                          {program.applyCount || 0}명
+                        </span>
+                        <span className="text-gray-400 ml-1">
+                          ({Math.round((program.applyCount || 0) / program.maxParticipants * 100)}%)
+                        </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         <button 

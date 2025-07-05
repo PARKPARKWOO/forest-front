@@ -255,9 +255,10 @@ export default function ProgramEdit() {
             onChange={(e) => setFormData({ ...formData, status: e.target.value })}
             className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
           >
-            <option value="UPCOMING">모집 예정</option>
-            <option value="IN_PROGRESS">모집 진행중</option>
-            <option value="CLOSED">모집 종료</option>
+            <option value="UPCOMING">접수전</option>
+            <option value="IN_PROGRESS">접수중</option>
+            <option value="CLOSED">접수마감</option>
+            <option value="DONE">프로그램 종료</option>
           </select>
         </div>
 
