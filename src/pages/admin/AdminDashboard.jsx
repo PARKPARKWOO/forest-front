@@ -19,10 +19,13 @@ export default function AdminDashboard() {
   });
 
   // 프로그램 목록 조회
-  const { data: programs, isLoading: programsLoading } = useQuery({
+  const { data: programsData, isLoading: programsLoading } = useQuery({
     queryKey: ['programs'],
-    queryFn: fetchPrograms,
+    queryFn: () => fetchPrograms(1, 100),
   });
+
+  // 서버 응답 구조에서 programs 추출
+  const programs = programsData?.data?.contents || [];
 
   // 선택된 프로그램의 신청 목록 조회
   const { data: programApplies, isLoading: appliesLoading } = useQuery({
@@ -360,45 +363,20 @@ export default function AdminDashboard() {
         {/* 메일 발송 폼 */}
         {activeMenu === 'mail' && (
           <div className="bg-white rounded-lg shadow p-6">
-            <form className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  수신자 선택
-                </label>
-                <select className="w-full border-gray-300 rounded-md shadow-sm">
-                  <option value="all">전체 사용자</option>
-                  <option value="active">활성 사용자</option>
-                  <option value="inactive">휴면 사용자</option>
-                </select>
+            <div className="text-center py-12">
+              <div className="text-6xl mb-4">🚧</div>
+              <h2 className="text-2xl font-bold text-gray-800 mb-4">준비중입니다</h2>
+              <p className="text-gray-600 mb-6">
+                메일 발송 기능은 현재 개발 중입니다.<br />
+                빠른 시일 내에 서비스할 예정입니다.
+              </p>
+              <div className="inline-flex items-center px-4 py-2 bg-yellow-100 text-yellow-800 rounded-lg">
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+                개발 진행중
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  제목
-                </label>
-                <input
-                  type="text"
-                  className="w-full border-gray-300 rounded-md shadow-sm"
-                  placeholder="메일 제목을 입력하세요"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  내용
-                </label>
-                <textarea
-                  className="w-full h-64 border-gray-300 rounded-md shadow-sm"
-                  placeholder="메일 내용을 입력하세요"
-                />
-              </div>
-              <div className="flex justify-end">
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
-                >
-                  메일 발송
-                </button>
-              </div>
-            </form>
+            </div>
           </div>
         )}
 

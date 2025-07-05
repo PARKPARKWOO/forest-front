@@ -19,6 +19,7 @@ export const createProgram = async (formData) => {
 export const fetchPrograms = async (page = 1, size = 9) => {
   try {
     const response = await axiosInstance.get(`/program/information?page=${page}&size=${size}`);
+    // 서버 응답 구조: { data: { contents: [], hasNextPage: boolean, totalCount: number } }
     return response.data;
   } catch (error) {
     console.error('Error fetching programs:', error);

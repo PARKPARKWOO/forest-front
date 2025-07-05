@@ -31,10 +31,13 @@ export default function UserHome() {
   });
 
   // 프로그램 목록 조회
-  const { data: programs } = useQuery({
+  const { data: programsData } = useQuery({
     queryKey: ['programs'],
-    queryFn: fetchPrograms,
+    queryFn: () => fetchPrograms(1, 10), // 홈페이지에서는 최근 10개만 표시
   });
+
+  // 서버 응답 구조에서 programs 추출
+  const programs = programsData?.data?.contents || [];
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">

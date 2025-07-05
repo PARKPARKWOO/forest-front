@@ -17,6 +17,7 @@ export default function Programs() {
     return <div className="text-center py-8">로딩 중...</div>;
   }
 
+  // 서버 응답 구조: { data: { contents: [], hasNextPage: boolean, totalCount: number } }
   const { contents: programs, totalCount } = programsData.data;
   const totalPages = Math.ceil(totalCount / pageSize);
 
