@@ -10,6 +10,9 @@ import Login from './pages/Login';
 import Intro from './pages/static/Intro';
 import Programs from './pages/static/Programs';
 import Donation from './pages/static/Donation';
+import News from './pages/static/News';
+import Resources from './pages/static/Resources';
+import ESG from './pages/static/ESG';
 import ProgramCreate from './pages/program/ProgramCreate';
 import ProgramDetail from './pages/program/ProgramDetail';
 import ProgramEdit from './pages/program/ProgramEdit';
@@ -24,8 +27,17 @@ const router = createBrowserRouter([
       { index: true, element: <UserHome /> },
       { path: 'login', element: <Login /> },
       { path: 'intro', element: <Intro /> },
+      { path: 'intro/:subCategory', element: <Intro /> },
       { path: 'programs', element: <Programs /> },
+      { path: 'programs/:subCategory', element: <Programs /> },
+      { path: 'news', element: <News /> },
+      { path: 'news/:subCategory', element: <News /> },
+      { path: 'resources', element: <Resources /> },
+      { path: 'resources/:subCategory', element: <Resources /> },
       { path: 'donation', element: <Donation /> },
+      { path: 'donation/:subCategory', element: <Donation /> },
+      { path: 'esg', element: <ESG /> },
+      { path: 'esg/:subCategory', element: <ESG /> },
       { path: 'admin', element: (
         <ProtectedRoute>
           <AdminDashboard />

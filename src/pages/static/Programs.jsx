@@ -1,10 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { fetchPrograms } from '../../services/programService';
 import { getProgramStatusInfo } from '../../utils/programStatus';
 import { useState } from 'react';
 
 export default function Programs() {
+  const { subCategory } = useParams();
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 9; // 한 페이지당 표시할 프로그램 수
 
@@ -13,19 +14,51 @@ export default function Programs() {
     queryFn: () => fetchPrograms(currentPage, pageSize),
   });
 
+  const getContent = () => {
+    switch (subCategory) {
+      case 'participate':
+        return {
+          title: '참여 프로그램',
+          description: '전북생명의숲의 다양한 참여 프로그램을 확인하실 수 있습니다.'
+        };
+      case 'guide':
+        return {
+          title: '숲 해설가 양성교육',
+          description: '숲 해설가 양성을 위한 교육 프로그램을 소개합니다.'
+        };
+      case 'volunteer':
+        return {
+          title: '자원봉사활동 신청',
+          description: '자원봉사활동 신청 및 안내를 확인하실 수 있습니다.'
+        };
+      default:
+        return {
+          title: '프로그램 신청',
+          description: '전북생명의숲의 다양한 프로그램을 확인하고 신청하실 수 있습니다.'
+        };
+    }
+  };
+
   if (isLoading) {
     return <div className="text-center py-8">로딩 중...</div>;
+  }
+
+  // 데이터가 없거나 예상과 다른 구조인 경우 처리
+  if (!programsData || !programsData.data) {
+    return <div className="text-center py-8">데이터를 불러올 수 없습니다.</div>;
   }
 
   // 서버 응답 구조: { data: { contents: [], hasNextPage: boolean, totalCount: number } }
   const { contents: programs, totalCount } = programsData.data;
   const totalPages = Math.ceil(totalCount / pageSize);
+  const { title, description } = getContent();
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
-      {/* 페이지 정보 */}
       <div className="mb-6">
-        <div className="text-gray-600">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">{title}</h1>
+        <p className="text-gray-600">{description}</p>
+        <div className="text-gray-600 mt-2">
           Total {totalCount}건 {currentPage}페이지
         </div>
       </div>

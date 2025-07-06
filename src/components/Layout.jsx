@@ -14,16 +14,62 @@ const STATIC_CATEGORIES = [
     id: 'intro',
     name: '소개',
     path: '/intro',
+    children: [
+      { id: 'intro-about', name: '전북생명의숲은!', path: '/intro/about' },
+      { id: 'intro-people', name: '함께하는이들', path: '/intro/people' },
+      { id: 'intro-activities', name: '주요활동', path: '/intro/activities' },
+      { id: 'intro-location', name: '오시는 길', path: '/intro/location' },
+    ],
   },
   {
     id: 'programs',
-    name: '프로그램',
+    name: '프로그램 신청',
     path: '/programs',
+    children: [
+      { id: 'programs-participate', name: '참여 프로그램', path: '/programs/participate' },
+      { id: 'programs-guide', name: '숲 해설가 양성교육', path: '/programs/guide' },
+      { id: 'programs-volunteer', name: '자원봉사활동 신청', path: '/programs/volunteer' },
+    ],
+  },
+  {
+    id: 'news',
+    name: '소식',
+    path: '/news',
+    children: [
+      { id: 'news-notice', name: '공지사항', path: '/news/notice' },
+      { id: 'news-activities', name: '생명의 숲 활동보기', path: '/news/activities' },
+      { id: 'news-board', name: '자유게시판', path: '/news/board' },
+    ],
+  },
+  {
+    id: 'resources',
+    name: '자료실',
+    path: '/resources',
+    children: [
+      { id: 'resources-general', name: '총회 자료집', path: '/resources/general' },
+      { id: 'resources-documents', name: '문서자료실', path: '/resources/documents' },
+      { id: 'resources-media', name: '미디어 자료실', path: '/resources/media' },
+    ],
   },
   {
     id: 'donation',
     name: '후원하기',
     path: '/donation',
+    children: [
+      { id: 'donation-guide', name: '후원 안내', path: '/donation/guide' },
+      { id: 'donation-individual', name: '개인후원 신청', path: '/donation/individual' },
+      { id: 'donation-corporate', name: '기업후원 신청', path: '/donation/corporate' },
+      { id: 'donation-history', name: '나의 기부금 내역 조회', path: '/donation/history' },
+    ],
+  },
+  {
+    id: 'esg',
+    name: '기업 사회 공헌활동',
+    path: '/esg',
+    children: [
+      { id: 'esg-activities', name: '기업 ESG 사회 공헌활동', path: '/esg/activities' },
+      { id: 'esg-report', name: '기업 ESH 보고서', path: '/esg/report' },
+    ],
   },
 ];
 
@@ -128,14 +174,60 @@ export default function Layout({ children, showLoginModal, setShowLoginModal }) 
             <ul className="flex justify-center space-x-2">
               {/* 정적 카테고리 */}
               {STATIC_CATEGORIES.map((category) => (
-                <li key={category.id}>
+                <li 
+                  key={category.id}
+                  className="relative group"
+                  onMouseEnter={() => setHoveredCategory(category.id)}
+                  onMouseLeave={() => setHoveredCategory(null)}
+                >
                   <Link
                     to={category.path}
-                    className="block px-4 py-4 text-gray-600 hover:text-green-700 
-                      hover:bg-green-50 transition-colors duration-200"
+                    className={`block px-4 py-4 text-gray-600 hover:text-green-700 
+                      hover:bg-green-50 transition-colors duration-200
+                      ${category.children?.length > 0 ? 'pr-8' : ''}
+                    `}
                   >
-                    {category.name}
+                    <span className="relative">
+                      {category.name}
+                      <span className="absolute -bottom-1 left-0 w-full h-0.5 bg-green-600 
+                        transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300" />
+                    </span>
+                    {category.children?.length > 0 && (
+                      <span className="absolute right-2 top-1/2 -translate-y-1/2 transform 
+                        group-hover:translate-y-0 group-hover:rotate-180 transition-all duration-300">
+                        <svg 
+                          className="w-4 h-4 fill-current text-gray-400 group-hover:text-green-600" 
+                          viewBox="0 0 20 20"
+                        >
+                          <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/>
+                        </svg>
+                      </span>
+                    )}
                   </Link>
+                  
+                  {/* 하위 카테고리 드롭다운 */}
+                  {hoveredCategory === category.id && category.children?.length > 0 && (
+                    <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 
+                      bg-white rounded-xl shadow-lg shadow-green-100/50 min-w-[220px] 
+                      transform opacity-0 -translate-y-2 group-hover:translate-y-0 
+                      group-hover:opacity-100 transition-all duration-300 ease-out 
+                      border border-gray-100/80 overflow-hidden">
+                      <ul className="py-2">
+                        {category.children.map((subCategory) => (
+                          <li key={subCategory.id}>
+                            <Link
+                              to={subCategory.path}
+                              className="block w-full text-left px-6 py-3 text-gray-600
+                                hover:text-green-700 hover:bg-green-50/50 text-sm
+                                transition-all duration-200 ease-out"
+                            >
+                              {subCategory.name}
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </li>
               ))}
 

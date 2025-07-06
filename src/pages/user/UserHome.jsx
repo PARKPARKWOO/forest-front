@@ -36,7 +36,7 @@ export default function UserHome() {
     queryFn: () => fetchPrograms(1, 10), // 홈페이지에서는 최근 10개만 표시
   });
 
-  // 서버 응답 구조에서 programs 추출
+  // 서버 응답 구조에서 programs 추출 (안전한 접근)
   const programs = programsData?.data?.contents || [];
 
   return (

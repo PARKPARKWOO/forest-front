@@ -31,7 +31,8 @@ export const fetchPrograms = async (page = 1, size = 9) => {
 export const fetchProgramById = async (id) => {
   try {
     const response = await axiosInstance.get(`/program/information/${id}`);
-    return response.data.data;
+    // 서버 응답 구조: { data: { ... } }
+    return response.data?.data || response.data;
   } catch (error) {
     console.error('Error fetching program:', error);
     throw error;
@@ -64,7 +65,7 @@ export const applyProgram = async (data) => {
 export const fetchProgramApplies = async (programId) => {
   try {
     const response = await axiosInstance.get(`/program/${programId}/apply`);
-    return response.data.data;
+    return response.data?.data || response.data;
   } catch (error) {
     console.error('Error fetching program applies:', error);
     throw error;
@@ -75,7 +76,7 @@ export const fetchProgramApplies = async (programId) => {
 export const fetchProgramApplyById = async (applyId) => {
   try {
     const response = await axiosInstance.get(`/program/apply/${applyId}`);
-    return response.data.data;
+    return response.data?.data || response.data;
   } catch (error) {
     console.error('Error fetching program apply:', error);
     throw error;

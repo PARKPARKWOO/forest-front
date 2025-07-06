@@ -24,7 +24,7 @@ export default function AdminDashboard() {
     queryFn: () => fetchPrograms(1, 100),
   });
 
-  // 서버 응답 구조에서 programs 추출
+  // 서버 응답 구조에서 programs 추출 (안전한 접근)
   const programs = programsData?.data?.contents || [];
 
   // 선택된 프로그램의 신청 목록 조회
@@ -32,6 +32,27 @@ export default function AdminDashboard() {
     queryKey: ['programApplies', selectedProgramId],
     queryFn: () => fetchProgramApplies(selectedProgramId),
     enabled: !!selectedProgramId,
+  });
+
+  // 각 프로그램의 신청자 수 조회
+  const { data: programApplyCounts } = useQuery({
+    queryKey: ['programApplyCounts', programs],
+    queryFn: async () => {
+      if (!programs || programs.length === 0) return {};
+      
+      const counts = {};
+      for (const program of programs) {
+        try {
+          const applies = await fetchProgramApplies(program.id);
+          counts[program.id] = applies?.length || 0;
+        } catch (error) {
+          console.error(`Error fetching applies for program ${program.id}:`, error);
+          counts[program.id] = 0;
+        }
+      }
+      return counts;
+    },
+    enabled: !!programs && programs.length > 0,
   });
 
   // 카테고리 삭제
@@ -322,10 +343,12 @@ export default function AdminDashboard() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         <span className="font-medium text-green-600">
-                          {program.applyCount || 0}명
+                          {programApplyCounts ? (programApplyCounts[program.id] ?? 0) : '...'}명
                         </span>
                         <span className="text-gray-400 ml-1">
-                          ({Math.round((program.applyCount || 0) / program.maxParticipants * 100)}%)
+                          ({program.maxParticipants > 0 && programApplyCounts ? 
+                            Math.round((programApplyCounts[program.id] ?? 0) / program.maxParticipants * 100) : 
+                            programApplyCounts ? 0 : '...'}%)
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
