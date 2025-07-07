@@ -1,7 +1,13 @@
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 
 export default function News() {
   const { subCategory } = useParams();
+
+  const subCategories = [
+    { id: 'notice', name: '공지사항', path: '/news/notice' },
+    { id: 'activities', name: '생명의 숲 활동보기', path: '/news/activities' },
+    { id: 'board', name: '자유게시판', path: '/news/board' },
+  ];
 
   const getContent = () => {
     switch (subCategory) {
@@ -13,9 +19,11 @@ export default function News() {
               <p className="text-lg text-gray-700 leading-relaxed">
                 전북생명의숲의 주요 공지사항을 확인하실 수 있습니다.
               </p>
-              <div className="bg-yellow-50 p-6 rounded-lg">
-                <h3 className="text-lg font-semibold text-yellow-800 mb-2">최신 공지</h3>
-                <p className="text-yellow-700">현재 등록된 공지사항이 없습니다.</p>
+              <div className="bg-blue-50 p-6 rounded-lg">
+                <h3 className="text-xl font-semibold text-blue-800 mb-4">공지사항</h3>
+                <p className="text-blue-700">
+                  중요한 소식과 안내사항을 빠르게 전달합니다.
+                </p>
               </div>
             </div>
           )
@@ -26,20 +34,24 @@ export default function News() {
           content: (
             <div className="space-y-6">
               <p className="text-lg text-gray-700 leading-relaxed">
-                전북생명의숲의 다양한 활동들을 소개합니다.
+                전북생명의숲의 다양한 활동들을 확인하실 수 있습니다.
               </p>
               <div className="grid md:grid-cols-2 gap-6">
                 <div className="bg-white p-6 rounded-lg shadow-sm">
                   <h3 className="text-lg font-semibold text-gray-800 mb-3">최근 활동</h3>
                   <ul className="space-y-2 text-gray-600">
-                    <li>• 숲 해설 프로그램 진행</li>
-                    <li>• 환경 교육 실시</li>
-                    <li>• 자원봉사 활동</li>
+                    <li>• 숲 가꾸기 활동</li>
+                    <li>• 환경 교육 프로그램</li>
+                    <li>• 시민 참여 행사</li>
                   </ul>
                 </div>
                 <div className="bg-white p-6 rounded-lg shadow-sm">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-3">활동 사진</h3>
-                  <p className="text-gray-600">활동 사진들이 업로드될 예정입니다.</p>
+                  <h3 className="text-lg font-semibold text-gray-800 mb-3">활동 갤러리</h3>
+                  <ul className="space-y-2 text-gray-600">
+                    <li>• 활동 사진</li>
+                    <li>• 후기 및 소감</li>
+                    <li>• 성과 보고</li>
+                  </ul>
                 </div>
               </div>
             </div>
@@ -51,11 +63,13 @@ export default function News() {
           content: (
             <div className="space-y-6">
               <p className="text-lg text-gray-700 leading-relaxed">
-                회원들이 자유롭게 소통할 수 있는 공간입니다.
+                회원들과 자유롭게 소통할 수 있는 공간입니다.
               </p>
-              <div className="bg-blue-50 p-6 rounded-lg">
-                <h3 className="text-lg font-semibold text-blue-800 mb-2">게시판 안내</h3>
-                <p className="text-blue-700">자유게시판은 로그인 후 이용하실 수 있습니다.</p>
+              <div className="bg-green-50 p-6 rounded-lg">
+                <h3 className="text-xl font-semibold text-green-800 mb-4">자유게시판</h3>
+                <p className="text-green-700">
+                  숲과 환경에 대한 다양한 의견과 소통을 나누어보세요.
+                </p>
               </div>
             </div>
           )
@@ -68,19 +82,17 @@ export default function News() {
               <p className="text-lg text-gray-700 leading-relaxed">
                 전북생명의숲의 최신 소식과 활동을 확인하실 수 있습니다.
               </p>
-              <div className="grid md:grid-cols-3 gap-6">
-                <div className="bg-yellow-50 p-6 rounded-lg text-center">
-                  <h3 className="text-lg font-semibold text-yellow-800 mb-2">공지사항</h3>
-                  <p className="text-yellow-700">중요한 공지사항을 확인하세요</p>
-                </div>
-                <div className="bg-green-50 p-6 rounded-lg text-center">
-                  <h3 className="text-lg font-semibold text-green-800 mb-2">생명의 숲 활동보기</h3>
-                  <p className="text-green-700">우리의 다양한 활동을 만나보세요</p>
-                </div>
-                <div className="bg-blue-50 p-6 rounded-lg text-center">
-                  <h3 className="text-lg font-semibold text-blue-800 mb-2">자유게시판</h3>
-                  <p className="text-blue-700">회원들과 자유롭게 소통하세요</p>
-                </div>
+              <div className="grid md:grid-cols-3 gap-4">
+                {subCategories.map((category) => (
+                  <Link
+                    key={category.id}
+                    to={category.path}
+                    className="bg-blue-50 p-6 rounded-lg text-center hover:bg-blue-100 transition-colors duration-200"
+                  >
+                    <h3 className="text-lg font-semibold text-blue-800 mb-2">{category.name}</h3>
+                    <p className="text-blue-700 text-sm">자세히 보기</p>
+                  </Link>
+                ))}
               </div>
             </div>
           )
@@ -92,8 +104,27 @@ export default function News() {
 
   return (
     <div className="max-w-4xl mx-auto py-8 px-4">
+      {/* 하위 카테고리 네비게이션 */}
+      <div className="mb-8">
+        <div className="flex flex-wrap gap-2">
+          {subCategories.map((category) => (
+            <Link
+              key={category.id}
+              to={category.path}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ${
+                subCategory === category.id
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              {category.name}
+            </Link>
+          ))}
+        </div>
+      </div>
+
       <h1 className="text-3xl font-bold text-gray-900 mb-6">{title}</h1>
-      <div className="prose prose-green max-w-none">
+      <div className="prose prose-blue max-w-none">
         {content}
       </div>
     </div>

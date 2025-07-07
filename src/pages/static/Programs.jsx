@@ -9,6 +9,12 @@ export default function Programs() {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 9; // 한 페이지당 표시할 프로그램 수
 
+  const subCategories = [
+    { id: 'participate', name: '참여 프로그램', path: '/programs/participate' },
+    { id: 'guide', name: '숲 해설가 양성교육', path: '/programs/guide' },
+    { id: 'volunteer', name: '자원봉사활동 신청', path: '/programs/volunteer' },
+  ];
+
   const { data: programsData, isLoading } = useQuery({
     queryKey: ['programs', currentPage],
     queryFn: () => fetchPrograms(currentPage, pageSize),
@@ -55,6 +61,25 @@ export default function Programs() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
+      {/* 하위 카테고리 네비게이션 */}
+      <div className="mb-8">
+        <div className="flex flex-wrap gap-2">
+          {subCategories.map((category) => (
+            <Link
+              key={category.id}
+              to={category.path}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ${
+                subCategory === category.id
+                  ? 'bg-green-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              {category.name}
+            </Link>
+          ))}
+        </div>
+      </div>
+
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">{title}</h1>
         <p className="text-gray-600">{description}</p>

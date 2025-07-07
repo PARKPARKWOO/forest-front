@@ -1,7 +1,14 @@
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 
 export default function Donation() {
   const { subCategory } = useParams();
+
+  const subCategories = [
+    { id: 'guide', name: '후원 안내', path: '/donation/guide' },
+    { id: 'individual', name: '개인후원 신청', path: '/donation/individual' },
+    { id: 'corporate', name: '기업후원 신청', path: '/donation/corporate' },
+    { id: 'history', name: '나의 기부금 내역 조회', path: '/donation/history' },
+  ];
 
   const getContent = () => {
     switch (subCategory) {
@@ -93,19 +100,17 @@ export default function Donation() {
                   작은 정성이 모여 큰 변화를 만듭니다.
                 </p>
               </div>
-              <div className="grid md:grid-cols-2 gap-6">
-                <div className="bg-white p-6 rounded-lg shadow-sm">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4">후원 안내</h3>
-                  <p className="text-gray-600 mb-4">
-                    후원에 대한 자세한 안내를 확인하세요.
-                  </p>
-                </div>
-                <div className="bg-white p-6 rounded-lg shadow-sm">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4">후원 신청</h3>
-                  <p className="text-gray-600 mb-4">
-                    개인 또는 기업 후원을 신청하세요.
-                  </p>
-                </div>
+              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {subCategories.map((category) => (
+                  <Link
+                    key={category.id}
+                    to={category.path}
+                    className="bg-green-50 p-6 rounded-lg text-center hover:bg-green-100 transition-colors duration-200"
+                  >
+                    <h3 className="text-lg font-semibold text-green-800 mb-2">{category.name}</h3>
+                    <p className="text-green-700 text-sm">자세히 보기</p>
+                  </Link>
+                ))}
               </div>
             </div>
           )
@@ -117,6 +122,25 @@ export default function Donation() {
 
   return (
     <div className="max-w-4xl mx-auto py-8 px-4">
+      {/* 하위 카테고리 네비게이션 */}
+      <div className="mb-8">
+        <div className="flex flex-wrap gap-2">
+          {subCategories.map((category) => (
+            <Link
+              key={category.id}
+              to={category.path}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ${
+                subCategory === category.id
+                  ? 'bg-green-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              {category.name}
+            </Link>
+          ))}
+        </div>
+      </div>
+
       <h1 className="text-3xl font-bold text-gray-900 mb-6">{title}</h1>
       <div className="prose prose-green max-w-none">
         {content}

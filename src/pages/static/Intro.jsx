@@ -1,7 +1,14 @@
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 
 export default function Intro() {
   const { subCategory } = useParams();
+
+  const subCategories = [
+    { id: 'about', name: '전북생명의숲은!', path: '/intro/about' },
+    { id: 'people', name: '함께하는이들', path: '/intro/people' },
+    { id: 'activities', name: '주요활동', path: '/intro/activities' },
+    { id: 'location', name: '오시는 길', path: '/intro/location' },
+  ];
 
   const getContent = () => {
     switch (subCategory) {
@@ -112,19 +119,17 @@ export default function Intro() {
                 전북생명의숲은 숲을 통해 생명의 가치를 실현하고자 하는 시민단체입니다.
                 우리는 지속가능한 미래를 위해 숲을 가꾸고 보전하는 활동을 펼치고 있습니다.
               </p>
-              <div className="grid md:grid-cols-3 gap-6">
-                <div className="bg-green-50 p-6 rounded-lg text-center">
-                  <h3 className="text-lg font-semibold text-green-800 mb-2">전북생명의숲은!</h3>
-                  <p className="text-green-700">우리 조직에 대해 알아보세요</p>
-                </div>
-                <div className="bg-green-50 p-6 rounded-lg text-center">
-                  <h3 className="text-lg font-semibold text-green-800 mb-2">함께하는이들</h3>
-                  <p className="text-green-700">우리와 함께하는 사람들을 만나보세요</p>
-                </div>
-                <div className="bg-green-50 p-6 rounded-lg text-center">
-                  <h3 className="text-lg font-semibold text-green-800 mb-2">주요활동</h3>
-                  <p className="text-green-700">우리가 하는 일들을 확인해보세요</p>
-                </div>
+              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {subCategories.map((category) => (
+                  <Link
+                    key={category.id}
+                    to={category.path}
+                    className="bg-green-50 p-6 rounded-lg text-center hover:bg-green-100 transition-colors duration-200"
+                  >
+                    <h3 className="text-lg font-semibold text-green-800 mb-2">{category.name}</h3>
+                    <p className="text-green-700 text-sm">자세히 보기</p>
+                  </Link>
+                ))}
               </div>
             </div>
           )
@@ -136,6 +141,25 @@ export default function Intro() {
 
   return (
     <div className="max-w-4xl mx-auto py-8 px-4">
+      {/* 하위 카테고리 네비게이션 */}
+      <div className="mb-8">
+        <div className="flex flex-wrap gap-2">
+          {subCategories.map((category) => (
+            <Link
+              key={category.id}
+              to={category.path}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ${
+                subCategory === category.id
+                  ? 'bg-green-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              {category.name}
+            </Link>
+          ))}
+        </div>
+      </div>
+
       <h1 className="text-3xl font-bold text-gray-900 mb-6">{title}</h1>
       <div className="prose prose-green max-w-none">
         {content}

@@ -78,6 +78,7 @@ export default function Layout({ children, showLoginModal, setShowLoginModal }) 
   const navigate = useNavigate();
   const [hoveredCategory, setHoveredCategory] = useState(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState(null);
+  const [hideTimeout, setHideTimeout] = useState(null);
 
   const { data: categories, isLoading } = useQuery({
     queryKey: ['categories'],
@@ -95,6 +96,21 @@ export default function Layout({ children, showLoginModal, setShowLoginModal }) 
   const handleLogout = () => {
     logout();
     navigate('/');
+  };
+
+  const handleMouseEnter = (categoryId) => {
+    if (hideTimeout) {
+      clearTimeout(hideTimeout);
+      setHideTimeout(null);
+    }
+    setHoveredCategory(categoryId);
+  };
+
+  const handleMouseLeave = () => {
+    const timeout = setTimeout(() => {
+      setHoveredCategory(null);
+    }, 150); // 150ms 지연
+    setHideTimeout(timeout);
   };
 
   return (
@@ -177,8 +193,8 @@ export default function Layout({ children, showLoginModal, setShowLoginModal }) 
                 <li 
                   key={category.id}
                   className="relative group"
-                  onMouseEnter={() => setHoveredCategory(category.id)}
-                  onMouseLeave={() => setHoveredCategory(null)}
+                  onMouseEnter={() => handleMouseEnter(category.id)}
+                  onMouseLeave={handleMouseLeave}
                 >
                   <Link
                     to={category.path}
@@ -207,11 +223,15 @@ export default function Layout({ children, showLoginModal, setShowLoginModal }) 
                   
                   {/* 하위 카테고리 드롭다운 */}
                   {hoveredCategory === category.id && category.children?.length > 0 && (
-                    <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 
-                      bg-white rounded-xl shadow-lg shadow-green-100/50 min-w-[220px] 
-                      transform opacity-0 -translate-y-2 group-hover:translate-y-0 
-                      group-hover:opacity-100 transition-all duration-300 ease-out 
-                      border border-gray-100/80 overflow-hidden">
+                    <div 
+                      className="absolute left-1/2 -translate-x-1/2 top-full mt-0 
+                        bg-white rounded-xl shadow-lg shadow-green-100/50 min-w-[220px] 
+                        transform opacity-0 -translate-y-2 group-hover:translate-y-0 
+                        group-hover:opacity-100 transition-all duration-300 ease-out 
+                        border border-gray-100/80 overflow-hidden z-50"
+                      onMouseEnter={() => handleMouseEnter(category.id)}
+                      onMouseLeave={handleMouseLeave}
+                    >
                       <ul className="py-2">
                         {category.children.map((subCategory) => (
                           <li key={subCategory.id}>
@@ -220,6 +240,7 @@ export default function Layout({ children, showLoginModal, setShowLoginModal }) 
                               className="block w-full text-left px-6 py-3 text-gray-600
                                 hover:text-green-700 hover:bg-green-50/50 text-sm
                                 transition-all duration-200 ease-out"
+                              onClick={() => setSelectedCategoryId(subCategory.id)}
                             >
                               {subCategory.name}
                             </Link>
@@ -242,8 +263,8 @@ export default function Layout({ children, showLoginModal, setShowLoginModal }) 
                   <li 
                     key={category.id}
                     className="relative group"
-                    onMouseEnter={() => setHoveredCategory(category.id)}
-                    onMouseLeave={() => setHoveredCategory(null)}
+                    onMouseEnter={() => handleMouseEnter(category.id)}
+                    onMouseLeave={handleMouseLeave}
                   >
                     <Link
                       to={`/category/${category.id}`}
@@ -277,16 +298,20 @@ export default function Layout({ children, showLoginModal, setShowLoginModal }) 
                     
                     {/* 하위 카테고리 드롭다운 */}
                     {hoveredCategory === category.id && category.children?.length > 0 && (
-                      <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 
-                        bg-white rounded-xl shadow-lg shadow-green-100/50 min-w-[220px] 
-                        transform opacity-0 -translate-y-2 group-hover:translate-y-0 
-                        group-hover:opacity-100 transition-all duration-300 ease-out 
-                        border border-gray-100/80 overflow-hidden">
+                      <div 
+                        className="absolute left-1/2 -translate-x-1/2 top-full mt-0 
+                          bg-white rounded-xl shadow-lg shadow-green-100/50 min-w-[220px] 
+                          transform opacity-0 -translate-y-2 group-hover:translate-y-0 
+                          group-hover:opacity-100 transition-all duration-300 ease-out 
+                          border border-gray-100/80 overflow-hidden z-50"
+                        onMouseEnter={() => handleMouseEnter(category.id)}
+                        onMouseLeave={handleMouseLeave}
+                      >
                         <ul className="py-2">
                           {category.children.map((subCategory) => (
                             <li key={subCategory.id}>
                               <Link
-                                to={`/category/${subCategory.id}`}
+                                to={subCategory.path}
                                 className="block w-full text-left px-6 py-3 text-gray-600
                                   hover:text-green-700 hover:bg-green-50/50 text-sm
                                   transition-all duration-200 ease-out"
