@@ -139,7 +139,7 @@ export default function UserHome() {
             .map((program, index) => (
               <Link
                 key={program.id}
-                to={`/programs/${program.id}`}
+                to={`/programs/detail/${program.id}`}
                 className={`
                   rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-all duration-300
                   ${index % 3 === 0 ? 'bg-gradient-to-br from-green-50 to-emerald-100' : 
