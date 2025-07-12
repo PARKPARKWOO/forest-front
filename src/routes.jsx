@@ -37,6 +37,8 @@ const router = createBrowserRouter([
       { path: 'news/:subCategory', element: <News /> },
       { path: 'resources', element: <Resources /> },
       { path: 'resources/:subCategory', element: <Resources /> },
+      { path: 'resources/jbforest/video', element: <Resources /> },
+      { path: 'resources/jbforest/photo', element: <Resources /> },
       { path: 'donation', element: <Donation /> },
       { path: 'donation/:subCategory', element: <Donation /> },
       { path: 'esg', element: <ESG /> },

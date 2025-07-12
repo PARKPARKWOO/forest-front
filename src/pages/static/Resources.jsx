@@ -6,7 +6,12 @@ export default function Resources() {
   const subCategories = [
     { id: 'general', name: '총회 자료집', path: '/resources/general' },
     { id: 'documents', name: '문서자료실', path: '/resources/documents' },
-    { id: 'media', name: '미디어 자료실', path: '/resources/media' },
+    { id: 'jbforest', name: '전북생명의숲자료실', path: '/resources/jbforest' },
+  ];
+
+  const jbforestSubCategories = [
+    { id: 'video', name: '영상자료실', path: '/resources/jbforest/video' },
+    { id: 'photo', name: '사진자료실', path: '/resources/jbforest/photo' },
   ];
 
   const getContent = () => {
@@ -36,40 +41,115 @@ export default function Resources() {
               <p className="text-lg text-gray-700 leading-relaxed">
                 전북생명의숲의 다양한 문서 자료를 확인하실 수 있습니다.
               </p>
+              <div className="bg-blue-50 p-6 rounded-lg">
+                <h3 className="text-xl font-semibold text-blue-800 mb-4">문서자료실</h3>
+                <p className="text-blue-700 mb-4">
+                  전국 생명의숲 공식 문서자료실로 이동하여 다양한 문서 자료를 확인하실 수 있습니다.
+                </p>
+                <a 
+                  href="https://forest.or.kr/documents?page=2" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200"
+                >
+                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                  문서자료실 바로가기
+                </a>
+              </div>
+            </div>
+          )
+        };
+      case 'jbforest':
+        return {
+          title: '전북생명의숲자료실',
+          content: (
+            <div className="space-y-6">
+              <p className="text-lg text-gray-700 leading-relaxed">
+                전북생명의숲의 영상 및 사진 자료를 확인하실 수 있습니다.
+              </p>
               <div className="grid md:grid-cols-2 gap-6">
-                <div className="bg-white p-6 rounded-lg shadow-sm">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-3">정책 자료</h3>
-                  <ul className="space-y-2 text-gray-600">
-                    <li>• 환경 정책 자료</li>
-                    <li>• 숲 보전 정책</li>
-                    <li>• 교육 프로그램 자료</li>
-                  </ul>
-                </div>
-                <div className="bg-white p-6 rounded-lg shadow-sm">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-3">연구 보고서</h3>
-                  <ul className="space-y-2 text-gray-600">
-                    <li>• 생태 조사 보고서</li>
-                    <li>• 교육 효과 분석</li>
-                    <li>• 활동 성과 보고서</li>
-                  </ul>
+                {jbforestSubCategories.map((category) => (
+                  <Link
+                    key={category.id}
+                    to={category.path}
+                    className="bg-green-50 p-6 rounded-lg text-center hover:bg-green-100 transition-colors duration-200"
+                  >
+                    <h3 className="text-lg font-semibold text-green-800 mb-2">{category.name}</h3>
+                    <p className="text-green-700 text-sm">자세히 보기</p>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )
+        };
+      case 'video':
+        return {
+          title: '영상자료실',
+          content: (
+            <div className="space-y-6">
+              <p className="text-lg text-gray-700 leading-relaxed">
+                전북생명의숲의 영상 자료를 확인하실 수 있습니다.
+              </p>
+              <div className="bg-red-50 p-6 rounded-lg">
+                <h3 className="text-xl font-semibold text-red-800 mb-4">영상자료실</h3>
+                <p className="text-red-700 mb-4">
+                  전북생명의숲의 다양한 활동 영상을 확인하실 수 있습니다.
+                </p>
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="bg-white p-4 rounded-lg">
+                    <h4 className="font-semibold text-gray-800 mb-2">활동 영상</h4>
+                    <ul className="space-y-2 text-sm text-gray-600">
+                      <li>• 숲 교육 프로그램</li>
+                      <li>• 환경 보전 활동</li>
+                      <li>• 시민 참여 프로그램</li>
+                    </ul>
+                  </div>
+                  <div className="bg-white p-4 rounded-lg">
+                    <h4 className="font-semibold text-gray-800 mb-2">홍보 영상</h4>
+                    <ul className="space-y-2 text-sm text-gray-600">
+                      <li>• 조직 소개 영상</li>
+                      <li>• 프로그램 홍보</li>
+                      <li>• 성과 보고 영상</li>
+                    </ul>
+                  </div>
                 </div>
               </div>
             </div>
           )
         };
-      case 'media':
+      case 'photo':
         return {
-          title: '미디어 자료실',
+          title: '사진자료실',
           content: (
             <div className="space-y-6">
               <p className="text-lg text-gray-700 leading-relaxed">
-                전북생명의숲의 미디어 자료를 확인하실 수 있습니다.
+                전북생명의숲의 사진 자료를 확인하실 수 있습니다.
               </p>
-              <div className="bg-orange-50 p-6 rounded-lg">
-                <h3 className="text-xl font-semibold text-orange-800 mb-4">미디어 자료실</h3>
-                <p className="text-orange-700">
-                  활동 사진, 동영상, 홍보 자료 등을 확인하실 수 있습니다.
+              <div className="bg-yellow-50 p-6 rounded-lg">
+                <h3 className="text-xl font-semibold text-yellow-800 mb-4">사진자료실</h3>
+                <p className="text-yellow-700 mb-4">
+                  전북생명의숲의 다양한 활동 사진을 확인하실 수 있습니다.
                 </p>
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="bg-white p-4 rounded-lg">
+                    <h4 className="font-semibold text-gray-800 mb-2">활동 사진</h4>
+                    <ul className="space-y-2 text-sm text-gray-600">
+                      <li>• 숲 가꾸기 활동</li>
+                      <li>• 교육 프로그램</li>
+                      <li>• 시민 참여 행사</li>
+                    </ul>
+                  </div>
+                  <div className="bg-white p-4 rounded-lg">
+                    <h4 className="font-semibold text-gray-800 mb-2">기록 사진</h4>
+                    <ul className="space-y-2 text-sm text-gray-600">
+                      <li>• 조직 활동 기록</li>
+                      <li>• 성과 사진</li>
+                      <li>• 역사적 순간</li>
+                    </ul>
+                  </div>
+                </div>
               </div>
             </div>
           )
@@ -101,6 +181,56 @@ export default function Resources() {
   };
 
   const { title, content } = getContent();
+
+  // 전북생명의숲자료실의 하위 카테고리인 경우
+  if (subCategory === 'video' || subCategory === 'photo') {
+    return (
+      <div className="max-w-4xl mx-auto py-8 px-4">
+        {/* 상위 카테고리 네비게이션 */}
+        <div className="mb-8">
+          <div className="flex flex-wrap gap-2">
+            {subCategories.map((category) => (
+              <Link
+                key={category.id}
+                to={category.path}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ${
+                  category.id === 'jbforest'
+                    ? 'bg-purple-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                {category.name}
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        {/* 하위 카테고리 네비게이션 */}
+        <div className="mb-8">
+          <div className="flex flex-wrap gap-2">
+            {jbforestSubCategories.map((category) => (
+              <Link
+                key={category.id}
+                to={category.path}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ${
+                  subCategory === category.id
+                    ? 'bg-green-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                {category.name}
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        <h1 className="text-3xl font-bold text-gray-900 mb-6">{title}</h1>
+        <div className="prose prose-green max-w-none">
+          {content}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto py-8 px-4">

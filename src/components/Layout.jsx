@@ -48,7 +48,7 @@ const STATIC_CATEGORIES = [
     children: [
       { id: 'resources-general', name: '총회 자료집', path: '/resources/general' },
       { id: 'resources-documents', name: '문서자료실', path: '/resources/documents' },
-      { id: 'resources-media', name: '미디어 자료실', path: '/resources/media' },
+      { id: 'resources-jbforest', name: '전북생명의숲자료실', path: '/resources/jbforest' },
     ],
   },
   {
