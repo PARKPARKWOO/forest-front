@@ -13,9 +13,12 @@ import Donation from './pages/static/Donation';
 import News from './pages/static/News';
 import Resources from './pages/static/Resources';
 import ESG from './pages/static/ESG';
+import Notice from './pages/static/Notice';
 import ProgramCreate from './pages/program/ProgramCreate';
 import ProgramDetail from './pages/program/ProgramDetail';
 import ProgramEdit from './pages/program/ProgramEdit';
+import NoticeDetail from './pages/notice/NoticeDetail';
+import NoticeWrite from './pages/notice/NoticeWrite';
 import ProtectedRoute from './components/ProtectedRoute';
 import UserManagement from './pages/admin/UserManagement';
 
@@ -43,6 +46,13 @@ const router = createBrowserRouter([
       { path: 'donation/:subCategory', element: <Donation /> },
       { path: 'esg', element: <ESG /> },
       { path: 'esg/:subCategory', element: <ESG /> },
+      { path: 'notice', element: <Notice /> },
+      { path: 'notice/:noticeId', element: <NoticeDetail /> },
+      { path: 'notice/write', element: (
+        <ProtectedRoute>
+          <NoticeWrite />
+        </ProtectedRoute>
+      ) },
       { path: 'admin', element: (
         <ProtectedRoute>
           <AdminDashboard />
