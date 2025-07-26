@@ -22,28 +22,54 @@ const STATIC_CATEGORIES = [
     ],
   },
   {
-    id: 'forest-and-sharing',
-    name: '숲과나눔',
-    path: '/forest-and-sharing',
+    id: 'programs',
+    name: '프로그램 신청',
+    path: '/programs',
     children: [
-      { id: 'forest-and-sharing-forest-news', name: '생명의숲 소식', path: '/forest-and-sharing/forest-news' },
-      { id: 'forest-and-sharing-our-forest', name: '우리의 숲', path: '/forest-and-sharing/our-forest' },
-      { id: 'forest-and-sharing-beautiful-companion', name: '아름다운 동행', path: '/forest-and-sharing/beautiful-companion' },
+      { id: 'programs-participate', name: '참여 프로그램', path: '/programs/participate' },
+      { id: 'programs-guide', name: '숲 해설가 양성교육', path: '/programs/guide' },
+      { id: 'programs-volunteer', name: '자원봉사활동 신청', path: '/programs/volunteer' },
     ],
   },
   {
-    id: 'citizen-participation',
-    name: '시민참여',
-    path: '/citizen-participation',
+    id: 'news',
+    name: '소식',
+    path: '/news',
     children: [
-      { id: 'citizen-participation-membership-guide', name: '회원가입 안내', path: '/citizen-participation/membership-guide' },
-      { id: 'citizen-participation-program-application', name: '프로그램 신청', path: '/citizen-participation/program-application' },
+      { id: 'news-notice', name: '공지사항', path: '/news/notice' },
+      { id: 'news-activities', name: '생명의 숲 활동보기', path: '/news/activities' },
+      { id: 'news-board', name: '자유게시판', path: '/news/board' },
     ],
   },
   {
-    id: 'notice',
-    name: '공지사항',
-    path: '/notice',
+    id: 'resources',
+    name: '자료실',
+    path: '/resources',
+    children: [
+      { id: 'resources-general', name: '총회 자료집', path: '/resources/general' },
+      { id: 'resources-documents', name: '문서자료실', path: '/resources/documents' },
+      { id: 'resources-jbforest', name: '전북생명의숲자료실', path: '/resources/jbforest' },
+    ],
+  },
+  {
+    id: 'donation',
+    name: '후원하기',
+    path: '/donation',
+    children: [
+      { id: 'donation-guide', name: '후원 안내', path: '/donation/guide' },
+      { id: 'donation-individual', name: '개인후원 신청', path: '/donation/individual' },
+      { id: 'donation-corporate', name: '기업후원 신청', path: '/donation/corporate' },
+      { id: 'donation-history', name: '나의 기부금 내역 조회', path: '/donation/history' },
+    ],
+  },
+  {
+    id: 'esg',
+    name: '기업 사회 공헌활동',
+    path: '/esg',
+    children: [
+      { id: 'esg-activities', name: '기업 ESG 사회 공헌활동', path: '/esg/activities' },
+      { id: 'esg-report', name: '기업 ESH 보고서', path: '/esg/report' },
+    ],
   },
 ];
 
