@@ -8,16 +8,21 @@ import PostWrite from './pages/post/PostWrite';
 import PostDetail from './pages/post/PostDetail';
 import Login from './pages/Login';
 import Intro from './pages/static/Intro';
-import Programs from './pages/static/Programs';
-import Donation from './pages/static/Donation';
-import News from './pages/static/News';
-import Resources from './pages/static/Resources';
-import ESG from './pages/static/ESG';
+import Notice from './pages/static/Notice';
 import ProgramCreate from './pages/program/ProgramCreate';
 import ProgramDetail from './pages/program/ProgramDetail';
 import ProgramEdit from './pages/program/ProgramEdit';
+import NoticeDetail from './pages/notice/NoticeDetail';
+import NoticeWrite from './pages/notice/NoticeWrite';
 import ProtectedRoute from './components/ProtectedRoute';
 import UserManagement from './pages/admin/UserManagement';
+import ForestAndSharing from './pages/static/ForestAndSharing';
+import CitizenParticipation from './pages/static/CitizenParticipation';
+import ForestNews from './pages/static/ForestNews';
+import OurForest from './pages/static/OurForest';
+import BeautifulCompanion from './pages/static/BeautifulCompanion';
+import MembershipGuide from './pages/static/MembershipGuide';
+import ProgramApplication from './pages/static/ProgramApplication';
 
 const router = createBrowserRouter([
   {
@@ -28,21 +33,18 @@ const router = createBrowserRouter([
       { path: 'login', element: <Login /> },
       { path: 'intro', element: <Intro /> },
       { path: 'intro/:subCategory', element: <Intro /> },
-      { path: 'programs', element: <Programs /> },
-      { path: 'programs/create', element: <ProgramCreate /> },
-      { path: 'programs/edit/:id', element: <ProgramEdit /> },
-      { path: 'programs/detail/:id', element: <ProgramDetail /> },
-      { path: 'programs/:subCategory', element: <Programs /> },
-      { path: 'news', element: <News /> },
-      { path: 'news/:subCategory', element: <News /> },
-      { path: 'resources', element: <Resources /> },
-      { path: 'resources/:subCategory', element: <Resources /> },
-      { path: 'resources/jbforest/video', element: <Resources /> },
-      { path: 'resources/jbforest/photo', element: <Resources /> },
-      { path: 'donation', element: <Donation /> },
-      { path: 'donation/:subCategory', element: <Donation /> },
-      { path: 'esg', element: <ESG /> },
-      { path: 'esg/:subCategory', element: <ESG /> },
+      { path: 'forest-and-sharing/forest-news', element: <ForestNews /> },
+      { path: 'forest-and-sharing/our-forest', element: <OurForest /> },
+      { path: 'forest-and-sharing/beautiful-companion', element: <BeautifulCompanion /> },
+      { path: 'citizen-participation/membership-guide', element: <MembershipGuide /> },
+      { path: 'citizen-participation/program-application', element: <ProgramApplication /> },
+      { path: 'notice', element: <Notice /> },
+      { path: 'notice/:noticeId', element: <NoticeDetail /> },
+      { path: 'notice/write', element: (
+        <ProtectedRoute>
+          <NoticeWrite />
+        </ProtectedRoute>
+      ) },
       { path: 'admin', element: (
         <ProtectedRoute>
           <AdminDashboard />
