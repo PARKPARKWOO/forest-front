@@ -5,9 +5,13 @@ import { getNoticeList, deleteNotice } from '../../services/noticeService';
 import { useAuth } from '../../contexts/AuthContext';
 
 export default function Notice() {
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
+
+  // 디버깅용 로그
+  console.log('Notice 컴포넌트 - isAdmin:', isAdmin);
+  console.log('Notice 컴포넌트 - user:', user);
 
   // 공지사항 목록 조회
   const { data: noticeData, isLoading, error } = useQuery({
@@ -69,7 +73,7 @@ export default function Notice() {
         {isAdmin && (
           <div className="mb-6">
             <Link
-              to="/notice/write"
+              to="/news/notice/write"
               className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors duration-200"
             >
               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -95,7 +99,7 @@ export default function Notice() {
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
                       <Link
-                        to={`/notice/${notice.id}`}
+                        to={`/news/notice/${notice.id}`}
                         className="block group"
                       >
                         <h3 className="text-lg font-semibold text-gray-900 group-hover:text-green-600 transition-colors duration-200 mb-2">

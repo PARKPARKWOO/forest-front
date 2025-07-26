@@ -46,9 +46,9 @@ const router = createBrowserRouter([
       { path: 'donation/:subCategory', element: <Donation /> },
       { path: 'esg', element: <ESG /> },
       { path: 'esg/:subCategory', element: <ESG /> },
-      { path: 'notice', element: <Notice /> },
-      { path: 'notice/:noticeId', element: <NoticeDetail /> },
-      { path: 'notice/write', element: (
+      { path: 'news/notice', element: <Notice /> },
+      { path: 'news/notice/:noticeId', element: <NoticeDetail /> },
+      { path: 'news/notice/write', element: (
         <ProtectedRoute>
           <NoticeWrite />
         </ProtectedRoute>

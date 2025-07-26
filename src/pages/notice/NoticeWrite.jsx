@@ -33,7 +33,7 @@ export default function NoticeWrite() {
     mutationFn: createNotice,
     onSuccess: () => {
       alert('공지사항이 성공적으로 작성되었습니다.');
-      navigate('/notice');
+      navigate('/news/notice');
     },
     onError: (error) => {
       alert('공지사항 작성 실패: ' + error.message);
@@ -217,7 +217,7 @@ export default function NoticeWrite() {
             <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
               <button
                 type="button"
-                onClick={() => navigate('/notice')}
+                onClick={() => navigate('/news/notice')}
                 className="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors duration-200"
               >
                 취소
