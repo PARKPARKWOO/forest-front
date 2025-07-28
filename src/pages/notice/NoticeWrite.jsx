@@ -67,8 +67,11 @@ export default function NoticeWrite() {
     const allDynamicFields = isImportant ? { important: true, ...dynamicFields } : dynamicFields;
     
     if (Object.keys(allDynamicFields).length > 0) {
-      // @RequestPart로 받으므로 JSON 문자열로 전송
-      submitData.append('dynamic_fields', JSON.stringify(allDynamicFields));
+      // dynamic_fields는 JSON 형태로 전송
+      const dynamicFieldsBlob = new Blob([JSON.stringify(allDynamicFields)], {
+        type: 'application/json'
+      });
+      submitData.append('dynamic_fields', dynamicFieldsBlob);
     }
 
     createNoticeMutation.mutate(submitData);
