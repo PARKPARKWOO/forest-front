@@ -1,4 +1,5 @@
 import { useParams, Link } from 'react-router-dom';
+import GoogleMap from '../../components/GoogleMap';
 
 export default function Intro() {
   const { subCategory } = useParams();
@@ -106,6 +107,15 @@ export default function Intro() {
                   <li>• 지하철: [지하철 정보]</li>
                   <li>• 자동차: [주차 정보]</li>
                 </ul>
+              </div>
+              
+              {/* Google Maps */}
+              <div className="bg-white p-6 rounded-lg shadow-sm">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">지도</h3>
+                <GoogleMap 
+                  address="전북특별자치도 전주시 덕진구 중상보로30, 3층"
+                  className="w-full h-96"
+                />
               </div>
             </div>
           )
