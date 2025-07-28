@@ -25,11 +25,7 @@ export const getNoticeDetail = async (noticeId) => {
 // 공지사항 생성
 export const createNotice = async (formData) => {
   try {
-    const response = await axiosInstance.post('/notice', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    const response = await axiosInstance.post('/notice', formData);
     return response.data;
   } catch (error) {
     console.error('공지사항 생성 중 오류:', error);
