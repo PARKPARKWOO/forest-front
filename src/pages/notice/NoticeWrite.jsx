@@ -63,15 +63,14 @@ export default function NoticeWrite() {
       submitData.append('images', file);
     });
     
-    // 중요 표시 추가
-    if (isImportant) {
-      submitData.append('dynamic_fields', JSON.stringify({ important: true }));
-    }
+    // 중요 표시 및 동적 필드 추가
+    const allDynamicFields = isImportant ? { important: true, ...dynamicFields } : dynamicFields;
     
-    // 기타 동적 필드 추가
-    if (Object.keys(dynamicFields).length > 0) {
-      const existingFields = isImportant ? { important: true, ...dynamicFields } : dynamicFields;
-      submitData.append('dynamic_fields', JSON.stringify(existingFields));
+    if (Object.keys(allDynamicFields).length > 0) {
+      // Map<String, Any> 형태로 서버에 전송하기 위해 개별 키-값 쌍으로 추가
+      Object.entries(allDynamicFields).forEach(([key, value]) => {
+        submitData.append(`dynamic_fields[${key}]`, value);
+      });
     }
 
     createNoticeMutation.mutate(submitData);
