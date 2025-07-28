@@ -16,6 +16,7 @@ export default function NoticeWrite() {
   
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [dynamicFields, setDynamicFields] = useState({});
+  const [isImportant, setIsImportant] = useState(false);
 
   // 관리자가 아닌 경우 접근 차단
   if (!isAdmin) {
@@ -62,9 +63,15 @@ export default function NoticeWrite() {
       submitData.append('images', file);
     });
     
-    // 동적 필드 추가
+    // 중요 표시 추가
+    if (isImportant) {
+      submitData.append('dynamic_fields', JSON.stringify({ important: true }));
+    }
+    
+    // 기타 동적 필드 추가
     if (Object.keys(dynamicFields).length > 0) {
-      submitData.append('dynamic_fields', JSON.stringify(dynamicFields));
+      const existingFields = isImportant ? { important: true, ...dynamicFields } : dynamicFields;
+      submitData.append('dynamic_fields', JSON.stringify(existingFields));
     }
 
     createNoticeMutation.mutate(submitData);
@@ -137,6 +144,20 @@ export default function NoticeWrite() {
                 placeholder="공지사항 내용을 입력하세요"
                 required
               />
+            </div>
+
+            {/* 중요 표시 */}
+            <div>
+              <label className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  checked={isImportant}
+                  onChange={(e) => setIsImportant(e.target.checked)}
+                  className="w-4 h-4 text-red-600 bg-gray-100 border-gray-300 rounded focus:ring-red-500 focus:ring-2"
+                />
+                <span className="text-sm font-medium text-gray-700">중요 공지사항으로 설정</span>
+              </label>
+              <p className="text-xs text-gray-500 mt-1">중요 공지사항은 빨간색으로 강조되어 표시됩니다.</p>
             </div>
 
             {/* 이미지 업로드 */}

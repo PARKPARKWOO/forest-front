@@ -4,6 +4,7 @@ import { fetchCategories } from '../../services/categoryService';
 import { fetchPrograms } from '../../services/programService';
 import { getProgramStatusInfo } from '../../utils/programStatus';
 import { fetchPostsByCategory } from '../../services/postService';
+import { getNoticeList } from '../../services/noticeService';
 
 export default function UserHome() {
   // 카테고리 조회
@@ -39,6 +40,23 @@ export default function UserHome() {
   // 서버 응답 구조에서 programs 추출 (안전한 접근)
   const programs = programsData?.data?.contents || [];
 
+  // 공지사항 조회
+  const { data: noticeData } = useQuery({
+    queryKey: ['notices', 'home'],
+    queryFn: () => getNoticeList(1),
+  });
+
+  const notices = noticeData?.data?.contents || [];
+
+  // 중요 공지사항을 상단에 정렬
+  const sortedNotices = [...notices].sort((a, b) => {
+    const aImportant = a.dynamicFields?.important || false;
+    const bImportant = b.dynamicFields?.important || false;
+    if (aImportant && !bImportant) return -1;
+    if (!aImportant && bImportant) return 1;
+    return new Date(b.updatedAt) - new Date(a.updatedAt);
+  });
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
       {/* 메인 배너 */}
@@ -73,6 +91,70 @@ export default function UserHome() {
               alt="숲 이미지" 
               className="w-full h-full object-cover"
             />
+          </div>
+        </div>
+      </div>
+
+      {/* 공지사항 섹션 */}
+      <div className="mb-12">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold text-gray-900 flex items-center">
+            <svg className="w-6 h-6 mr-2 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5.5a.5.5 0 01.5-.5h1a.5.5 0 01.5.5v1a.5.5 0 01-.5.5h-1a.5.5 0 01-.5-.5v-1zM11 5.5a.5.5 0 01.5-.5h1a.5.5 0 01.5.5v1a.5.5 0 01-.5.5h-1a.5.5 0 01-.5-.5v-1zM11 5.5a.5.5 0 01.5-.5h1a.5.5 0 01.5.5v1a.5.5 0 01-.5.5h-1a.5.5 0 01-.5-.5v-1z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 2a1 1 0 00-1 1v1a1 1 0 001 1h6a1 1 0 001-1V3a1 1 0 00-1-1H9z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 6a1 1 0 011-1h16a1 1 0 011 1v12a1 1 0 01-1 1H4a1 1 0 01-1-1V6z" />
+            </svg>
+            공지사항
+          </h2>
+          <Link 
+            to="/news/notice"
+            className="text-green-600 hover:text-green-700 font-medium flex items-center"
+          >
+            전체 공지사항 보기
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
+            </svg>
+          </Link>
+        </div>
+        <div className="bg-white rounded-lg shadow-sm border-l-4 border-red-500">
+          <div className="p-6">
+            {notices.length > 0 ? (
+              <div className="space-y-4">
+                {sortedNotices.slice(0, 5).map((notice, index) => (
+                  <Link
+                    key={notice.id}
+                    to={`/news/notice/${notice.id}`}
+                    className="block group"
+                  >
+                    <div className="flex justify-between items-center py-3 border-b border-gray-100 last:border-b-0">
+                      <div className="flex items-center space-x-3">
+                        <span className="text-sm font-medium text-red-600 bg-red-50 px-2 py-1 rounded-full">
+                          공지
+                        </span>
+                        <h3 className="text-gray-900 group-hover:text-red-600 font-medium truncate pr-4">
+                          {notice.title}
+                          {notice.dynamicFields?.important && (
+                            <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-red-200 text-red-800">
+                              [중요]
+                            </span>
+                          )}
+                        </h3>
+                      </div>
+                      <div className="flex items-center space-x-4 text-sm text-gray-500">
+                        <span>{notice.authorName}</span>
+                        <span>{new Date(notice.updatedAt).toLocaleDateString('ko-KR')}</span>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <div className="text-6xl mb-4">📢</div>
+                <p className="text-gray-500">등록된 공지사항이 없습니다.</p>
+                <p className="text-sm text-gray-400 mt-2">새로운 공지사항이 등록되면 여기에 표시됩니다.</p>
+              </div>
+            )}
           </div>
         </div>
       </div>

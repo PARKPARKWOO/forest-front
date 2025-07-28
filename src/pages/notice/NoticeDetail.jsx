@@ -62,7 +62,14 @@ export default function NoticeDetail() {
         <div className="bg-white rounded-lg shadow-sm p-8">
           {/* 헤더 */}
           <div className="border-b border-gray-200 pb-6 mb-6">
-            <h1 className="text-3xl font-bold text-gray-900 mb-4">{notice.title}</h1>
+            <div className="flex items-center mb-4">
+              <h1 className="text-3xl font-bold text-gray-900">{notice.title}</h1>
+              {notice.dynamicFields?.important && (
+                <span className="ml-3 inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+                  [중요]
+                </span>
+              )}
+            </div>
             <div className="flex items-center text-sm text-gray-500 space-x-6">
               <span>작성자: {notice.authorName}</span>
               <span>작성일: {new Date(notice.updatedAt).toLocaleDateString('ko-KR', {

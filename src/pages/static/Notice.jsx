@@ -60,6 +60,15 @@ export default function Notice() {
   const hasNextPage = noticeData?.data?.hasNextPage || false;
   const totalCount = noticeData?.data?.totalCount || 0;
 
+  // 중요 공지사항을 상단에 정렬
+  const sortedNotices = [...notices].sort((a, b) => {
+    const aImportant = a.dynamicFields?.important || false;
+    const bImportant = b.dynamicFields?.important || false;
+    if (aImportant && !bImportant) return -1;
+    if (!aImportant && bImportant) return 1;
+    return new Date(b.updatedAt) - new Date(a.updatedAt);
+  });
+
   return (
     <div className="min-h-[60vh] bg-gray-50">
       <div className="container mx-auto px-6 py-8">
@@ -94,7 +103,7 @@ export default function Notice() {
             </div>
           ) : (
             <div className="divide-y divide-gray-200">
-              {notices.map((notice) => (
+              {sortedNotices.map((notice) => (
                 <div key={notice.id} className="p-6 hover:bg-gray-50 transition-colors duration-200">
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
@@ -104,6 +113,11 @@ export default function Notice() {
                       >
                         <h3 className="text-lg font-semibold text-gray-900 group-hover:text-green-600 transition-colors duration-200 mb-2">
                           {notice.title}
+                          {notice.dynamicFields?.important && (
+                            <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                              [중요]
+                            </span>
+                          )}
                         </h3>
                         <div className="flex items-center text-sm text-gray-500 space-x-4">
                           <span>작성자: {notice.authorName}</span>
