@@ -1,5 +1,5 @@
 import { useParams, Link } from 'react-router-dom';
-import logo from '../assets/logo.png';
+import logo from '../../assets/logo.png';
 
 export default function Intro() {
   const { subCategory } = useParams();
