@@ -1,4 +1,5 @@
 import { useParams, Link } from 'react-router-dom';
+import logo from '../assets/logo.png';
 
 export default function Intro() {
   const { subCategory } = useParams();
@@ -56,7 +57,7 @@ export default function Intro() {
                       {/* 로고 */}
                       <div className="flex-shrink-0">
                         <img 
-                          src="../assets/logo.png" 
+                          src={logo} 
                           alt="전북생명의숲 로고" 
                           className="h-20 w-auto object-contain"
                         />
