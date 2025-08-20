@@ -64,11 +64,11 @@ export default function Intro() {
 
               {/* 로고 */}
               <div className="flex justify-center py-8">
-                <div className="bg-white p-6 rounded-xl shadow-lg border border-green-200">
+                <div className="bg-white p-8 rounded-xl shadow-lg border border-green-200">
                   <img 
-                    src="@logo.png" 
+                    src="/assets/images/logo.png" 
                     alt="전북생명의숲 로고" 
-                    className="h-24 w-auto object-contain"
+                    className="h-32 w-auto object-contain"
                   />
                 </div>
               </div>
