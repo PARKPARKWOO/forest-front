@@ -147,23 +147,14 @@ export default function Intro() {
                 
                 <div className="flex flex-col items-center space-y-8">
                   {/* 최고 지도층 */}
-                  <div className="bg-green-600 text-white px-8 py-4 rounded-lg font-semibold text-center min-w-[250px] text-lg relative">
+                  <div className="bg-green-600 text-white px-8 py-4 rounded-lg font-semibold text-center min-w-[250px] text-lg">
                     공동대표 / 이사장
-                    {/* 아래쪽 연결선 */}
-                    <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-full w-1 h-8 bg-green-600"></div>
                   </div>
                   
                   {/* 이사회와 감사 */}
-                  <div className="flex justify-center space-x-10 relative">
-                    {/* 위쪽 연결선들 */}
-                    <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-full w-1 h-8 bg-green-600"></div>
-                    <div className="absolute top-0 left-1/4 transform -translate-x-1/2 -translate-y-full w-1 h-8 bg-green-600"></div>
-                    <div className="absolute top-0 right-1/4 transform translate-x-1/2 -translate-y-full w-1 h-8 bg-green-600"></div>
-                    
-                    <div className="bg-blue-600 text-white px-8 py-4 rounded-lg font-semibold text-center min-w-[150px] text-lg relative">
+                  <div className="flex justify-center space-x-10">
+                    <div className="bg-blue-600 text-white px-8 py-4 rounded-lg font-semibold text-center min-w-[150px] text-lg">
                       이사회
-                      {/* 아래쪽 연결선 */}
-                      <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-full w-1 h-8 bg-blue-600"></div>
                     </div>
                     <div className="bg-gray-600 text-white px-8 py-4 rounded-lg font-semibold text-center min-w-[100px] text-lg">
                       감사
@@ -171,52 +162,29 @@ export default function Intro() {
                   </div>
                   
                   {/* 운영위원회 */}
-                  <div className="bg-orange-500 text-white px-8 py-4 rounded-lg font-semibold text-center min-w-[200px] text-lg relative">
+                  <div className="bg-orange-500 text-white px-8 py-4 rounded-lg font-semibold text-center min-w-[200px] text-lg">
                     운영위원회
-                    {/* 위쪽 연결선 */}
-                    <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-full w-1 h-8 bg-orange-500"></div>
-                    {/* 아래쪽 연결선 */}
-                    <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-full w-1 h-8 bg-orange-500"></div>
                   </div>
                   
                   {/* 4개 분과 */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-6 relative">
-                    {/* 위쪽 연결선들 */}
-                    <div className="absolute top-0 left-1/8 transform -translate-x-1/2 -translate-y-full w-1 h-8 bg-orange-500"></div>
-                    <div className="absolute top-0 left-3/8 transform -translate-x-1/2 -translate-y-full w-1 h-8 bg-orange-500"></div>
-                    <div className="absolute top-0 right-3/8 transform translate-x-1/2 -translate-y-full w-1 h-8 bg-orange-500"></div>
-                    <div className="absolute top-0 right-1/8 transform translate-x-1/2 -translate-y-full w-1 h-8 bg-orange-500"></div>
-                    
-                    <div className="bg-purple-400 text-white px-6 py-3 rounded-lg font-medium text-center text-base relative">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                    <div className="bg-purple-400 text-white px-6 py-3 rounded-lg font-medium text-center text-base">
                       탄소중립숲분과
-                      {/* 아래쪽 연결선 */}
-                      <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-full w-1 h-8 bg-purple-400"></div>
                     </div>
-                    <div className="bg-purple-400 text-white px-6 py-3 rounded-lg font-medium text-center text-base relative">
+                    <div className="bg-purple-400 text-white px-6 py-3 rounded-lg font-medium text-center text-base">
                       숲문화탐방분과
-                      {/* 아래쪽 연결선 */}
-                      <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-full w-1 h-8 bg-purple-400"></div>
                     </div>
-                    <div className="bg-purple-400 text-white px-6 py-3 rounded-lg font-medium text-center text-base relative">
+                    <div className="bg-purple-400 text-white px-6 py-3 rounded-lg font-medium text-center text-base">
                       숲교육분과
-                      {/* 아래쪽 연결선 */}
-                      <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-full w-1 h-8 bg-purple-400"></div>
                     </div>
-                    <div className="bg-purple-400 text-white px-6 py-3 rounded-lg font-medium text-center text-base relative">
+                    <div className="bg-purple-400 text-white px-6 py-3 rounded-lg font-medium text-center text-base">
                       숲조직홍보분과
-                      {/* 아래쪽 연결선 */}
-                      <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-full w-1 h-8 bg-purple-400"></div>
                     </div>
                   </div>
                   
                   {/* 사무국 */}
-                  <div className="bg-yellow-500 text-white px-8 py-4 rounded-lg font-semibold text-center min-w-[120px] text-lg relative">
+                  <div className="bg-yellow-500 text-white px-8 py-4 rounded-lg font-semibold text-center min-w-[120px] text-lg">
                     사무국
-                    {/* 위쪽 연결선들 */}
-                    <div className="absolute top-0 left-1/8 transform -translate-x-1/2 -translate-y-full w-1 h-8 bg-purple-400"></div>
-                    <div className="absolute top-0 left-3/8 transform -translate-x-1/2 -translate-y-full w-1 h-8 bg-purple-400"></div>
-                    <div className="absolute top-0 right-3/8 transform translate-x-1/2 -translate-y-full w-1 h-8 bg-purple-400"></div>
-                    <div className="absolute top-0 right-1/8 transform translate-x-1/2 -translate-y-full w-1 h-8 bg-purple-400"></div>
                   </div>
                 </div>
               </div>
