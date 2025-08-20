@@ -50,26 +50,32 @@ export default function Intro() {
                     회원분들께서도 앞으로 (사)전북생명의숲과 함께 해 주시기 바랍니다.
                   </p>
                   
-                  {/* 서명 */}
-                  <div className="mt-10 pt-8 border-t-2 border-green-200 text-center">
-                    <p className="text-xl text-gray-700 mb-4">(사)전북생명의숲 공동대표</p>
-                    <div className="flex flex-wrap justify-center gap-6 text-xl font-semibold text-green-800">
-                      <span>박해영</span>
-                      <span>박종민</span>
-                      <span>김정숙</span>
+                  {/* 서명과 로고 */}
+                  <div className="mt-10 pt-8 border-t-2 border-green-200">
+                    <div className="flex items-center justify-between">
+                      {/* 로고 */}
+                      <div className="flex-shrink-0">
+                        <img 
+                          src="../assets/logo.png" 
+                          alt="전북생명의숲 로고" 
+                          className="h-20 w-auto object-contain"
+                        />
+                      </div>
+                      
+                      {/* 서명 */}
+                      <div className="text-center flex-1">
+                        <p className="text-xl text-gray-700 mb-4">(사)전북생명의숲 공동대표</p>
+                        <div className="flex flex-wrap justify-center gap-6 text-xl font-semibold text-green-800">
+                          <span>박해영</span>
+                          <span>박종민</span>
+                          <span>김정숙</span>
+                        </div>
+                      </div>
+                      
+                      {/* 빈 공간 (균형을 위해) */}
+                      <div className="flex-shrink-0 w-20"></div>
                     </div>
                   </div>
-                </div>
-              </div>
-
-              {/* 로고 */}
-              <div className="flex justify-center py-8">
-                <div className="bg-white p-8 rounded-xl shadow-lg border border-green-200">
-                  <img 
-                    src="/assets/images/logo.png" 
-                    alt="전북생명의숲 로고" 
-                    className="h-32 w-auto object-contain"
-                  />
                 </div>
               </div>
             </div>
@@ -147,43 +153,59 @@ export default function Intro() {
                 
                 <div className="flex flex-col items-center space-y-8">
                   {/* 최고 지도층 */}
-                  <div className="bg-green-600 text-white px-8 py-4 rounded-lg font-semibold text-center min-w-[250px] text-lg">
+                  <div className="bg-green-600 text-white px-8 py-4 rounded-lg font-semibold text-center min-w-[250px] text-lg cursor-pointer hover:bg-green-700 transition-colors duration-200">
                     공동대표 / 이사장
                   </div>
                   
                   {/* 이사회와 감사 */}
                   <div className="flex justify-center space-x-10">
-                    <div className="bg-blue-600 text-white px-8 py-4 rounded-lg font-semibold text-center min-w-[150px] text-lg">
+                    <div 
+                      className="bg-blue-600 text-white px-8 py-4 rounded-lg font-semibold text-center min-w-[150px] text-lg cursor-pointer hover:bg-blue-700 transition-colors duration-200"
+                      onClick={() => {
+                        const element = document.getElementById('board-section');
+                        if (element) {
+                          element.scrollIntoView({ behavior: 'smooth' });
+                        }
+                      }}
+                    >
                       이사회
                     </div>
-                    <div className="bg-gray-600 text-white px-8 py-4 rounded-lg font-semibold text-center min-w-[100px] text-lg">
+                    <div className="bg-gray-600 text-white px-8 py-4 rounded-lg font-semibold text-center min-w-[100px] text-lg cursor-pointer hover:bg-gray-700 transition-colors duration-200">
                       감사
                     </div>
                   </div>
                   
                   {/* 운영위원회 */}
-                  <div className="bg-orange-500 text-white px-8 py-4 rounded-lg font-semibold text-center min-w-[200px] text-lg">
+                  <div 
+                    className="bg-orange-500 text-white px-8 py-4 rounded-lg font-semibold text-center min-w-[200px] text-lg cursor-pointer hover:bg-orange-600 transition-colors duration-200"
+                    onClick={() => {
+                      const element = document.getElementById('committee-section');
+                      if (element) {
+                        element.scrollIntoView({ behavior: 'smooth' });
+                      }
+                    }}
+                  >
                     운영위원회
                   </div>
                   
                   {/* 4개 분과 */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                    <div className="bg-purple-400 text-white px-6 py-3 rounded-lg font-medium text-center text-base">
+                    <div className="bg-purple-400 text-white px-6 py-3 rounded-lg font-medium text-center text-base cursor-pointer hover:bg-purple-500 transition-colors duration-200">
                       탄소중립숲분과
                     </div>
-                    <div className="bg-purple-400 text-white px-6 py-3 rounded-lg font-medium text-center text-base">
+                    <div className="bg-purple-400 text-white px-6 py-3 rounded-lg font-medium text-center text-base cursor-pointer hover:bg-purple-500 transition-colors duration-200">
                       숲문화탐방분과
                     </div>
-                    <div className="bg-purple-400 text-white px-6 py-3 rounded-lg font-medium text-center text-base">
+                    <div className="bg-purple-400 text-white px-6 py-3 rounded-lg font-medium text-center text-base cursor-pointer hover:bg-purple-500 transition-colors duration-200">
                       숲교육분과
                     </div>
-                    <div className="bg-purple-400 text-white px-6 py-3 rounded-lg font-medium text-center text-base">
+                    <div className="bg-purple-400 text-white px-6 py-3 rounded-lg font-medium text-center text-base cursor-pointer hover:bg-purple-500 transition-colors duration-200">
                       숲조직홍보분과
                     </div>
                   </div>
                   
                   {/* 사무국 */}
-                  <div className="bg-yellow-500 text-white px-8 py-4 rounded-lg font-semibold text-center min-w-[120px] text-lg">
+                  <div className="bg-yellow-500 text-white px-8 py-4 rounded-lg font-semibold text-center min-w-[120px] text-lg cursor-pointer hover:bg-yellow-600 transition-colors duration-200">
                     사무국
                   </div>
                 </div>
@@ -210,7 +232,7 @@ export default function Intro() {
                 </div>
 
                 {/* 이사회 */}
-                <div className="bg-white p-8 rounded-lg shadow-sm border-l-4 border-blue-500">
+                <div id="board-section" className="bg-white p-8 rounded-lg shadow-sm border-l-4 border-blue-500">
                   <h3 className="text-2xl font-bold text-blue-800 mb-6">이사회</h3>
                   <div className="grid md:grid-cols-2 gap-6 text-gray-700 text-lg">
                     <div className="space-y-2">
@@ -253,7 +275,7 @@ export default function Intro() {
                 </div>
 
                 {/* 운영위원회 */}
-                <div className="bg-white p-8 rounded-lg shadow-sm border-l-4 border-orange-500">
+                <div id="committee-section" className="bg-white p-8 rounded-lg shadow-sm border-l-4 border-orange-500">
                   <h3 className="text-2xl font-bold text-orange-800 mb-6">운영위원회 (운영위원장: 황중하)</h3>
                   
                   {/* 탄소중립분과 */}
