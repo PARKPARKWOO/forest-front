@@ -5,10 +5,74 @@ import { useState, useEffect } from 'react';
 function IndividualDonationForm() {
   const [step, setStep] = useState(1); // 1: 기부금영수증 희망 여부, 2: 신청 폼
   const [receiptWanted, setReceiptWanted] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleReceiptChoice = (wantsReceipt) => {
     setReceiptWanted(wantsReceipt);
     setStep(2);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    try {
+      const formData = new FormData(e.target);
+      
+      // 폼 데이터 수집
+      const name = formData.get('name');
+      const phoneNumber = formData.get('phoneNumber');
+      const supportType = formData.get('donationType');
+      const account = formData.get('account');
+      const withdrawalDate = parseInt(formData.get('withdrawalDate'));
+      const address = receiptWanted ? formData.get('address') : null;
+      const email = formData.get('email') || null;
+      const birthDay = receiptWanted ? null : formData.get('birthDay');
+      const nationalIdIdentificationNumber = receiptWanted ? formData.get('nationalId') : null;
+      const isDonation = receiptWanted;
+      const personalInformationCollectConsent = formData.get('privacyAgreement') === 'yes';
+      const thirdPartyProvisionConsent = formData.get('thirdPartyAgreement') === 'yes';
+
+      const requestData = {
+        name,
+        phoneNumber,
+        supportType,
+        account,
+        withdrawalDate,
+        address,
+        email,
+        birthDay,
+        nationalIdIdentificationNumber,
+        isDonation,
+        personalInformationCollectConsent,
+        thirdPartyProvisionConsent,
+      };
+
+      // API 호출
+      const response = await fetch('/api/v1/support', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestData),
+      });
+
+      if (response.ok) {
+        alert('후원 신청이 완료되었습니다. 감사합니다!');
+        // 폼 초기화 또는 성공 페이지로 이동
+        setStep(1);
+        setReceiptWanted(null);
+        e.target.reset();
+      } else {
+        const errorData = await response.json();
+        alert(`후원 신청 중 오류가 발생했습니다: ${errorData.message || '알 수 없는 오류'}`);
+      }
+    } catch (error) {
+      console.error('후원 신청 오류:', error);
+      alert('후원 신청 중 오류가 발생했습니다. 다시 시도해주세요.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // 1단계: 기부금영수증 처리 희망 여부
@@ -64,7 +128,7 @@ function IndividualDonationForm() {
         )}
       </div>
 
-      <form className="bg-white p-8 rounded-xl shadow-lg space-y-8">
+      <form className="bg-white p-8 rounded-xl shadow-lg space-y-8" onSubmit={handleSubmit}>
         {/* 기본 정보 */}
         <div className="space-y-6">
           <h3 className="text-xl font-bold text-gray-800 border-b-2 border-green-200 pb-2">기본 정보</h3>
@@ -76,6 +140,7 @@ function IndividualDonationForm() {
               </label>
               <input
                 type="text"
+                name="name"
                 required
                 className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-green-500 focus:outline-none text-lg"
                 placeholder="성함을 입력해주세요"
@@ -88,6 +153,7 @@ function IndividualDonationForm() {
               </label>
               <input
                 type="tel"
+                name="phoneNumber"
                 required
                 className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-green-500 focus:outline-none text-lg"
                 placeholder="예시) 010-0000-0000"
@@ -171,6 +237,7 @@ function IndividualDonationForm() {
               </label>
               <input
                 type="text"
+                name="account"
                 required
                 className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-green-500 focus:outline-none text-lg"
                 placeholder="예시) 은행명(전북은행,농협 등등) 000-0000-0000-00"
@@ -205,12 +272,13 @@ function IndividualDonationForm() {
                 {receiptWanted ? '주민등록번호' : '생년월일'} <span className="text-red-500">*</span>
               </label>
               {receiptWanted ? (
-                <input
-                  type="text"
-                  required
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-green-500 focus:outline-none text-lg"
-                  placeholder="000000-0000000"
-                  maxLength="14"
+                                 <input
+                   type="text"
+                   name="nationalId"
+                   required
+                   className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-green-500 focus:outline-none text-lg"
+                   placeholder="000000-0000000"
+                   maxLength="14"
                   onKeyPress={(e) => {
                     // 숫자와 하이픈만 입력 허용
                     if (!/[0-9-]/.test(e.key)) {
@@ -230,11 +298,12 @@ function IndividualDonationForm() {
                   }}
                 />
               ) : (
-                <input
-                  type="date"
-                  required
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-green-500 focus:outline-none text-lg"
-                />
+                                 <input
+                   type="date"
+                   name="birthDay"
+                   required
+                   className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-green-500 focus:outline-none text-lg"
+                 />
               )}
               {receiptWanted && (
                 <p className="text-sm text-gray-600 mt-1">기부금영수증 발급을 위해 주민등록번호가 필요합니다.</p>
@@ -246,12 +315,13 @@ function IndividualDonationForm() {
                 <label className="block text-lg font-semibold text-gray-700 mb-2">
                   주소 <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="text"
-                  required
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-green-500 focus:outline-none text-lg"
-                  placeholder="기부금 영수증 발급을 위해 주소를 입력해주세요"
-                />
+                                 <input
+                   type="text"
+                   name="address"
+                   required
+                   className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-green-500 focus:outline-none text-lg"
+                   placeholder="기부금 영수증 발급을 위해 주소를 입력해주세요"
+                 />
               </div>
             )}
           </div>
@@ -260,11 +330,12 @@ function IndividualDonationForm() {
             <label className="block text-lg font-semibold text-gray-700 mb-2">
               이메일
             </label>
-            <input
-              type="email"
-              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-green-500 focus:outline-none text-lg"
-              placeholder="SNS 수신에 동의하신다면 이메일 주소를 기입해주세요"
-            />
+                         <input
+               type="email"
+               name="email"
+               className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-green-500 focus:outline-none text-lg"
+               placeholder="SNS 수신에 동의하신다면 이메일 주소를 기입해주세요"
+             />
           </div>
         </div>
 
@@ -330,9 +401,14 @@ function IndividualDonationForm() {
         <div className="text-center">
           <button
             type="submit"
-            className="bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-8 rounded-lg text-xl transition-colors duration-300 shadow-lg hover:shadow-xl"
+            disabled={isSubmitting}
+            className={`font-bold py-4 px-8 rounded-lg text-xl transition-colors duration-300 shadow-lg hover:shadow-xl ${
+              isSubmitting 
+                ? 'bg-gray-400 cursor-not-allowed' 
+                : 'bg-green-600 hover:bg-green-700 text-white'
+            }`}
           >
-            후원 신청하기
+            {isSubmitting ? '처리중...' : '후원 신청하기'}
           </button>
         </div>
       </form>
