@@ -5,6 +5,8 @@ import kakaoLogo from '../assets/kakao.png';
 import naverLogo from '../assets/naver.png';
 import naverbandLogo from '../assets/naverband.svg';
 import instagramLogo from '../assets/instagram.png';
+import daumLogo from '../assets/daum.png';
+import facebookLogo from '../assets/facebook.png';
 import logo from '../assets/logo.png';
 import { useAuth } from '../contexts/AuthContext';
 import { useState } from 'react';
@@ -118,7 +120,19 @@ export default function Layout({ children, showLoginModal, setShowLoginModal }) 
       {/* 소셜 미디어 사이드 네비게이션 */}
       <div className="fixed right-6 top-1/2 -translate-y-1/2 z-40 flex flex-col gap-3">
         <a 
-          href="https://band.us/band/63904219" 
+          href="https://cafe.daum.net/isoup" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="bg-white rounded-full p-2 shadow-lg hover:shadow-xl transition-shadow duration-300 group"
+        >
+          <img 
+            src={daumLogo} 
+            alt="다음카페" 
+            className="w-10 h-10 group-hover:scale-110 transition-transform duration-300"
+          />
+        </a>
+        <a 
+          href="https://band.us/n/a1a3A0z3e4uaj" 
           target="_blank" 
           rel="noopener noreferrer"
           className="bg-white rounded-full p-2 shadow-lg hover:shadow-xl transition-shadow duration-300 group"
@@ -138,6 +152,18 @@ export default function Layout({ children, showLoginModal, setShowLoginModal }) 
           <img 
             src={instagramLogo} 
             alt="인스타그램" 
+            className="w-10 h-10 group-hover:scale-110 transition-transform duration-300"
+          />
+        </a>
+        <a 
+          href="https://www.facebook.com/jbforest" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="bg-white rounded-full p-2 shadow-lg hover:shadow-xl transition-shadow duration-300 group"
+        >
+          <img 
+            src={facebookLogo} 
+            alt="페이스북" 
             className="w-10 h-10 group-hover:scale-110 transition-transform duration-300"
           />
         </a>
@@ -346,7 +372,15 @@ export default function Layout({ children, showLoginModal, setShowLoginModal }) 
               </p>
               <div className="flex space-x-4">
                 <a 
-                  href="https://band.us/band/63904219" 
+                  href="https://cafe.daum.net/isoup" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="bg-green-700 hover:bg-green-600 p-2 rounded-full transition-colors duration-300"
+                >
+                  <img src={daumLogo} alt="다음카페" className="w-6 h-6" />
+                </a>
+                <a 
+                  href="https://band.us/n/a1a3A0z3e4uaj" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="bg-green-700 hover:bg-green-600 p-2 rounded-full transition-colors duration-300"
@@ -360,6 +394,14 @@ export default function Layout({ children, showLoginModal, setShowLoginModal }) 
                   className="bg-green-700 hover:bg-green-600 p-2 rounded-full transition-colors duration-300"
                 >
                   <img src={instagramLogo} alt="인스타그램" className="w-6 h-6" />
+                </a>
+                <a 
+                  href="https://www.facebook.com/jbforest" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="bg-green-700 hover:bg-green-600 p-2 rounded-full transition-colors duration-300"
+                >
+                  <img src={facebookLogo} alt="페이스북" className="w-6 h-6" />
                 </a>
               </div>
             </div>
@@ -377,7 +419,7 @@ export default function Layout({ children, showLoginModal, setShowLoginModal }) 
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                   </svg>
-                  contact@jbforest.org
+                  forestjb@hanmail.net
                 </li>
                 <li className="flex items-center">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">

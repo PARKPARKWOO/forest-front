@@ -36,17 +36,233 @@ export default function Donation() {
         return {
           title: '개인후원 신청',
           content: (
-            <div className="space-y-6">
-              <p className="text-lg text-gray-700 leading-relaxed">
-                개인 후원 신청을 위한 안내입니다.
-              </p>
-              <div className="bg-white p-6 rounded-lg shadow-sm">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">후원 계좌</h3>
-                <div className="space-y-2">
-                  <p>농협은행: 123-4567-8901-23</p>
-                  <p>예금주: 전북생명의숲</p>
-                </div>
+            <div className="space-y-8">
+              <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-8 rounded-xl">
+                <h2 className="text-2xl font-bold text-green-800 mb-4 text-center">전북생명의숲 회원가입 및 후원신청</h2>
+                <p className="text-green-700 text-center mb-8">
+                  여러분의 소중한 후원이 더 푸른 숲을 만듭니다
+                </p>
               </div>
+
+              <form className="bg-white p-8 rounded-xl shadow-lg space-y-8">
+                {/* 기본 정보 */}
+                <div className="space-y-6">
+                  <h3 className="text-xl font-bold text-gray-800 border-b-2 border-green-200 pb-2">기본 정보</h3>
+                  
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-lg font-semibold text-gray-700 mb-2">
+                        성함을 기입해 주세요. <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-green-500 focus:outline-none text-lg"
+                        placeholder="성함을 입력해주세요"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-lg font-semibold text-gray-700 mb-2">
+                        휴대전화를 남겨주세요. <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="tel"
+                        required
+                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-green-500 focus:outline-none text-lg"
+                        placeholder="예시) 010-0000-0000"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* 후원 선택 */}
+                <div className="space-y-6">
+                  <h3 className="text-xl font-bold text-gray-800 border-b-2 border-green-200 pb-2">후원 선택</h3>
+                  
+                  <div className="space-y-4">
+                    <label className="block text-lg font-semibold text-gray-700 mb-4">
+                      후원선택 <span className="text-red-500">*</span>
+                    </label>
+                    
+                    <div className="space-y-3">
+                      <label className="flex items-center space-x-3 cursor-pointer">
+                        <input type="radio" name="donationType" value="general" className="w-5 h-5 text-green-600" />
+                        <span className="text-lg">일반회원 : 월 10,000원 이상</span>
+                      </label>
+                      
+                      <label className="flex items-center space-x-3 cursor-pointer">
+                        <input type="radio" name="donationType" value="family" className="w-5 h-5 text-green-600" />
+                        <span className="text-lg">가족회원 : 월 15,000원 이상</span>
+                      </label>
+                      
+                      <label className="flex items-center space-x-3 cursor-pointer">
+                        <input type="radio" name="donationType" value="corporate" className="w-5 h-5 text-green-600" />
+                        <span className="text-lg">기업회원 : 월 30,000원 이상</span>
+                      </label>
+                      
+                      <label className="flex items-center space-x-3 cursor-pointer">
+                        <input type="radio" name="donationType" value="lifetime" className="w-5 h-5 text-green-600" />
+                        <span className="text-lg">평생회원 (1회 1,000,000원 이상)</span>
+                      </label>
+                      
+                      <label className="flex items-center space-x-3 cursor-pointer">
+                        <input type="radio" name="donationType" value="other" className="w-5 h-5 text-green-600" />
+                        <span className="text-lg">기타:</span>
+                        <input
+                          type="text"
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:border-green-500 focus:outline-none"
+                          placeholder="금액을 입력해주세요"
+                        />
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 계좌 정보 */}
+                <div className="space-y-6">
+                  <h3 className="text-xl font-bold text-gray-800 border-b-2 border-green-200 pb-2">계좌 정보</h3>
+                  
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-lg font-semibold text-gray-700 mb-2">
+                        은행명 및 계좌번호 <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-green-500 focus:outline-none text-lg"
+                        placeholder="예시) 은행명(전북은행,농협 등등) 000-0000-0000-00"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-lg font-semibold text-gray-700 mb-2">
+                        출금일 <span className="text-red-500">*</span>
+                      </label>
+                      <div className="flex space-x-4">
+                        <label className="flex items-center space-x-2 cursor-pointer">
+                          <input type="radio" name="withdrawalDate" value="10" className="w-5 h-5 text-green-600" />
+                          <span className="text-lg">10일</span>
+                        </label>
+                        <label className="flex items-center space-x-2 cursor-pointer">
+                          <input type="radio" name="withdrawalDate" value="25" className="w-5 h-5 text-green-600" />
+                          <span className="text-lg">25일</span>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 추가 정보 */}
+                <div className="space-y-6">
+                  <h3 className="text-xl font-bold text-gray-800 border-b-2 border-green-200 pb-2">추가 정보</h3>
+                  
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-lg font-semibold text-gray-700 mb-2">
+                        생년월일 <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="date"
+                        required
+                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-green-500 focus:outline-none text-lg"
+                      />
+                      <p className="text-sm text-gray-600 mt-1">*단, 기부금영수증 발급을 원하시면 주민번호 13자리 전체 입력</p>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-lg font-semibold text-gray-700 mb-2">
+                        주소
+                      </label>
+                      <input
+                        type="text"
+                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-green-500 focus:outline-none text-lg"
+                        placeholder="기부금 영수증 발급 및 우편물 수신에 동의하신다면 주소를 기입해주세요"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-lg font-semibold text-gray-700 mb-2">
+                      이메일
+                    </label>
+                    <input
+                      type="email"
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-green-500 focus:outline-none text-lg"
+                      placeholder="SNS 수신에 동의하신다면 이메일 주소를 기입해주세요"
+                    />
+                  </div>
+                </div>
+
+                {/* 동의사항 */}
+                <div className="space-y-6">
+                  <h3 className="text-xl font-bold text-gray-800 border-b-2 border-green-200 pb-2">동의사항</h3>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-lg font-semibold text-gray-700 mb-2">
+                        개인정보수집동의 <span className="text-red-500">*</span>
+                      </label>
+                      <div className="bg-gray-50 p-4 rounded-lg mb-3">
+                        <p className="text-gray-700">
+                          - 수집 이용 목적 : 회비납부 및 정보제공 서비스 (수집항목 : 성명,생년월일,주소,전화번호,은행명,계좌번호), 기부금영수증발급을 위한 고유식별정보 / 회원관리서비스
+                        </p>
+                      </div>
+                      <div className="flex space-x-4">
+                        <label className="flex items-center space-x-2 cursor-pointer">
+                          <input type="radio" name="privacyAgreement" value="yes" required className="w-5 h-5 text-green-600" />
+                          <span className="text-lg">네, 동의합니다.</span>
+                        </label>
+                        <label className="flex items-center space-x-2 cursor-pointer">
+                          <input type="radio" name="privacyAgreement" value="no" className="w-5 h-5 text-green-600" />
+                          <span className="text-lg">아니오, 동의하지 않습니다.</span>
+                        </label>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-lg font-semibold text-gray-700 mb-2">
+                        개인정보 제3자 동의서 <span className="text-red-500">*</span>
+                      </label>
+                      <div className="bg-gray-50 p-4 rounded-lg mb-3">
+                        <p className="text-gray-700">
+                          - 제공대상: 금융결제원, 휴먼소프트웨어 외 / 제공목적: CMS출금이체 등
+                        </p>
+                      </div>
+                      <div className="flex space-x-4">
+                        <label className="flex items-center space-x-2 cursor-pointer">
+                          <input type="radio" name="thirdPartyAgreement" value="yes" required className="w-5 h-5 text-green-600" />
+                          <span className="text-lg">네, 동의합니다.</span>
+                        </label>
+                        <label className="flex items-center space-x-2 cursor-pointer">
+                          <input type="radio" name="thirdPartyAgreement" value="no" className="w-5 h-5 text-green-600" />
+                          <span className="text-lg">아니오, 동의하지 않습니다.</span>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 최종 동의 */}
+                <div className="bg-green-50 p-6 rounded-lg">
+                  <p className="text-green-800 text-lg leading-relaxed">
+                    위와같이 전북생명의숲 회원으로 가입하며 CMS출금 이체 신청에 동의합니다. 
+                    모든 항목에 대하여 동의 및 거부할 수 있으며, 거부시 회비납부, 회원관리 서비스에 제한이 있을 수 있습니다. 
+                    제공된 정보의 보유기간은 5년입니다.
+                  </p>
+                </div>
+
+                {/* 제출 버튼 */}
+                <div className="text-center">
+                  <button
+                    type="submit"
+                    className="bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-8 rounded-lg text-xl transition-colors duration-300 shadow-lg hover:shadow-xl"
+                  >
+                    후원 신청하기
+                  </button>
+                </div>
+              </form>
             </div>
           )
         };

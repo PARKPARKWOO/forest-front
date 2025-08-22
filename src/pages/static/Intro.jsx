@@ -350,7 +350,7 @@ export default function Intro() {
                 <h3 className="text-2xl font-semibold text-gray-800 mb-6">연락처</h3>
                 <p className="text-gray-700 mb-6 text-lg">
                   전화: 063-231-4455<br />
-                  이메일: contact@jbforest.org
+                  이메일: forestjb@hanmail.net
                 </p>
                 <h3 className="text-2xl font-semibold text-gray-800 mb-6">교통편</h3>
                 <ul className="space-y-3 text-gray-600 text-lg">
