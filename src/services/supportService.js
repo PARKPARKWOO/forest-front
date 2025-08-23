@@ -3,7 +3,7 @@ import axiosInstance from '../axiosInstance';
 // 후원신청 목록 조회
 export const fetchSupporters = async (page = 1, size = 10) => {
   try {
-    const response = await axiosInstance.get('/api/v1/forest/supporters', {
+    const response = await axiosInstance.get('/forest/supporters', {
       params: {
         page,
         size,
