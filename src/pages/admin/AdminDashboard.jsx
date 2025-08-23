@@ -12,7 +12,7 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
   const [activeMenu, setActiveMenu] = useState('categories');
   const [selectedProgramId, setSelectedProgramId] = useState(null);
-  const [supportersPage, setSupportersPage] = useState(1);
+  const [supportersPage, setSupportersPage] = useState(0);
   const [supportersSize] = useState(10);
 
   // 카테고리 목록 조회
@@ -495,37 +495,37 @@ export default function AdminDashboard() {
                 {/* 페이지네이션 */}
                 {totalPages > 1 && (
                   <div className="flex items-center justify-between mt-6">
-                    <div className="text-sm text-gray-700">
-                      페이지 {supportersPage} / {totalPages}
-                    </div>
+                                       <div className="text-sm text-gray-700">
+                     페이지 {supportersPage + 1} / {totalPages}
+                   </div>
                     <div className="flex space-x-2">
-                      <button
-                        onClick={() => setSupportersPage(Math.max(1, supportersPage - 1))}
-                        disabled={supportersPage === 1}
-                        className={`px-3 py-2 text-sm font-medium rounded-md ${
-                          supportersPage === 1
-                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                            : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-                        }`}
-                      >
-                        이전
-                      </button>
-                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                        const pageNum = Math.max(1, Math.min(totalPages - 4, supportersPage - 2)) + i;
-                        return (
-                          <button
-                            key={pageNum}
-                            onClick={() => setSupportersPage(pageNum)}
-                            className={`px-3 py-2 text-sm font-medium rounded-md ${
-                              pageNum === supportersPage
-                                ? 'bg-green-600 text-white'
-                                : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-                            }`}
-                          >
-                            {pageNum}
-                          </button>
-                        );
-                      })}
+                                           <button
+                       onClick={() => setSupportersPage(Math.max(0, supportersPage - 1))}
+                       disabled={supportersPage === 0}
+                       className={`px-3 py-2 text-sm font-medium rounded-md ${
+                         supportersPage === 0
+                           ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                           : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                       }`}
+                     >
+                       이전
+                     </button>
+                                             {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                         const pageNum = Math.max(0, Math.min(totalPages - 4, supportersPage - 2)) + i;
+                         return (
+                           <button
+                             key={pageNum}
+                             onClick={() => setSupportersPage(pageNum)}
+                             className={`px-3 py-2 text-sm font-medium rounded-md ${
+                               pageNum === supportersPage
+                                 ? 'bg-green-600 text-white'
+                                 : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                             }`}
+                           >
+                             {pageNum + 1}
+                           </button>
+                         );
+                       })}
                       <button
                         onClick={() => setSupportersPage(Math.min(totalPages, supportersPage + 1))}
                         disabled={supportersPage === totalPages}

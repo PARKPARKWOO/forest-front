@@ -69,12 +69,6 @@ function IndividualDonationForm() {
   if (step === 1) {
     return (
       <div className="space-y-8">
-        <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-8 rounded-xl">
-          <h2 className="text-2xl font-bold text-green-800 mb-4 text-center">전북생명의숲 회원가입 및 후원신청</h2>
-          <p className="text-green-700 text-center mb-8">
-            여러분의 소중한 후원이 더 푸른 숲을 만듭니다
-          </p>
-        </div>
 
         <div className="bg-white p-8 rounded-xl shadow-lg text-center">
           <h3 className="text-xl font-bold text-gray-800 mb-6">기부금영수증 처리를 희망하시나요?</h3>
