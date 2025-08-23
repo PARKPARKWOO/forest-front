@@ -67,7 +67,7 @@ export default function AdminDashboard() {
 
   const supporters = supportersData?.data?.contents || [];
   const totalPages = supportersData?.data?.totalPages || 0;
-  const totalElements = supportersData?.data?.totalElements || 0;
+  const totalElements = supportersData?.data?.totalCount || 0;
 
   // 후원신청 완료 처리
   const { mutate: completeSupport } = useMutation({
