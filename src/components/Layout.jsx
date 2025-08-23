@@ -58,9 +58,7 @@ const STATIC_CATEGORIES = [
     name: '후원하기',
     path: '/donation',
     children: [
-      { id: 'donation-guide', name: '후원 안내', path: '/donation/guide' },
-      { id: 'donation-individual', name: '개인후원 신청', path: '/donation/individual' },
-      { id: 'donation-corporate', name: '기업후원 신청', path: '/donation/corporate' },
+      { id: 'donation-individual', name: '후원 신청', path: '/donation/individual' },
       { id: 'donation-history', name: '나의 기부금 내역 조회', path: '/donation/history' },
     ],
   },
