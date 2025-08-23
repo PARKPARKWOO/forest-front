@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchCategories, deleteCategory } from '../../services/categoryService';
 import { fetchPrograms, deleteProgram, fetchProgramApplies } from '../../services/programService';
-import { fetchSupporters } from '../../services/supportService';
+import { fetchSupporters, markSupportComplete } from '../../services/supportService';
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { getProgramStatusInfo } from '../../utils/programStatus';
@@ -68,6 +68,18 @@ export default function AdminDashboard() {
   const supporters = supportersData?.data?.contents || [];
   const totalPages = supportersData?.data?.totalPages || 0;
   const totalElements = supportersData?.data?.totalElements || 0;
+
+  // 후원신청 완료 처리
+  const { mutate: completeSupport } = useMutation({
+    mutationFn: markSupportComplete,
+    onSuccess: () => {
+      alert('후원신청이 완료 처리되었습니다.');
+      queryClient.invalidateQueries({ queryKey: ['supporters'] });
+    },
+    onError: (error) => {
+      alert('후원신청 완료 처리에 실패했습니다: ' + error.message);
+    },
+  });
 
   // 카테고리 삭제
   const { mutate: removeCategory } = useMutation({
@@ -445,8 +457,11 @@ export default function AdminDashboard() {
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">후원 유형</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">계좌 정보</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">출금일</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">주민등록번호</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">기부금영수증</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">신청일</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">상태</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">작업</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
@@ -478,6 +493,9 @@ export default function AdminDashboard() {
                           {supporter.withdrawalDate}일
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {supporter.nationalIdIdentificationNumber || '-'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                             supporter.isDonation ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
                           }`}>
@@ -486,6 +504,27 @@ export default function AdminDashboard() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {new Date(supporter.createdAt).toLocaleDateString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            supporter.isCompleted ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                          }`}>
+                            {supporter.isCompleted ? '완료' : '대기'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {!supporter.isCompleted && (
+                            <button
+                              onClick={() => {
+                                if (window.confirm('이 후원신청을 완료 처리하시겠습니까?')) {
+                                  completeSupport(supporter.id);
+                                }
+                              }}
+                              className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs font-medium transition-colors duration-200"
+                            >
+                              완료
+                            </button>
+                          )}
                         </td>
                       </tr>
                     ))}
