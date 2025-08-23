@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { getCurrentUser } from '../services/userService';
 import { getCookie, removeCookie } from '../utils/cookieUtils';
 
@@ -9,8 +9,9 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
+  const intervalRef = useRef(null);
 
-  const initializeAuth = async () => {
+  const fetchUserData = async () => {
     try {
       const userData = await getCurrentUser();
       console.log('AuthContext - userData:', userData);
@@ -21,21 +22,40 @@ export function AuthProvider({ children }) {
       setIsAdmin(adminStatus);
     } catch (error) {
       console.error('사용자 정보 로드 실패:', error);
-      setIsAuthenticated(true);
+      setIsAuthenticated(false);
+      setUser(null);
+      setIsAdmin(false);
     }
+  };
+
+  const initializeAuth = async () => {
+    await fetchUserData();
     setIsInitialized(true);
   };
 
+  // 초기 인증 및 주기적 사용자 정보 갱신
   useEffect(() => {
     initializeAuth();
-  }, []);
+
+    // 1분마다 사용자 정보 갱신
+    intervalRef.current = setInterval(() => {
+      if (isAuthenticated) {
+        fetchUserData();
+      }
+    }, 60000); // 60초 = 1분
+
+    // 컴포넌트 언마운트 시 인터벌 정리
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, [isAuthenticated]);
 
   const login = async (userData) => {
     try {
       setIsAuthenticated(true);
-      const userInfo = await getCurrentUser();
-      setUser(userInfo);
-      setIsAdmin(userInfo.role === 'ROLE_ADMIN');
+      await fetchUserData();
     } catch (error) {
       console.error('Login error:', error);
     }
@@ -47,6 +67,12 @@ export function AuthProvider({ children }) {
     setIsAuthenticated(false);
     setUser(null);
     setIsAdmin(false);
+    
+    // 로그아웃 시 인터벌 정리
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
   };
 
   if (!isInitialized) {

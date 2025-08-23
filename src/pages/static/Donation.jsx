@@ -1,5 +1,6 @@
 import { useParams, Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import axiosInstance from '../../axiosInstance';
 
 // 개인후원 신청 폼 컴포넌트
 function IndividualDonationForm() {
@@ -49,24 +50,13 @@ function IndividualDonationForm() {
       };
 
       // API 호출
-      const response = await fetch('/api/v1/support', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestData),
-      });
+      const response = await axiosInstance.post('/support', requestData);
 
-      if (response.ok) {
-        alert('후원 신청이 완료되었습니다. 감사합니다!');
-        // 폼 초기화 또는 성공 페이지로 이동
-        setStep(1);
-        setReceiptWanted(null);
-        e.target.reset();
-      } else {
-        const errorData = await response.json();
-        alert(`후원 신청 중 오류가 발생했습니다: ${errorData.message || '알 수 없는 오류'}`);
-      }
+      alert('후원 신청이 완료되었습니다. 감사합니다!');
+      // 폼 초기화 또는 성공 페이지로 이동
+      setStep(1);
+      setReceiptWanted(null);
+      e.target.reset();
     } catch (error) {
       console.error('후원 신청 오류:', error);
       alert('후원 신청 중 오류가 발생했습니다. 다시 시도해주세요.');
@@ -111,22 +101,16 @@ function IndividualDonationForm() {
     );
   }
 
-  // 2단계: 신청 폼
-  return (
-    <div className="space-y-8">
-      <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-8 rounded-xl">
-        <h2 className="text-2xl font-bold text-green-800 mb-4 text-center">전북생명의숲 회원가입 및 후원신청</h2>
-        <p className="text-green-700 text-center mb-8">
-          여러분의 소중한 후원이 더 푸른 숲을 만듭니다
-        </p>
-        {receiptWanted && (
-          <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg">
-            <p className="text-yellow-800 font-semibold text-center">
-              기부금영수증 처리를 위해 주민등록번호와 주소 정보를 입력해주세요.
-            </p>
-          </div>
-        )}
-      </div>
+          // 2단계: 신청 폼
+        return (
+          <div className="space-y-8">
+            {receiptWanted && (
+              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg">
+                <p className="text-yellow-800 font-semibold text-center">
+                  기부금영수증 처리를 위해 주민등록번호와 주소 정보를 입력해주세요.
+                </p>
+              </div>
+            )}
 
       <form className="bg-white p-8 rounded-xl shadow-lg space-y-8" onSubmit={handleSubmit}>
         {/* 기본 정보 */}
@@ -420,19 +404,18 @@ export default function Donation() {
   const { subCategory } = useParams();
 
   const subCategories = [
-    { id: 'guide', name: '후원 안내', path: '/donation/guide' },
-    { id: 'individual', name: '개인후원 신청', path: '/donation/individual' },
-    { id: 'corporate', name: '기업후원 신청', path: '/donation/corporate' },
+    { id: 'individual', name: '후원 신청', path: '/donation/individual' },
     { id: 'history', name: '나의 기부금 내역 조회', path: '/donation/history' },
   ];
 
   const getContent = () => {
     switch (subCategory) {
-      case 'guide':
+      case 'individual':
         return {
           title: '후원 신청',
           content: (
-            <div className="space-y-6">
+            <div className="space-y-8">
+              {/* 후원금 소개 섹션 */}
               <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-8 rounded-xl">
                 <h2 className="text-2xl font-bold text-green-800 mb-6 text-center">후원금 소개</h2>
                 <p className="text-lg text-gray-700 leading-relaxed mb-6">
@@ -444,32 +427,9 @@ export default function Donation() {
                   </p>
                 </div>
               </div>
-            </div>
-          )
-        };
-      case 'individual':
-        return {
-          title: '개인후원 신청',
-          content: <IndividualDonationForm />
-        };
-      case 'corporate':
-        return {
-          title: '기업후원 신청',
-          content: (
-            <div className="space-y-6">
-              <p className="text-lg text-gray-700 leading-relaxed">
-                기업 후원 신청을 위한 안내입니다.
-              </p>
-              <div className="bg-blue-50 p-6 rounded-lg">
-                <h3 className="text-lg font-semibold text-blue-800 mb-4">기업 후원 문의</h3>
-                <p className="text-blue-700">
-                  기업 후원에 대한 자세한 안내는 전화 또는 이메일로 문의해주세요.
-                </p>
-                <div className="mt-4 space-y-2">
-                  <p>전화: 063-123-4567</p>
-                  <p>이메일: corporate@jbforest.org</p>
-                </div>
-              </div>
+              
+              {/* 후원 신청 폼 */}
+              <IndividualDonationForm />
             </div>
           )
         };
