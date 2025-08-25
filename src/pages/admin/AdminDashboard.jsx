@@ -14,6 +14,8 @@ export default function AdminDashboard() {
   const [selectedProgramId, setSelectedProgramId] = useState(null);
   const [supportersPage, setSupportersPage] = useState(0);
   const [supportersSize] = useState(10);
+  const [selectedSupporter, setSelectedSupporter] = useState(null);
+  const [showSupporterModal, setShowSupporterModal] = useState(false);
 
   // 카테고리 목록 조회
   const { data: categories, isLoading: categoriesLoading } = useQuery({
@@ -454,56 +456,26 @@ export default function AdminDashboard() {
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">성함</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">연락처</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">후원 유형</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">계좌 정보</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">출금일</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">주민등록번호</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">기부금영수증</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">처리상태</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">신청일</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">상태</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">작업</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {supporters.map((supporter) => (
-                      <tr key={supporter.id} className="hover:bg-gray-50">
+                      <tr 
+                        key={supporter.id} 
+                        className="hover:bg-gray-50 cursor-pointer"
+                        onClick={() => {
+                          setSelectedSupporter(supporter);
+                          setShowSupporterModal(true);
+                        }}
+                      >
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {supporter.name}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {supporter.phoneNumber}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            supporter.supportType === '일반회원' ? 'bg-blue-100 text-blue-800' :
-                            supporter.supportType === '가족회원' ? 'bg-green-100 text-green-800' :
-                            supporter.supportType === '기업회원' ? 'bg-purple-100 text-purple-800' :
-                            supporter.supportType === '평생회원' ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-gray-100 text-gray-800'
-                          }`}>
-                            {supporter.supportType}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          <div className="max-w-xs truncate" title={supporter.account}>
-                            {supporter.account}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {supporter.withdrawalDate}일
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {supporter.nationalIdIdentificationNumber || '-'}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            supporter.isDonation ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                          }`}>
-                            {supporter.isDonation ? '발급' : '미발급'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {new Date(supporter.createdAt).toLocaleDateString()}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${
@@ -513,18 +485,25 @@ export default function AdminDashboard() {
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {!supporter.isCompleted && (
-                            <button
-                              onClick={() => {
-                                if (window.confirm('이 후원신청을 완료 처리하시겠습니까?')) {
-                                  completeSupport(supporter.id);
-                                }
-                              }}
-                              className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs font-medium transition-colors duration-200"
-                            >
-                              완료
-                            </button>
-                          )}
+                          {new Date(supporter.createdAt).toLocaleDateString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (window.confirm('이 후원신청을 완료 처리하시겠습니까?')) {
+                                completeSupport(supporter.id);
+                              }
+                            }}
+                            disabled={supporter.isCompleted}
+                            className={`px-3 py-1 rounded text-xs font-medium transition-colors duration-200 ${
+                              supporter.isCompleted 
+                                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                : 'bg-green-600 hover:bg-green-700 text-white'
+                            }`}
+                          >
+                            완료
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -534,42 +513,42 @@ export default function AdminDashboard() {
                 {/* 페이지네이션 */}
                 {totalPages > 1 && (
                   <div className="flex items-center justify-between mt-6">
-                                       <div className="text-sm text-gray-700">
-                     페이지 {supportersPage + 1} / {totalPages}
-                   </div>
+                    <div className="text-sm text-gray-700">
+                      페이지 {supportersPage + 1} / {totalPages}
+                    </div>
                     <div className="flex space-x-2">
-                                           <button
-                       onClick={() => setSupportersPage(Math.max(0, supportersPage - 1))}
-                       disabled={supportersPage === 0}
-                       className={`px-3 py-2 text-sm font-medium rounded-md ${
-                         supportersPage === 0
-                           ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                           : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-                       }`}
-                     >
-                       이전
-                     </button>
-                                             {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                         const pageNum = Math.max(0, Math.min(totalPages - 4, supportersPage - 2)) + i;
-                         return (
-                           <button
-                             key={pageNum}
-                             onClick={() => setSupportersPage(pageNum)}
-                             className={`px-3 py-2 text-sm font-medium rounded-md ${
-                               pageNum === supportersPage
-                                 ? 'bg-green-600 text-white'
-                                 : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-                             }`}
-                           >
-                             {pageNum + 1}
-                           </button>
-                         );
-                       })}
                       <button
-                        onClick={() => setSupportersPage(Math.min(totalPages, supportersPage + 1))}
-                        disabled={supportersPage === totalPages}
+                        onClick={() => setSupportersPage(Math.max(0, supportersPage - 1))}
+                        disabled={supportersPage === 0}
                         className={`px-3 py-2 text-sm font-medium rounded-md ${
-                          supportersPage === totalPages
+                          supportersPage === 0
+                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                            : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        이전
+                      </button>
+                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                        const pageNum = Math.max(0, Math.min(totalPages - 4, supportersPage - 2)) + i;
+                        return (
+                          <button
+                            key={pageNum}
+                            onClick={() => setSupportersPage(pageNum)}
+                            className={`px-3 py-2 text-sm font-medium rounded-md ${
+                              pageNum === supportersPage
+                                ? 'bg-green-600 text-white'
+                                : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                            }`}
+                          >
+                            {pageNum + 1}
+                          </button>
+                        );
+                      })}
+                      <button
+                        onClick={() => setSupportersPage(Math.min(totalPages - 1, supportersPage + 1))}
+                        disabled={supportersPage === totalPages - 1}
+                        className={`px-3 py-2 text-sm font-medium rounded-md ${
+                          supportersPage === totalPages - 1
                             ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                             : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
                         }`}
@@ -585,6 +564,123 @@ export default function AdminDashboard() {
                 후원신청이 없습니다.
               </div>
             )}
+          </div>
+        )}
+
+        {/* 후원신청 상세 모달 */}
+        {showSupporterModal && selectedSupporter && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-center p-6 border-b">
+                <h3 className="text-lg font-medium">후원신청 상세정보</h3>
+                <button
+                  onClick={() => {
+                    setShowSupporterModal(false);
+                    setSelectedSupporter(null);
+                  }}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              
+              <div className="p-6 space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">성함</label>
+                    <p className="text-gray-900">{selectedSupporter.name}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">연락처</label>
+                    <p className="text-gray-900">{selectedSupporter.phoneNumber}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">후원 유형</label>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      selectedSupporter.supportType === '일반회원' ? 'bg-blue-100 text-blue-800' :
+                      selectedSupporter.supportType === '가족회원' ? 'bg-green-100 text-green-800' :
+                      selectedSupporter.supportType === '기업회원' ? 'bg-purple-100 text-purple-800' :
+                      selectedSupporter.supportType === '평생회원' ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {selectedSupporter.supportType}
+                    </span>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">출금일</label>
+                    <p className="text-gray-900">{selectedSupporter.withdrawalDate}일</p>
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">계좌 정보</label>
+                    <p className="text-gray-900">{selectedSupporter.account}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">주민등록번호</label>
+                    <p className="text-gray-900">{selectedSupporter.nationalIdIdentificationNumber || '-'}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">기부금영수증</label>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      selectedSupporter.isDonation ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                    }`}>
+                      {selectedSupporter.isDonation ? '발급' : '미발급'}
+                    </span>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">신청일</label>
+                    <p className="text-gray-900">{new Date(selectedSupporter.createdAt).toLocaleDateString()}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">처리상태</label>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      selectedSupporter.isCompleted ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                    }`}>
+                      {selectedSupporter.isCompleted ? '완료' : '대기'}
+                    </span>
+                  </div>
+                  {selectedSupporter.address && (
+                    <div className="col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">주소</label>
+                      <p className="text-gray-900">{selectedSupporter.address}</p>
+                    </div>
+                  )}
+                  {selectedSupporter.email && (
+                    <div className="col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">이메일</label>
+                      <p className="text-gray-900">{selectedSupporter.email}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              <div className="flex justify-end gap-3 p-6 border-t bg-gray-50">
+                {!selectedSupporter.isCompleted && (
+                  <button
+                    onClick={() => {
+                      if (window.confirm('이 후원신청을 완료 처리하시겠습니까?')) {
+                        completeSupport(selectedSupporter.id);
+                        setShowSupporterModal(false);
+                        setSelectedSupporter(null);
+                      }
+                    }}
+                    className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200"
+                  >
+                    완료 처리
+                  </button>
+                )}
+                <button
+                  onClick={() => {
+                    setShowSupporterModal(false);
+                    setSelectedSupporter(null);
+                  }}
+                  className="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200"
+                >
+                  닫기
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>
