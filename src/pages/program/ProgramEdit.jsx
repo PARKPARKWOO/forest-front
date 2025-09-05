@@ -24,6 +24,7 @@ export default function ProgramEdit() {
   });
   const [fileNames, setFileNames] = useState([]);
   const [existingFiles, setExistingFiles] = useState([]);
+  const [deleteFiles, setDeleteFiles] = useState([]);
 
   // 프로그램 정보 조회
   const { data: program, isLoading } = useQuery({
@@ -34,8 +35,8 @@ export default function ProgramEdit() {
       setFormData({
         title: data.title || '',
         content: data.content || '',
-        applyStartDate: data.applyStartDate ? data.applyStartDate.substring(0, 16).replace(' ', 'T') : '',
-        applyEndDate: data.applyEndDate ? data.applyEndDate.substring(0, 16).replace(' ', 'T') : '',
+        applyStartDate: data.applyStartDate ? data.applyStartDate.substring(0, 10) : '',
+        applyEndDate: data.applyEndDate ? data.applyEndDate.substring(0, 10) : '',
         eventDate: data.eventDate ? data.eventDate.substring(0, 16).replace(' ', 'T') : '',
         maxParticipants: data.maxParticipants || '',
         status: data.status || 'UPCOMING',
@@ -100,6 +101,8 @@ export default function ProgramEdit() {
   };
 
   const handleRemoveExistingFile = (index) => {
+    const fileToDelete = existingFiles[index];
+    setDeleteFiles(prev => [...prev, fileToDelete]);
     setExistingFiles(prev => prev.filter((_, i) => i !== index));
   };
 
@@ -130,9 +133,9 @@ export default function ProgramEdit() {
       formDataToSend.append('maxParticipants', data.maxParticipants);
       formDataToSend.append('status', data.status);
       
-      // 기존 파일 URL 추가
-      existingFiles.forEach(fileUrl => {
-        formDataToSend.append('existingFiles', fileUrl);
+      // 삭제할 파일 URL 추가
+      deleteFiles.forEach(fileUrl => {
+        formDataToSend.append('deleteFiles', fileUrl);
       });
       
       // 새 파일 추가
@@ -198,7 +201,7 @@ export default function ProgramEdit() {
               신청 시작일
             </label>
             <input
-              type="datetime-local"
+              type="date"
               value={formData.applyStartDate}
               onChange={(e) => setFormData({ ...formData, applyStartDate: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
@@ -210,7 +213,7 @@ export default function ProgramEdit() {
               신청 종료일
             </label>
             <input
-              type="datetime-local"
+              type="date"
               value={formData.applyEndDate}
               onChange={(e) => setFormData({ ...formData, applyEndDate: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"

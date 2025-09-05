@@ -74,7 +74,7 @@ const STATIC_CATEGORIES = [
 ];
 
 export default function Layout({ children, showLoginModal, setShowLoginModal }) {
-  const { isAuthenticated, logout, isAdmin } = useAuth();
+  const { isAuthenticated, logout, isAdmin, user } = useAuth();
   const navigate = useNavigate();
   const [hoveredCategory, setHoveredCategory] = useState(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState(null);
@@ -177,19 +177,24 @@ export default function Layout({ children, showLoginModal, setShowLoginModal }) 
               </Link>
               
               <div className="flex items-center space-x-4">
-                {isAuthenticated ? (
+                {isAuthenticated && user ? (
                   <>
-                    <button
-                      onClick={handleLogout}
-                      className="text-green-700 hover:text-green-500 transition-colors duration-200"
-                    >
-                      로그아웃
-                    </button>
+                    <div className="flex items-center space-x-3">
+                      <span className="text-gray-700 font-medium">
+                        {user.name}님
+                      </span>
+                      <button
+                        onClick={handleLogout}
+                        className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-md text-sm font-medium transition-colors duration-200"
+                      >
+                        로그아웃
+                      </button>
+                    </div>
                     
                     {isAdmin && (
                       <Link
                         to="/admin"
-                        className="text-green-700 hover:text-green-500 transition-colors duration-200"
+                        className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-md text-sm font-medium transition-colors duration-200"
                       >
                         관리자
                       </Link>
