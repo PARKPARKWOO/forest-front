@@ -31,36 +31,28 @@ export default function ProgramEdit() {
     queryKey: ['program', id],
     queryFn: () => fetchProgramById(id),
     enabled: !!id,
-    onSuccess: (data) => {
-      console.log('ProgramEdit - API 응답 데이터:', data);
-      console.log('ProgramEdit - 데이터 타입:', typeof data);
-      console.log('ProgramEdit - 데이터 키들:', Object.keys(data || {}));
-      
-      if (data) {
-        setFormData({
-          title: data.title || '',
-          content: data.content || '',
-          applyStartDate: data.applyStartDate ? data.applyStartDate.substring(0, 10) : '',
-          applyEndDate: data.applyEndDate ? data.applyEndDate.substring(0, 10) : '',
-          eventDate: data.eventDate ? data.eventDate.substring(0, 16).replace(' ', 'T') : '',
-          maxParticipants: data.maxParticipants || '',
-          status: data.status || 'UPCOMING',
-          files: [],
-        });
-        
-        if (data.files && data.files.length > 0) {
-          setExistingFiles(data.files);
-        }
-        
-        console.log('ProgramEdit - 폼 데이터 설정 완료');
-      } else {
-        console.error('ProgramEdit - 데이터가 없습니다');
-      }
-    },
-    onError: (error) => {
-      console.error('ProgramEdit - API 오류:', error);
-    },
   });
+
+  // 프로그램 데이터가 로드되면 폼에 세팅
+  useEffect(() => {
+    if (program) {
+      console.log('ProgramEdit - 프로그램 데이터 로드됨:', program);
+      setFormData({
+        title: program.title || '',
+        content: program.content || '',
+        applyStartDate: program.applyStartDate ? program.applyStartDate.substring(0, 10) : '',
+        applyEndDate: program.applyEndDate ? program.applyEndDate.substring(0, 10) : '',
+        eventDate: program.eventDate ? program.eventDate.substring(0, 16).replace(' ', 'T') : '',
+        maxParticipants: program.maxParticipants || '',
+        status: program.status || 'UPCOMING',
+        files: [],
+      });
+      
+      if (program.files && program.files.length > 0) {
+        setExistingFiles(program.files);
+      }
+    }
+  }, [program]);
 
   const modules = useMemo(() => ({
     toolbar: {
@@ -217,14 +209,6 @@ export default function ProgramEdit() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6 bg-white rounded-lg shadow-sm p-6">
-        {/* 디버깅 정보 */}
-        <div className="bg-gray-100 p-4 rounded-md text-sm">
-          <p><strong>현재 formData:</strong></p>
-          <pre>{JSON.stringify(formData, null, 2)}</pre>
-          <p><strong>프로그램 ID:</strong> {id}</p>
-          <p><strong>로딩 상태:</strong> {isLoading ? '로딩 중' : '완료'}</p>
-        </div>
-
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             제목
