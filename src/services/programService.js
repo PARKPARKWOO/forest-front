@@ -30,9 +30,13 @@ export const fetchPrograms = async (page = 1, size = 9) => {
 // 프로그램 상세 조회
 export const fetchProgramById = async (id) => {
   try {
+    console.log('fetchProgramById - 요청 ID:', id);
     const response = await axiosInstance.get(`/program/information/${id}`);
-    // 서버 응답 구조: { data: { ... } }
-    return response.data?.data || response.data;
+    console.log('fetchProgramById - 서버 응답:', response.data);
+    // 서버 응답 구조: { data: { ... }, success: true }
+    const result = response.data.data;
+    console.log('fetchProgramById - 반환할 데이터:', result);
+    return result;
   } catch (error) {
     console.error('Error fetching program:', error);
     throw error;
