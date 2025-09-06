@@ -3,11 +3,10 @@ import { useQuery } from '@tanstack/react-query';
 import { fetchPostById } from '../../services/postService';
 
 export default function PostDetail() {
-  const { postId } = useParams();
+  const { categoryId, postId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   
-  const categoryId = location.state?.categoryId;
   const postType = location.state?.postType;
 
   const { data: post, isLoading } = useQuery({

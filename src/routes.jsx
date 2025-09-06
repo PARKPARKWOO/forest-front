@@ -70,6 +70,7 @@ const router = createBrowserRouter([
       ) },
       { path: 'category/:categoryId', element: <Category /> },
       { path: 'category/:categoryId/write', element: <PostWrite /> },
+      { path: 'post/:categoryId/:postId', element: <PostDetail /> },
       { path: 'post/:postId', element: <PostDetail /> },
     ],
   },

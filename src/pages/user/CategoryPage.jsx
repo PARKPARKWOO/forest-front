@@ -178,7 +178,7 @@ export default function CategoryPage() {
                 <h2 className="text-xl font-semibold text-gray-800">게시글 목록</h2>
                 {isAdmin && (
                   <Link
-                    to={`/post/write?categoryId=${categoryId}`}
+                    to={`/category/${categoryId}/write`}
                     className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors duration-200"
                   >
                     글쓰기

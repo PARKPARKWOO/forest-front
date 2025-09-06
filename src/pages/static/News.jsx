@@ -1,5 +1,7 @@
 import { useParams, Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../contexts/AuthContext';
+import { fetchPostsByCategory } from '../../services/postService';
 
 export default function News() {
   const { subCategory } = useParams();
@@ -9,6 +11,13 @@ export default function News() {
     { id: 'notice', name: '공지사항', path: '/news/notice' },
     { id: 'activities', name: '전북생명의숲 활동보기', path: '/news/activities' },
   ];
+
+  // 활동보기 게시글 목록 조회 (categoryId = 0)
+  const { data: activitiesPosts, isLoading: activitiesLoading } = useQuery({
+    queryKey: ['posts', '0'],
+    queryFn: () => fetchPostsByCategory('0'),
+    enabled: subCategory === 'activities',
+  });
 
   const getContent = () => {
     switch (subCategory) {
@@ -40,29 +49,60 @@ export default function News() {
                 </p>
                 {isAdmin && (
                   <Link
-                    to="/post/write?categoryId=0"
+                    to="/category/0/write"
                     className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors duration-200"
                   >
                     글쓰기
                   </Link>
                 )}
               </div>
-              <div className="grid md:grid-cols-2 gap-6">
-                <div className="bg-white p-6 rounded-lg shadow-sm">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-3">최근 활동</h3>
-                  <ul className="space-y-2 text-gray-600">
-                    <li>• 숲 가꾸기 활동</li>
-                    <li>• 환경 교육 프로그램</li>
-                    <li>• 시민 참여 행사</li>
-                  </ul>
-                </div>
-                <div className="bg-white p-6 rounded-lg shadow-sm">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-3">활동 갤러리</h3>
-                  <ul className="space-y-2 text-gray-600">
-                    <li>• 활동 사진</li>
-                    <li>• 후기 및 소감</li>
-                    <li>• 성과 보고</li>
-                  </ul>
+              
+              {/* 게시글 목록 */}
+              <div className="bg-white rounded-lg shadow-sm">
+                <div className="p-6">
+                  <h3 className="text-xl font-semibold text-gray-800 mb-6">활동 게시글</h3>
+                  
+                  {activitiesLoading ? (
+                    <div className="text-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-green-500 mx-auto"></div>
+                      <p className="mt-2 text-gray-600">게시글을 불러오는 중...</p>
+                    </div>
+                  ) : activitiesPosts && activitiesPosts.length > 0 ? (
+                    <div className="space-y-4">
+                      {activitiesPosts.map((post) => (
+                        <div key={post.id} className="border-b border-gray-200 pb-4 last:border-b-0">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <Link
+                                to={`/post/0/${post.id}`}
+                                className="text-lg font-medium text-gray-800 hover:text-green-600 transition-colors duration-200"
+                              >
+                                {post.title}
+                              </Link>
+                              <div className="mt-2 text-sm text-gray-500">
+                                <span>{post.author}</span>
+                                <span className="mx-2">•</span>
+                                <span>{new Date(post.createdAt).toLocaleDateString()}</span>
+                              </div>
+                              {post.content && (
+                                <div className="mt-2 text-gray-600 text-sm line-clamp-2">
+                                  {post.content.replace(/<[^>]*>/g, '').substring(0, 100)}...
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-gray-500">
+                      <div className="text-4xl mb-4">📝</div>
+                      <p>아직 등록된 활동 게시글이 없습니다.</p>
+                      {isAdmin && (
+                        <p className="mt-2 text-sm">첫 번째 활동을 작성해보세요!</p>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
