@@ -7,18 +7,25 @@ export default function PostDetail() {
   const navigate = useNavigate();
   const location = useLocation();
   
+  // URL 파라미터에서 categoryId를 가져오거나, 기존 방식대로 location.state에서 가져오기
+  const finalCategoryId = categoryId || location.state?.categoryId;
   const postType = location.state?.postType;
 
+  console.log('PostDetail - URL params:', { categoryId, postId });
+  console.log('PostDetail - location.state:', location.state);
+  console.log('PostDetail - finalCategoryId:', finalCategoryId);
+
   const { data: post, isLoading } = useQuery({
-    queryKey: ['post', categoryId, postId],
-    queryFn: () => fetchPostById(categoryId, postId),
-    enabled: !!categoryId && !!postId,
+    queryKey: ['post', finalCategoryId, postId],
+    queryFn: () => fetchPostById(finalCategoryId, postId),
+    enabled: !!finalCategoryId && !!postId,
   });
 
-  if (!categoryId) {
+  if (!finalCategoryId) {
     return (
       <div className="text-center py-12">
         <h2 className="text-2xl font-bold text-gray-700">잘못된 접근입니다</h2>
+        <p className="text-gray-500 mt-2">카테고리 정보가 필요합니다.</p>
       </div>
     );
   }
