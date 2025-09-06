@@ -11,10 +11,6 @@ export default function PostDetail() {
   const finalCategoryId = categoryId || location.state?.categoryId;
   const postType = location.state?.postType;
 
-  console.log('PostDetail - URL params:', { categoryId, postId });
-  console.log('PostDetail - location.state:', location.state);
-  console.log('PostDetail - finalCategoryId:', finalCategoryId);
-
   const { data: post, isLoading } = useQuery({
     queryKey: ['post', finalCategoryId, postId],
     queryFn: () => fetchPostById(finalCategoryId, postId),

@@ -80,9 +80,9 @@ export default function News() {
                                 {post.title}
                               </Link>
                               <div className="mt-2 text-sm text-gray-500">
-                                <span>{post.author}</span>
+                                <span>{post.authorName}</span>
                                 <span className="mx-2">•</span>
-                                <span>{new Date(post.createdAt).toLocaleDateString()}</span>
+                                <span>{new Date(post.updatedAt).toLocaleDateString()}</span>
                               </div>
                               {post.content && (
                                 <div className="mt-2 text-gray-600 text-sm line-clamp-2">

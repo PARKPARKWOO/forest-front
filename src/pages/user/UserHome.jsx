@@ -188,7 +188,7 @@ export default function UserHome() {
                       {post.title}
                     </h3>
                     <span className="text-sm text-gray-500 whitespace-nowrap">
-                      {new Date(post.createdAt).toLocaleDateString()}
+                      {new Date(post.updatedAt).toLocaleDateString()}
                     </span>
                   </div>
                 </Link>
