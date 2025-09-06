@@ -39,8 +39,7 @@ const STATIC_CATEGORIES = [
     path: '/news',
     children: [
       { id: 'news-notice', name: '공지사항', path: '/news/notice' },
-      { id: 'news-activities', name: '생명의 숲 활동보기', path: '/news/activities' },
-      { id: 'news-board', name: '자유게시판', path: '/news/board' },
+      { id: 'news-activities', name: '전북생명의숲 활동보기', path: '/news/activities' },
     ],
   },
   {
@@ -48,7 +47,6 @@ const STATIC_CATEGORIES = [
     name: '자료실',
     path: '/resources',
     children: [
-      { id: 'resources-general', name: '총회 자료집', path: '/resources/general' },
       { id: 'resources-documents', name: '문서자료실', path: '/resources/documents' },
       { id: 'resources-jbforest', name: '전북생명의숲자료실', path: '/resources/jbforest' },
     ],

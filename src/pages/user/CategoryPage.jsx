@@ -1,12 +1,16 @@
 import { useParams, Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Layout from '../../components/Layout';
 import { fetchCategoryById } from '../../services/categoryService';
+import { fetchPostsByCategory, deletePost } from '../../services/postService';
 import { useAuth } from '../../contexts/AuthContext';
+import { useState } from 'react';
 
 export default function CategoryPage() {
   const { categoryId } = useParams();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
+  const queryClient = useQueryClient();
+  const [selectedPost, setSelectedPost] = useState(null);
   
   const { data: category, isLoading, error } = useQuery({
     queryKey: ['category', categoryId],
@@ -14,6 +18,26 @@ export default function CategoryPage() {
     onError: (error) => {
       console.error('Error in category query:', error);
     }
+  });
+
+  // 게시글 목록 조회 (카테고리에 게시글이 있는 경우)
+  const { data: posts, isLoading: postsLoading } = useQuery({
+    queryKey: ['posts', categoryId],
+    queryFn: () => fetchPostsByCategory(categoryId),
+    enabled: !!categoryId && !category?.children?.length, // 서브카테고리가 없는 경우만
+  });
+
+  // 게시글 삭제
+  const { mutate: removePost } = useMutation({
+    mutationFn: ({ categoryId, postId }) => deletePost(categoryId, postId),
+    onSuccess: () => {
+      alert('게시글이 삭제되었습니다.');
+      queryClient.invalidateQueries({ queryKey: ['posts', categoryId] });
+      setSelectedPost(null);
+    },
+    onError: (error) => {
+      alert('게시글 삭제에 실패했습니다: ' + error.message);
+    },
   });
 
   console.log('CategoryPage render:', { categoryId, category, isLoading, error });
@@ -143,6 +167,69 @@ export default function CategoryPage() {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* 게시글 목록 (서브카테고리가 없는 경우) */}
+        {(!category.children || category.children.length === 0) && (
+          <div className="bg-white rounded-lg shadow-sm">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-semibold text-gray-800">게시글 목록</h2>
+                {isAdmin && (
+                  <Link
+                    to={`/post/write?categoryId=${categoryId}`}
+                    className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors duration-200"
+                  >
+                    글쓰기
+                  </Link>
+                )}
+              </div>
+              
+              {postsLoading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-green-500 mx-auto"></div>
+                </div>
+              ) : posts && posts.length > 0 ? (
+                <div className="space-y-4">
+                  {posts.map((post) => (
+                    <div key={post.id} className="border-b border-gray-200 pb-4 last:border-b-0">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <Link
+                            to={`/post/${categoryId}/${post.id}`}
+                            className="text-lg font-medium text-gray-800 hover:text-green-600 transition-colors duration-200"
+                          >
+                            {post.title}
+                          </Link>
+                          <div className="mt-2 text-sm text-gray-500">
+                            <span>{post.author}</span>
+                            <span className="mx-2">•</span>
+                            <span>{new Date(post.createdAt).toLocaleDateString()}</span>
+                          </div>
+                        </div>
+                        {isAdmin && (
+                          <button
+                            onClick={() => {
+                              if (window.confirm('이 게시글을 삭제하시겠습니까?')) {
+                                removePost({ categoryId, postId: post.id });
+                              }
+                            }}
+                            className="ml-4 px-3 py-1 text-sm text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors duration-200"
+                          >
+                            삭제
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  게시글이 없습니다.
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>

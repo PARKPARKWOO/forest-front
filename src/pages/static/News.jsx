@@ -1,12 +1,13 @@
 import { useParams, Link } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function News() {
   const { subCategory } = useParams();
+  const { isAdmin } = useAuth();
 
   const subCategories = [
     { id: 'notice', name: '공지사항', path: '/news/notice' },
-    { id: 'activities', name: '생명의 숲 활동보기', path: '/news/activities' },
-    { id: 'board', name: '자유게시판', path: '/news/board' },
+    { id: 'activities', name: '전북생명의숲 활동보기', path: '/news/activities' },
   ];
 
   const getContent = () => {
@@ -30,12 +31,22 @@ export default function News() {
         };
       case 'activities':
         return {
-          title: '생명의 숲 활동보기',
+          title: '전북생명의숲 활동보기',
           content: (
             <div className="space-y-6">
-              <p className="text-lg text-gray-700 leading-relaxed">
-                전북생명의숲의 다양한 활동들을 확인하실 수 있습니다.
-              </p>
+              <div className="flex justify-between items-center">
+                <p className="text-lg text-gray-700 leading-relaxed">
+                  전북생명의숲의 다양한 활동들을 확인하실 수 있습니다.
+                </p>
+                {isAdmin && (
+                  <Link
+                    to="/post/write?categoryId=0"
+                    className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors duration-200"
+                  >
+                    글쓰기
+                  </Link>
+                )}
+              </div>
               <div className="grid md:grid-cols-2 gap-6">
                 <div className="bg-white p-6 rounded-lg shadow-sm">
                   <h3 className="text-lg font-semibold text-gray-800 mb-3">최근 활동</h3>
@@ -53,23 +64,6 @@ export default function News() {
                     <li>• 성과 보고</li>
                   </ul>
                 </div>
-              </div>
-            </div>
-          )
-        };
-      case 'board':
-        return {
-          title: '자유게시판',
-          content: (
-            <div className="space-y-6">
-              <p className="text-lg text-gray-700 leading-relaxed">
-                회원들과 자유롭게 소통할 수 있는 공간입니다.
-              </p>
-              <div className="bg-green-50 p-6 rounded-lg">
-                <h3 className="text-xl font-semibold text-green-800 mb-4">자유게시판</h3>
-                <p className="text-green-700">
-                  숲과 환경에 대한 다양한 의견과 소통을 나누어보세요.
-                </p>
               </div>
             </div>
           )
