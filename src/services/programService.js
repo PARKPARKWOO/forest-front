@@ -107,4 +107,64 @@ export const updateProgram = async (id, formData) => {
     console.error('Error updating program:', error);
     throw error;
   }
-}; 
+};
+
+// ===== 프로그램 폼 관련 API =====
+
+// 프로그램 신청 폼 생성
+export const createProgramForm = async (formData) => {
+  try {
+    const response = await axiosInstance.post('/program/form', formData);
+    return response.data;
+  } catch (error) {
+    console.error('Error creating program form:', error);
+    throw error;
+  }
+};
+
+// 프로그램별 신청 폼 조회
+export const fetchProgramForm = async (programId) => {
+  try {
+    const response = await axiosInstance.get(`/program/form/program/${programId}`);
+    return response.data?.data || null;
+  } catch (error) {
+    if (error.response?.status === 404) {
+      return null; // 폼이 없는 경우
+    }
+    console.error('Error fetching program form:', error);
+    throw error;
+  }
+};
+
+// 폼 ID로 조회
+export const fetchFormById = async (formId) => {
+  try {
+    const response = await axiosInstance.get(`/program/form/${formId}`);
+    return response.data?.data || response.data;
+  } catch (error) {
+    console.error('Error fetching form:', error);
+    throw error;
+  }
+};
+
+// 프로그램 신청 폼 수정
+export const updateProgramForm = async (formId, formData) => {
+  try {
+    const response = await axiosInstance.put(`/program/form/${formId}`, formData);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating program form:', error);
+    throw error;
+  }
+};
+
+// 프로그램 신청 폼 삭제
+export const deleteProgramForm = async (formId) => {
+  try {
+    const response = await axiosInstance.delete(`/program/form/${formId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error deleting program form:', error);
+    throw error;
+  }
+};

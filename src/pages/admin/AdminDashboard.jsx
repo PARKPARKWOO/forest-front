@@ -1,11 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchCategories, deleteCategory } from '../../services/categoryService';
-import { fetchPrograms, deleteProgram, fetchProgramApplies } from '../../services/programService';
+import { fetchPrograms, deleteProgram, fetchProgramApplies, fetchProgramForm } from '../../services/programService';
 import { fetchSupporters, markSupportComplete } from '../../services/supportService';
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { getProgramStatusInfo } from '../../utils/programStatus';
 import UserManagement from './UserManagement';
+import ProgramFormBuilder from '../../components/program/ProgramFormBuilder';
 
 export default function AdminDashboard() {
   const queryClient = useQueryClient();
@@ -16,6 +17,9 @@ export default function AdminDashboard() {
   const [supportersSize] = useState(10);
   const [selectedSupporter, setSelectedSupporter] = useState(null);
   const [showSupporterModal, setShowSupporterModal] = useState(false);
+  const [showFormBuilder, setShowFormBuilder] = useState(false);
+  const [selectedProgramForForm, setSelectedProgramForForm] = useState(null);
+  const [existingForm, setExistingForm] = useState(null);
 
   // 카테고리 목록 조회
   const { data: categories, isLoading: categoriesLoading } = useQuery({
@@ -106,6 +110,25 @@ export default function AdminDashboard() {
       alert('프로그램 삭제에 실패했습니다: ' + error.message);
     },
   });
+
+  // 신청 폼 생성/수정 열기
+  const handleOpenFormBuilder = async (program) => {
+    setSelectedProgramForForm(program);
+    try {
+      const form = await fetchProgramForm(program.id);
+      setExistingForm(form);
+    } catch (error) {
+      setExistingForm(null);
+    }
+    setShowFormBuilder(true);
+  };
+
+  // 폼 빌더 닫기
+  const handleCloseFormBuilder = () => {
+    setShowFormBuilder(false);
+    setSelectedProgramForForm(null);
+    setExistingForm(null);
+  };
 
   return (
     <div className="min-h-screen bg-gray-100 flex">
@@ -349,6 +372,7 @@ export default function AdminDashboard() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">신청기간</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">모집인원</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">신청자 수</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">신청 폼</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">작업</th>
                   </tr>
                 </thead>
@@ -378,6 +402,14 @@ export default function AdminDashboard() {
                             Math.round((programApplyCounts[program.id] ?? 0) / program.maxParticipants * 100) : 
                             programApplyCounts ? 0 : '...'}%)
                         </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <button
+                          onClick={() => handleOpenFormBuilder(program)}
+                          className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded text-xs font-medium transition-colors duration-200"
+                        >
+                          📝 폼 관리
+                        </button>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         <button 
@@ -682,6 +714,18 @@ export default function AdminDashboard() {
               </div>
             </div>
           </div>
+        )}
+
+        {/* 신청 폼 빌더 모달 */}
+        {showFormBuilder && selectedProgramForForm && (
+          <ProgramFormBuilder
+            programId={selectedProgramForForm.id}
+            existingForm={existingForm}
+            onClose={handleCloseFormBuilder}
+            onSuccess={() => {
+              queryClient.invalidateQueries({ queryKey: ['programForm', selectedProgramForForm.id] });
+            }}
+          />
         )}
       </div>
     </div>

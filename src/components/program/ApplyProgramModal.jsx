@@ -1,6 +1,199 @@
-import { useState, useRef } from 'react';
-import { useMutation } from '@tanstack/react-query';
-import { applyProgram } from '../../services/programService';
+import { useState, useRef, useEffect } from 'react';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { applyProgram, fetchProgramForm } from '../../services/programService';
+
+// 동적 폼 필드 렌더링 컴포넌트
+function DynamicFormField({ field, value, onChange }) {
+  const renderField = () => {
+    switch (field.type) {
+      case 'SHORT_TEXT':
+        return (
+          <input
+            type="text"
+            value={value || ''}
+            onChange={(e) => onChange(field.id, e.target.value)}
+            placeholder={field.placeholder || ''}
+            required={field.required}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+            minLength={field.validation?.minLength}
+            maxLength={field.validation?.maxLength}
+            pattern={field.validation?.pattern}
+          />
+        );
+
+      case 'LONG_TEXT':
+        return (
+          <textarea
+            value={value || ''}
+            onChange={(e) => onChange(field.id, e.target.value)}
+            placeholder={field.placeholder || ''}
+            required={field.required}
+            rows={4}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+            minLength={field.validation?.minLength}
+            maxLength={field.validation?.maxLength}
+          />
+        );
+
+      case 'NUMBER':
+        return (
+          <input
+            type="number"
+            value={value || ''}
+            onChange={(e) => onChange(field.id, Number(e.target.value))}
+            placeholder={field.placeholder || ''}
+            required={field.required}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+            min={field.validation?.minValue}
+            max={field.validation?.maxValue}
+          />
+        );
+
+      case 'EMAIL':
+        return (
+          <input
+            type="email"
+            value={value || ''}
+            onChange={(e) => onChange(field.id, e.target.value)}
+            placeholder={field.placeholder || '이메일을 입력하세요'}
+            required={field.required}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+          />
+        );
+
+      case 'PHONE':
+        return (
+          <input
+            type="tel"
+            value={value || ''}
+            onChange={(e) => onChange(field.id, e.target.value)}
+            placeholder={field.placeholder || '010-0000-0000'}
+            required={field.required}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+            pattern={field.validation?.pattern || '[0-9]{2,3}-[0-9]{3,4}-[0-9]{4}'}
+          />
+        );
+
+      case 'DATE':
+        return (
+          <input
+            type="date"
+            value={value || ''}
+            onChange={(e) => onChange(field.id, e.target.value)}
+            required={field.required}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+          />
+        );
+
+      case 'TIME':
+        return (
+          <input
+            type="time"
+            value={value || ''}
+            onChange={(e) => onChange(field.id, e.target.value)}
+            required={field.required}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+          />
+        );
+
+      case 'SINGLE_CHOICE':
+        return (
+          <div className="space-y-2">
+            {field.options?.map((option) => (
+              <label key={option} className="flex items-center space-x-2">
+                <input
+                  type="radio"
+                  name={field.id}
+                  value={option}
+                  checked={value === option}
+                  onChange={(e) => onChange(field.id, e.target.value)}
+                  required={field.required}
+                  className="text-green-600 focus:ring-green-500"
+                />
+                <span className="text-sm text-gray-700">{option}</span>
+              </label>
+            ))}
+          </div>
+        );
+
+      case 'MULTIPLE_CHOICE':
+        return (
+          <div className="space-y-2">
+            {field.options?.map((option) => (
+              <label key={option} className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  value={option}
+                  checked={Array.isArray(value) && value.includes(option)}
+                  onChange={(e) => {
+                    const currentValue = Array.isArray(value) ? value : [];
+                    const newValue = e.target.checked
+                      ? [...currentValue, option]
+                      : currentValue.filter(v => v !== option);
+                    onChange(field.id, newValue);
+                  }}
+                  className="rounded text-green-600 focus:ring-green-500"
+                />
+                <span className="text-sm text-gray-700">{option}</span>
+              </label>
+            ))}
+          </div>
+        );
+
+      case 'DROPDOWN':
+        return (
+          <select
+            value={value || ''}
+            onChange={(e) => onChange(field.id, e.target.value)}
+            required={field.required}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+          >
+            <option value="">선택하세요</option>
+            {field.options?.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+        );
+
+      case 'FILE_UPLOAD':
+        return (
+          <input
+            type="file"
+            onChange={(e) => onChange(field.id, e.target.files[0])}
+            required={field.required}
+            accept={field.validation?.allowedExtensions?.map(ext => `.${ext}`).join(',')}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
+          />
+        );
+
+      default:
+        return (
+          <input
+            type="text"
+            value={value || ''}
+            onChange={(e) => onChange(field.id, e.target.value)}
+            required={field.required}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+          />
+        );
+    }
+  };
+
+  return (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">
+        {field.label}
+        {field.required && <span className="text-red-600 ml-1">*</span>}
+      </label>
+      {field.description && (
+        <p className="text-xs text-gray-500 mb-2">{field.description}</p>
+      )}
+      {renderField()}
+    </div>
+  );
+}
 
 export default function ApplyProgramModal({ programId, onClose }) {
   const fileInputRef = useRef(null);
@@ -14,9 +207,23 @@ export default function ApplyProgramModal({ programId, onClose }) {
     imageAgreement: false,
     privacyAgreement: false,
   });
+  const [formResponses, setFormResponses] = useState({});
+
+  // 프로그램 폼 조회
+  const { data: programForm, isLoading: formLoading } = useQuery({
+    queryKey: ['programForm', programId],
+    queryFn: () => fetchProgramForm(programId),
+    enabled: !!programId,
+  });
 
   const { mutate: submitApplication, isPending } = useMutation({
-    mutationFn: (data) => applyProgram({ ...data, programId }),
+    mutationFn: (data) => applyProgram({ 
+      ...data, 
+      programId,
+      imageAgreement: agreements.imageAgreement,
+      privacyAgreement: agreements.privacyAgreement,
+      formResponses,
+    }),
     onSuccess: () => {
       alert('프로그램 신청이 완료되었습니다.');
       onClose();
@@ -34,16 +241,47 @@ export default function ApplyProgramModal({ programId, onClose }) {
     }
   };
 
+  const handleFormResponseChange = (fieldId, value) => {
+    setFormResponses(prev => ({
+      ...prev,
+      [fieldId]: value
+    }));
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    
     if (!agreements.imageAgreement || !agreements.privacyAgreement) {
       alert('모든 동의 항목에 체크해주세요.');
       return;
     }
+
+    // 필수 필드 검증
+    if (programForm?.fields) {
+      const requiredFields = programForm.fields.filter(field => field.required);
+      const missingFields = requiredFields.filter(field => !formResponses[field.id]);
+      
+      if (missingFields.length > 0) {
+        alert(`다음 필드를 입력해주세요: ${missingFields.map(f => f.label).join(', ')}`);
+        return;
+      }
+    }
+
     submitApplication(formData);
   };
 
   const isFormValid = agreements.imageAgreement && agreements.privacyAgreement;
+
+  if (formLoading) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-lg p-6">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-green-500 mx-auto"></div>
+          <p className="mt-4 text-gray-600">폼을 불러오는 중...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -63,7 +301,7 @@ export default function ApplyProgramModal({ programId, onClose }) {
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                연락처
+                연락처 <span className="text-red-600">*</span>
               </label>
               <input
                 type="tel"
@@ -77,7 +315,7 @@ export default function ApplyProgramModal({ programId, onClose }) {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                입금자명
+                입금자명 <span className="text-red-600">*</span>
               </label>
               <input
                 type="text"
@@ -108,6 +346,30 @@ export default function ApplyProgramModal({ programId, onClose }) {
               </div>
             </div>
           </div>
+
+          {/* 동적 폼 필드 */}
+          {programForm && programForm.fields && programForm.fields.length > 0 && (
+            <div className="space-y-4 border-t pt-6">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                {programForm.title || '추가 정보'}
+              </h3>
+              {programForm.description && (
+                <p className="text-sm text-gray-600 mb-4">{programForm.description}</p>
+              )}
+              <div className="space-y-4">
+                {programForm.fields
+                  .sort((a, b) => a.order - b.order)
+                  .map((field) => (
+                    <DynamicFormField
+                      key={field.id}
+                      field={field}
+                      value={formResponses[field.id]}
+                      onChange={handleFormResponseChange}
+                    />
+                  ))}
+              </div>
+            </div>
+          )}
 
           {/* 동의 항목 */}
           <div className="space-y-6 border-t pt-6">
