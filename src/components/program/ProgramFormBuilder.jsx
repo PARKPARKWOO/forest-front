@@ -256,7 +256,7 @@ export default function ProgramFormBuilder({ programId, existingForm, onClose, o
   const [formDescription, setFormDescription] = useState(existingForm?.description || '');
   const [fields, setFields] = useState(existingForm?.fields || []);
 
-  // 자동 저장 mutation (알림 없이)
+  // 자동 저장 mutation (알림 없이, 모달 유지)
   const { mutate: autoSave } = useMutation({
     mutationFn: async (formData) => {
       if (existingForm?.id) {
@@ -270,6 +270,8 @@ export default function ProgramFormBuilder({ programId, existingForm, onClose, o
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['programForm', programId] });
+      onSuccess?.();
+      // 모달은 닫지 않음 - 계속 편집 가능
     },
     onError: (error) => {
       console.error('자동 저장 실패:', error);
