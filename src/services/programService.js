@@ -42,12 +42,33 @@ export const fetchProgramById = async (id) => {
 export const applyProgram = async (data) => {
   try {
     const formData = new FormData();
+    
+    // 필수 파라미터
+    formData.append('programId', data.programId);
+    formData.append('imageAgreement', data.imageAgreement);
+    formData.append('privacyAgreement', data.privacyAgreement);
+    
+    // 선택 파라미터
     if (data.file) {
       formData.append('file', data.file);
     }
-    formData.append('phoneNumber', data.phoneNumber);
-    formData.append('programId', data.programId);
-    formData.append('depositor', data.depositor);
+    
+    // formResponses를 JSON 문자열로 변환하여 전송
+    if (data.formResponses && Object.keys(data.formResponses).length > 0) {
+      // phoneNumber, depositor도 formResponses에 포함
+      const allResponses = {
+        ...data.formResponses,
+        phoneNumber: data.phoneNumber,
+        depositor: data.depositor
+      };
+      formData.append('formResponses', JSON.stringify(allResponses));
+    } else {
+      // formResponses가 없어도 phoneNumber, depositor는 전송
+      formData.append('formResponses', JSON.stringify({
+        phoneNumber: data.phoneNumber,
+        depositor: data.depositor
+      }));
+    }
 
     const response = await axiosInstance.post('/program/apply', formData, {
       headers: {

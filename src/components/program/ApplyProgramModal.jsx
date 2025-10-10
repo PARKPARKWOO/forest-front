@@ -218,11 +218,13 @@ export default function ApplyProgramModal({ programId, onClose }) {
 
   const { mutate: submitApplication, isPending } = useMutation({
     mutationFn: (data) => applyProgram({ 
-      ...data, 
       programId,
+      phoneNumber: data.phoneNumber,
+      depositor: data.depositor,
+      file: data.file,
       imageAgreement: agreements.imageAgreement,
       privacyAgreement: agreements.privacyAgreement,
-      formResponses,
+      formResponses, // 동적 폼 응답
     }),
     onSuccess: () => {
       alert('프로그램 신청이 완료되었습니다.');

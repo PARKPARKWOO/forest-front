@@ -7,6 +7,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { getProgramStatusInfo } from '../../utils/programStatus';
 import UserManagement from './UserManagement';
 import ProgramFormBuilder from '../../components/program/ProgramFormBuilder';
+import ProgramApplyDetailModal from '../../components/program/ProgramApplyDetailModal';
 
 export default function AdminDashboard() {
   const queryClient = useQueryClient();
@@ -20,6 +21,8 @@ export default function AdminDashboard() {
   const [showFormBuilder, setShowFormBuilder] = useState(false);
   const [selectedProgramForForm, setSelectedProgramForForm] = useState(null);
   const [existingForm, setExistingForm] = useState(null);
+  const [showApplyDetailModal, setShowApplyDetailModal] = useState(false);
+  const [selectedApply, setSelectedApply] = useState(null);
 
   // 카테고리 목록 조회
   const { data: categories, isLoading: categoriesLoading } = useQuery({
@@ -128,6 +131,18 @@ export default function AdminDashboard() {
     setShowFormBuilder(false);
     setSelectedProgramForForm(null);
     setExistingForm(null);
+  };
+
+  // 신청 상세 모달 열기
+  const handleOpenApplyDetail = (apply) => {
+    setSelectedApply(apply);
+    setShowApplyDetailModal(true);
+  };
+
+  // 신청 상세 모달 닫기
+  const handleCloseApplyDetail = () => {
+    setShowApplyDetailModal(false);
+    setSelectedApply(null);
   };
 
   return (
@@ -321,11 +336,13 @@ export default function AdminDashboard() {
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">입금자명</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">신청일</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">첨부파일</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">동적 폼</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">작업</th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
                       {programApplies.map((apply) => (
-                        <tr key={apply.id}>
+                        <tr key={apply.id} className="hover:bg-gray-50">
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             {apply.proposer}
                           </td>
@@ -351,6 +368,23 @@ export default function AdminDashboard() {
                             ) : (
                               <span>없음</span>
                             )}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {apply.formResponses && Object.keys(apply.formResponses).length > 0 ? (
+                              <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                                응답 {Object.keys(apply.formResponses).length}개
+                              </span>
+                            ) : (
+                              <span className="text-gray-400">없음</span>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <button
+                              onClick={() => handleOpenApplyDetail(apply)}
+                              className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-medium transition-colors duration-200"
+                            >
+                              상세보기
+                            </button>
                           </td>
                         </tr>
                       ))}
@@ -725,6 +759,15 @@ export default function AdminDashboard() {
             onSuccess={() => {
               queryClient.invalidateQueries({ queryKey: ['programForm', selectedProgramForForm.id] });
             }}
+          />
+        )}
+
+        {/* 신청 상세 모달 */}
+        {showApplyDetailModal && selectedApply && (
+          <ProgramApplyDetailModal
+            apply={selectedApply}
+            programId={selectedProgramId}
+            onClose={handleCloseApplyDetail}
           />
         )}
       </div>
