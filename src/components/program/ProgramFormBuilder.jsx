@@ -269,9 +269,9 @@ export default function ProgramFormBuilder({ programId, existingForm, onClose, o
       }
     },
     onSuccess: () => {
+      // 자동 저장 시에는 캐시만 업데이트
       queryClient.invalidateQueries({ queryKey: ['programForm', programId] });
-      onSuccess?.();
-      // 모달은 닫지 않음 - 계속 편집 가능
+      // onSuccess?.() 호출하지 않음 - 모달 유지
     },
     onError: (error) => {
       console.error('자동 저장 실패:', error);
