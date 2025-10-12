@@ -82,8 +82,14 @@ export const reissueToken = async (refreshToken) => {
 
 export const revokeToken = async (accessToken) => {
   try {
+    console.log('🌐 revokeToken 함수 호출됨');
+    console.log('🔑 전달된 accessToken:', accessToken);
+    
     // 인증 서버의 토큰 취소 엔드포인트로 요청
-    const response = await fetch('https://auth.platformholder.site/api/v1/auth/token/revoke', {
+    const url = 'https://auth.platformholder.site/api/v1/auth/token/revoke';
+    console.log('📡 API 호출 URL:', url);
+    
+    const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -91,10 +97,14 @@ export const revokeToken = async (accessToken) => {
       },
       body: JSON.stringify({ accessToken })
     });
+    
+    console.log('📥 응답 상태:', response.status, response.statusText);
     const data = await response.json();
+    console.log('📦 응답 데이터:', data);
+    
     return data;
   } catch (error) {
-    console.error('토큰 취소 실패:', error);
+    console.error('❌ 토큰 취소 실패:', error);
     throw error;
   }
 }; 

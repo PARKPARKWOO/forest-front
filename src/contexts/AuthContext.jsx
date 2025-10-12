@@ -62,17 +62,24 @@ export function AuthProvider({ children }) {
   };
 
   const logout = async () => {
+    console.log('🔴 로그아웃 시작');
     try {
       const accessToken = getCookie('accessToken');
+      console.log('🔑 액세스 토큰:', accessToken ? '존재함' : '없음');
       
       // 토큰이 있으면 취소 API 호출
       if (accessToken) {
-        await revokeToken(accessToken);
+        console.log('📡 토큰 취소 API 호출 시작...');
+        const result = await revokeToken(accessToken);
+        console.log('✅ 토큰 취소 API 호출 완료:', result);
+      } else {
+        console.log('⚠️ 토큰이 없어 API 호출 생략');
       }
     } catch (error) {
-      console.error('토큰 취소 실패:', error);
+      console.error('❌ 토큰 취소 실패:', error);
       // 에러가 발생해도 로그아웃은 진행
     } finally {
+      console.log('🧹 쿠키 제거 및 상태 초기화');
       // 쿠키 제거 및 상태 초기화
       removeCookie('accessToken');
       removeCookie('refreshToken');
@@ -85,6 +92,7 @@ export function AuthProvider({ children }) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
+      console.log('✅ 로그아웃 완료');
     }
   };
 

@@ -91,7 +91,9 @@ export default function Layout({ children, showLoginModal, setShowLoginModal }) 
     : 'https://auth.platformholder.site/oauth2/authorization/9';
 
   const handleLogout = async () => {
+    console.log('🖱️ 로그아웃 버튼 클릭됨');
     await logout();
+    console.log('🏠 홈으로 이동');
     navigate('/');
   };
 
