@@ -53,22 +53,36 @@ export const applyProgram = async (data) => {
       formData.append('file', data.file);
     }
     
-    // formResponses를 JSON 문자열로 변환하여 전송
-    if (data.formResponses && Object.keys(data.formResponses).length > 0) {
-      // phoneNumber, depositor도 formResponses에 포함
-      const allResponses = {
-        ...data.formResponses,
-        phoneNumber: data.phoneNumber,
-        depositor: data.depositor
-      };
-      formData.append('formResponses', JSON.stringify(allResponses));
-    } else {
-      // formResponses가 없어도 phoneNumber, depositor는 전송
-      formData.append('formResponses', JSON.stringify({
-        phoneNumber: data.phoneNumber,
-        depositor: data.depositor
-      }));
-    }
+    // formResponses 처리: File 객체 분리
+    const responses = {
+      phoneNumber: data.phoneNumber,
+      depositor: data.depositor,
+      ...(data.formResponses || {})
+    };
+    
+    const jsonResponses = {};
+    const fileFields = {};
+    
+    // File 객체와 일반 값 분리
+    Object.entries(responses).forEach(([key, value]) => {
+      if (value instanceof File) {
+        // File 객체는 별도로 FormData에 추가
+        formData.append(`formFile_${key}`, value);
+        fileFields[key] = value.name; // 파일명만 JSON에 저장
+        jsonResponses[key] = `FILE_PENDING_${key}`; // 서버에서 URL로 대체될 플레이스홀더
+      } else {
+        // 일반 값은 JSON에 포함
+        jsonResponses[key] = value;
+      }
+    });
+    
+    formData.append('formResponses', JSON.stringify(jsonResponses));
+    
+    // 디버깅용
+    console.log('전송 데이터:', {
+      jsonResponses,
+      fileFields: Object.keys(fileFields)
+    });
 
     const response = await axiosInstance.post('/program/apply', formData, {
       headers: {
