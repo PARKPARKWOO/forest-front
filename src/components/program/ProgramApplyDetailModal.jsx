@@ -98,43 +98,23 @@ export default function ProgramApplyDetailModal({ apply, programId, onClose }) {
                 <label className="block text-sm font-medium text-gray-600 mb-1">사용자 ID</label>
                 <p className="text-gray-900 font-mono text-sm">{apply.userId}</p>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">연락처</label>
-                <p className="text-gray-900">{apply.phoneNumber || '-'}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">입금자명</label>
-                <p className="text-gray-900">{apply.depositor || '-'}</p>
-              </div>
-              <div>
+              <div className="col-span-2">
                 <label className="block text-sm font-medium text-gray-600 mb-1">신청일시</label>
                 <p className="text-gray-900">
-                  {new Date(apply.createdAt).toLocaleString('ko-KR')}
+                  {new Date(apply.createdAt).toLocaleString('ko-KR', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}
                 </p>
               </div>
-              {apply.fileUrl && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-1">첨부파일</label>
-                  <a 
-                    href={apply.fileUrl} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:text-blue-800 text-sm flex items-center"
-                  >
-                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" 
-                        d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" 
-                      />
-                    </svg>
-                    입금확인서 다운로드
-                  </a>
-                </div>
-              )}
             </div>
           </div>
 
           {/* 동적 폼 응답 */}
-          {apply.formResponses && Object.keys(apply.formResponses).length > 0 && (
+          {apply.formResponses && Object.keys(apply.formResponses).length > 0 ? (
             <div className="bg-blue-50 rounded-lg p-4">
               <h4 className="text-md font-semibold text-gray-800 mb-4 flex items-center">
                 <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -142,7 +122,7 @@ export default function ProgramApplyDetailModal({ apply, programId, onClose }) {
                     d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" 
                   />
                 </svg>
-                추가 질문 응답
+                신청 폼 응답
                 {programForm && (
                   <span className="ml-2 text-xs text-gray-600 font-normal">
                     ({programForm.title})
@@ -178,8 +158,7 @@ export default function ProgramApplyDetailModal({ apply, programId, onClose }) {
             </div>
           )}
 
-          {/* 응답이 없는 경우 */}
-          {(!apply.formResponses || Object.keys(apply.formResponses).length === 0) && (
+          ) : (
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
               <div className="flex items-center">
                 <svg className="w-5 h-5 text-yellow-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -188,7 +167,7 @@ export default function ProgramApplyDetailModal({ apply, programId, onClose }) {
                   />
                 </svg>
                 <p className="text-sm text-yellow-800">
-                  이 신청에는 추가 질문 응답이 없습니다.
+                  이 신청에는 폼 응답이 없습니다.
                   {!programForm && " (신청 당시 폼이 설정되지 않았습니다)"}
                 </p>
               </div>

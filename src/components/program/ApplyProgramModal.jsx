@@ -196,13 +196,6 @@ function DynamicFormField({ field, value, onChange }) {
 }
 
 export default function ApplyProgramModal({ programId, onClose }) {
-  const fileInputRef = useRef(null);
-  const [formData, setFormData] = useState({
-    phoneNumber: '',
-    depositor: '',
-    file: null,
-  });
-  const [fileName, setFileName] = useState('');
   const [agreements, setAgreements] = useState({
     imageAgreement: false,
     privacyAgreement: false,
@@ -217,14 +210,14 @@ export default function ApplyProgramModal({ programId, onClose }) {
   });
 
   const { mutate: submitApplication, isPending } = useMutation({
-    mutationFn: (data) => applyProgram({ 
+    mutationFn: () => applyProgram({ 
       programId,
-      phoneNumber: data.phoneNumber,
-      depositor: data.depositor,
-      file: data.file,
+      phoneNumber: '', // 빈 값
+      depositor: '', // 빈 값
+      file: null, // 파일 없음
       imageAgreement: agreements.imageAgreement,
       privacyAgreement: agreements.privacyAgreement,
-      formResponses, // 동적 폼 응답
+      formResponses, // 동적 폼 응답만 전송
     }),
     onSuccess: () => {
       alert('프로그램 신청이 완료되었습니다.');
@@ -234,14 +227,6 @@ export default function ApplyProgramModal({ programId, onClose }) {
       alert('신청 중 오류가 발생했습니다: ' + error.message);
     },
   });
-
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setFormData(prev => ({ ...prev, file }));
-      setFileName(file.name);
-    }
-  };
 
   const handleFormResponseChange = (fieldId, value) => {
     setFormResponses(prev => ({
@@ -269,7 +254,7 @@ export default function ApplyProgramModal({ programId, onClose }) {
       }
     }
 
-    submitApplication(formData);
+    submitApplication();
   };
 
   const isFormValid = agreements.imageAgreement && agreements.privacyAgreement;
@@ -299,56 +284,6 @@ export default function ApplyProgramModal({ programId, onClose }) {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* 기본 정보 입력 */}
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                연락처 <span className="text-red-600">*</span>
-              </label>
-              <input
-                type="tel"
-                value={formData.phoneNumber}
-                onChange={(e) => setFormData(prev => ({ ...prev, phoneNumber: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                placeholder="010-0000-0000"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                입금자명 <span className="text-red-600">*</span>
-              </label>
-              <input
-                type="text"
-                value={formData.depositor}
-                onChange={(e) => setFormData(prev => ({ ...prev, depositor: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                입금확인서 (선택)
-              </label>
-              <div
-                onClick={() => fileInputRef.current?.click()}
-                className="border border-gray-300 rounded-md p-3 cursor-pointer hover:border-green-500"
-              >
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  onChange={handleFileChange}
-                  className="hidden"
-                />
-                <div className="text-sm text-gray-600">
-                  {fileName || '파일을 선택하세요'}
-                </div>
-              </div>
-            </div>
-          </div>
-
           {/* 동적 폼 필드 */}
           {programForm && programForm.fields && programForm.fields.length > 0 && (
             <div className="space-y-4 border-t pt-6">

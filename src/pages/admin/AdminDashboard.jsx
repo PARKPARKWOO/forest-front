@@ -332,50 +332,33 @@ export default function AdminDashboard() {
                     <thead className="bg-gray-50">
                       <tr>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">신청자</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">연락처</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">입금자명</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">사용자 ID</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">신청일</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">첨부파일</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">동적 폼</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">폼 응답</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">작업</th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
                       {programApplies.map((apply) => (
                         <tr key={apply.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
                             {apply.proposer}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {apply.phoneNumber}
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono text-xs">
+                            {apply.userId}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {apply.depositor}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {new Date(apply.createdAt).toLocaleDateString()}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {apply.fileUrl ? (
-                              <a 
-                                href={apply.fileUrl} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="text-green-600 hover:text-green-700"
-                              >
-                                파일 보기
-                              </a>
-                            ) : (
-                              <span>없음</span>
-                            )}
+                            {new Date(apply.createdAt).toLocaleDateString('ko-KR')}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             {apply.formResponses && Object.keys(apply.formResponses).length > 0 ? (
                               <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
-                                응답 {Object.keys(apply.formResponses).length}개
+                                📋 {Object.keys(apply.formResponses).length}개 응답
                               </span>
                             ) : (
-                              <span className="text-gray-400">없음</span>
+                              <span className="px-2 py-1 bg-gray-100 text-gray-500 rounded-full text-xs">
+                                응답 없음
+                              </span>
                             )}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
