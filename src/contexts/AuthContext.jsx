@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { getCurrentUser } from '../services/userService';
+import { getCurrentUser, revokeToken } from '../services/userService';
 import { getCookie, removeCookie } from '../utils/cookieUtils';
 
 export const AuthContext = createContext(null);
@@ -61,17 +61,30 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const logout = () => {
-    removeCookie('accessToken');
-    removeCookie('refreshToken');
-    setIsAuthenticated(false);
-    setUser(null);
-    setIsAdmin(false);
-    
-    // 로그아웃 시 인터벌 정리
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
+  const logout = async () => {
+    try {
+      const accessToken = getCookie('accessToken');
+      
+      // 토큰이 있으면 취소 API 호출
+      if (accessToken) {
+        await revokeToken(accessToken);
+      }
+    } catch (error) {
+      console.error('토큰 취소 실패:', error);
+      // 에러가 발생해도 로그아웃은 진행
+    } finally {
+      // 쿠키 제거 및 상태 초기화
+      removeCookie('accessToken');
+      removeCookie('refreshToken');
+      setIsAuthenticated(false);
+      setUser(null);
+      setIsAdmin(false);
+      
+      // 로그아웃 시 인터벌 정리
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
     }
   };
 

@@ -90,8 +90,8 @@ export default function Layout({ children, showLoginModal, setShowLoginModal }) 
     ? 'https://auth.platformholder.site/oauth2/authorization/8'
     : 'https://auth.platformholder.site/oauth2/authorization/9';
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate('/');
   };
 
