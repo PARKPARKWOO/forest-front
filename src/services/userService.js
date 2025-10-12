@@ -80,14 +80,15 @@ export const reissueToken = async (refreshToken) => {
   }
 };
 
-export const revokeToken = async (accessToken) => {
+export const revokeToken = async () => {
   try {
     console.log('🌐 revokeToken 함수 호출됨');
-    console.log('🔑 전달된 accessToken:', accessToken);
     
     // 인증 서버의 토큰 취소 엔드포인트로 요청
+    // 서드파티 쿠키로 관리되므로 withCredentials: true로 쿠키 자동 전송
     const url = 'https://auth.platformholder.site/api/v1/auth/token/revoke';
     console.log('📡 API 호출 URL:', url);
+    console.log('🍪 서드파티 쿠키 자동 전송 (withCredentials: true)');
     
     const response = await fetch(url, {
       method: 'POST',
@@ -95,7 +96,7 @@ export const revokeToken = async (accessToken) => {
         'Content-Type': 'application/json',
         'accept': '*/*'
       },
-      body: JSON.stringify({ accessToken })
+      credentials: 'include' // 서드파티 쿠키 포함
     });
     
     console.log('📥 응답 상태:', response.status, response.statusText);
