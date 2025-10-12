@@ -24,7 +24,9 @@ function FieldEditor({ field, onUpdate, onDelete, onMoveUp, onMoveDown, isFirst,
   const [optionInput, setOptionInput] = useState('');
 
   // 상세 설정 버튼 클릭 시 서버에 저장
-  const handleToggleExpanded = () => {
+  const handleToggleExpanded = (e) => {
+    e.preventDefault(); // form submit 방지
+    e.stopPropagation(); // 이벤트 전파 방지
     setExpanded(!expanded);
     if (!expanded && onSave) {
       // 펼칠 때만 저장 (접을 때는 저장하지 않음)
@@ -55,7 +57,12 @@ function FieldEditor({ field, onUpdate, onDelete, onMoveUp, onMoveDown, isFirst,
         <div className="flex items-center space-x-3 flex-1">
           <div className="flex flex-col space-y-1">
             <button
-              onClick={onMoveUp}
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onMoveUp();
+              }}
               disabled={isFirst}
               className="text-gray-400 hover:text-gray-600 disabled:opacity-30"
               title="위로 이동"
@@ -63,7 +70,12 @@ function FieldEditor({ field, onUpdate, onDelete, onMoveUp, onMoveDown, isFirst,
               ▲
             </button>
             <button
-              onClick={onMoveDown}
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onMoveDown();
+              }}
               disabled={isLast}
               className="text-gray-400 hover:text-gray-600 disabled:opacity-30"
               title="아래로 이동"
@@ -90,6 +102,7 @@ function FieldEditor({ field, onUpdate, onDelete, onMoveUp, onMoveDown, isFirst,
             ))}
           </select>
           <button
+            type="button"
             onClick={handleToggleExpanded}
             className="text-gray-600 hover:text-gray-800"
             title="상세 설정 (클릭 시 자동 저장)"
@@ -97,7 +110,12 @@ function FieldEditor({ field, onUpdate, onDelete, onMoveUp, onMoveDown, isFirst,
             {expanded ? '▼' : '▶'}
           </button>
           <button
-            onClick={() => onDelete(field.id)}
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onDelete(field.id);
+            }}
             className="text-red-600 hover:text-red-700 px-2 py-1"
             title="삭제"
           >
