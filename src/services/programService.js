@@ -54,11 +54,7 @@ export const applyProgram = async (data) => {
     }
     
     // formResponses 처리: File 객체 분리
-    const responses = {
-      phoneNumber: data.phoneNumber,
-      depositor: data.depositor,
-      ...(data.formResponses || {})
-    };
+    const responses = data.formResponses || {};
     
     const jsonResponses = {};
     const fileFields = {};

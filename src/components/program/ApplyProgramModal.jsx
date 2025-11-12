@@ -212,9 +212,6 @@ export default function ApplyProgramModal({ programId, onClose }) {
   const { mutate: submitApplication, isPending } = useMutation({
     mutationFn: () => applyProgram({ 
       programId,
-      phoneNumber: '', // 빈 값
-      depositor: '', // 빈 값
-      file: null, // 파일 없음
       imageAgreement: agreements.imageAgreement,
       privacyAgreement: agreements.privacyAgreement,
       formResponses, // 동적 폼 응답만 전송
