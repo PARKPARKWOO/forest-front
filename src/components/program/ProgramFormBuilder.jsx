@@ -174,7 +174,11 @@ function FieldEditor({ field, onUpdate, onDelete, onMoveUp, onMoveDown, isFirst,
                     </span>
                     <button
                       type="button"
-                      onClick={() => handleRemoveOption(idx)}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleRemoveOption(idx);
+                      }}
                       className="text-red-600 hover:text-red-700 text-sm"
                     >
                       제거
@@ -186,13 +190,23 @@ function FieldEditor({ field, onUpdate, onDelete, onMoveUp, onMoveDown, isFirst,
                     type="text"
                     value={optionInput}
                     onChange={(e) => setOptionInput(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddOption())}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleAddOption();
+                      }
+                    }}
                     placeholder="옵션 추가"
                     className="flex-1 px-3 py-1 border border-gray-300 rounded-md text-sm"
                   />
                   <button
                     type="button"
-                    onClick={handleAddOption}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleAddOption();
+                    }}
                     className="px-3 py-1 bg-green-600 text-white rounded-md text-sm hover:bg-green-700"
                   >
                     추가
@@ -379,7 +393,16 @@ export default function ProgramFormBuilder({ programId, existingForm, onClose, o
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+        <form 
+          onSubmit={handleSubmit}
+          onKeyDown={(e) => {
+            // Enter 키로 form submit 방지 (명시적 버튼 클릭만 허용)
+            if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
+              e.preventDefault();
+            }
+          }}
+          className="flex flex-col flex-1 overflow-hidden"
+        >
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
             {/* 폼 기본 정보 */}
             <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
