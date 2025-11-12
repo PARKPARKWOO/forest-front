@@ -18,20 +18,16 @@ const FIELD_TYPES = [
 ];
 
 // 필드 편집 컴포넌트
-function FieldEditor({ field, onUpdate, onDelete, onMoveUp, onMoveDown, isFirst, isLast, onSave }) {
+function FieldEditor({ field, onUpdate, onDelete, onMoveUp, onMoveDown, isFirst, isLast }) {
   const [expanded, setExpanded] = useState(false);
   const needsOptions = ['SINGLE_CHOICE', 'MULTIPLE_CHOICE', 'DROPDOWN'].includes(field.type);
   const [optionInput, setOptionInput] = useState('');
 
-  // 상세 설정 버튼 클릭 시 서버에 저장
+  // 상세 설정 버튼 클릭 시 UI만 토글
   const handleToggleExpanded = (e) => {
     e.preventDefault(); // form submit 방지
     e.stopPropagation(); // 이벤트 전파 방지
     setExpanded(!expanded);
-    if (!expanded && onSave) {
-      // 펼칠 때만 저장 (접을 때는 저장하지 않음)
-      onSave();
-    }
   };
 
   const handleAddOption = () => {
@@ -105,7 +101,7 @@ function FieldEditor({ field, onUpdate, onDelete, onMoveUp, onMoveDown, isFirst,
             type="button"
             onClick={handleToggleExpanded}
             className="text-gray-600 hover:text-gray-800"
-            title="상세 설정 (클릭 시 자동 저장)"
+            title="상세 설정"
           >
             {expanded ? '▼' : '▶'}
           </button>
@@ -274,29 +270,7 @@ export default function ProgramFormBuilder({ programId, existingForm, onClose, o
   const [formDescription, setFormDescription] = useState(existingForm?.description || '');
   const [fields, setFields] = useState(existingForm?.fields || []);
 
-  // 자동 저장 mutation (알림 없이, 모달 유지)
-  const { mutate: autoSave } = useMutation({
-    mutationFn: async (formData) => {
-      if (existingForm?.id) {
-        return updateProgramForm(existingForm.id, formData);
-      } else {
-        return createProgramForm({
-          ...formData,
-          programInformationId: programId,
-        });
-      }
-    },
-    onSuccess: () => {
-      // 자동 저장 시에는 캐시만 업데이트
-      queryClient.invalidateQueries({ queryKey: ['programForm', programId] });
-      // onSuccess?.() 호출하지 않음 - 모달 유지
-    },
-    onError: (error) => {
-      console.error('자동 저장 실패:', error);
-    },
-  });
-
-  // 수동 저장 mutation (알림 있음)
+  // 폼 저장 mutation
   const { mutate: saveForm, isPending } = useMutation({
     mutationFn: async (formData) => {
       if (existingForm?.id) {
@@ -361,24 +335,6 @@ export default function ProgramFormBuilder({ programId, existingForm, onClose, o
     });
     
     setFields(newFields);
-  };
-
-  // 자동 저장 함수
-  const handleAutoSave = () => {
-    if (!formTitle.trim()) {
-      return; // 제목이 없으면 저장하지 않음
-    }
-
-    const formData = {
-      title: formTitle,
-      description: formDescription,
-      fields: fields.map((field, index) => ({
-        ...field,
-        order: index,
-      })),
-    };
-
-    autoSave(formData);
   };
 
   const handleSubmit = (e) => {
@@ -488,7 +444,6 @@ export default function ProgramFormBuilder({ programId, existingForm, onClose, o
                     onDelete={handleDeleteField}
                     onMoveUp={() => handleMoveField(field.id, 'up')}
                     onMoveDown={() => handleMoveField(field.id, 'down')}
-                    onSave={handleAutoSave}
                     isFirst={index === 0}
                     isLast={index === fields.length - 1}
                   />
