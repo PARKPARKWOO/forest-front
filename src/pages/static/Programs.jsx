@@ -69,7 +69,7 @@ export default function Programs() {
                 <p className="text-blue-700">
                   교육 신청은 전화 또는 이메일로 문의해주세요.<br />
                   전화: 063-231-4455<br />
-                  이메일: guide@jbforest.org
+                  이메일: forestjb@hanmail.net
                 </p>
               </div>
             </div>
@@ -113,7 +113,7 @@ export default function Programs() {
                 <p className="text-green-700">
                   자원봉사 신청은 아래 연락처로 문의해주세요.<br />
                   전화: 063-231-4455<br />
-                  이메일: volunteer@jbforest.org
+                  이메일: forestjb@hanmail.net
                 </p>
               </div>
             </div>

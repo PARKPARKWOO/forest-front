@@ -30,7 +30,11 @@ function FieldEditor({ field, onUpdate, onDelete, onMoveUp, onMoveDown, isFirst,
     setExpanded(!expanded);
   };
 
-  const handleAddOption = () => {
+  const handleAddOption = (e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     if (optionInput.trim()) {
       onUpdate(field.id, {
         ...field,
@@ -40,7 +44,11 @@ function FieldEditor({ field, onUpdate, onDelete, onMoveUp, onMoveDown, isFirst,
     }
   };
 
-  const handleRemoveOption = (optionIndex) => {
+  const handleRemoveOption = (e, optionIndex) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     onUpdate(field.id, {
       ...field,
       options: field.options.filter((_, idx) => idx !== optionIndex)
@@ -177,7 +185,7 @@ function FieldEditor({ field, onUpdate, onDelete, onMoveUp, onMoveDown, isFirst,
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        handleRemoveOption(idx);
+                        handleRemoveOption(e, idx);
                       }}
                       className="text-red-600 hover:text-red-700 text-sm"
                     >
@@ -194,7 +202,7 @@ function FieldEditor({ field, onUpdate, onDelete, onMoveUp, onMoveDown, isFirst,
                       if (e.key === 'Enter') {
                         e.preventDefault();
                         e.stopPropagation();
-                        handleAddOption();
+                        handleAddOption(e);
                       }
                     }}
                     placeholder="옵션 추가"
@@ -205,7 +213,7 @@ function FieldEditor({ field, onUpdate, onDelete, onMoveUp, onMoveDown, isFirst,
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      handleAddOption();
+                      handleAddOption(e);
                     }}
                     className="px-3 py-1 bg-green-600 text-white rounded-md text-sm hover:bg-green-700"
                   >
