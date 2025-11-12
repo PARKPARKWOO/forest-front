@@ -15,11 +15,11 @@ export default function Programs() {
     { id: 'volunteer', name: '자원봉사활동 신청', path: '/programs/volunteer' },
   ];
 
-  // 참여 프로그램에서만 API 데이터를 가져옴
+  // 모든 카테고리에서 API 데이터를 가져옴
   const { data: programsData, isLoading } = useQuery({
-    queryKey: ['programs', currentPage],
-    queryFn: () => fetchPrograms(currentPage, pageSize),
-    enabled: subCategory === 'participate' || !subCategory, // 참여 프로그램에서만 API 호출
+    queryKey: ['programs', subCategory, currentPage],
+    queryFn: () => fetchPrograms(currentPage, pageSize, subCategory),
+    enabled: !!subCategory, // subCategory가 있을 때만 API 호출
   });
 
   const getContent = () => {
@@ -34,90 +34,13 @@ export default function Programs() {
         return {
           title: '숲 해설가 양성교육',
           description: '숲 해설가 양성을 위한 교육 프로그램을 소개합니다.',
-          type: 'static',
-          content: (
-            <div className="space-y-6">
-              <div className="bg-green-50 p-6 rounded-lg">
-                <h3 className="text-xl font-semibold text-green-800 mb-4">숲 해설가 양성교육</h3>
-                <p className="text-green-700 mb-4">
-                  숲의 가치와 중요성을 알리고, 시민들에게 올바른 숲 교육을 제공할 수 있는 
-                  숲 해설가를 양성하는 프로그램입니다.
-                </p>
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div className="bg-white p-4 rounded-lg">
-                    <h4 className="font-semibold text-gray-800 mb-2">교육 과정</h4>
-                    <ul className="space-y-2 text-sm text-gray-600">
-                      <li>• 숲 생태학 기초</li>
-                      <li>• 해설 기법 및 실습</li>
-                      <li>• 안전 교육</li>
-                      <li>• 현장 실습</li>
-                    </ul>
-                  </div>
-                  <div className="bg-white p-4 rounded-lg">
-                    <h4 className="font-semibold text-gray-800 mb-2">자격 조건</h4>
-                    <ul className="space-y-2 text-sm text-gray-600">
-                      <li>• 만 18세 이상</li>
-                      <li>• 숲에 대한 관심과 열정</li>
-                      <li>• 봉사 정신</li>
-                      <li>• 건강한 체력</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-              <div className="bg-blue-50 p-6 rounded-lg">
-                <h3 className="text-lg font-semibold text-blue-800 mb-3">신청 방법</h3>
-                <p className="text-blue-700">
-                  교육 신청은 전화 또는 이메일로 문의해주세요.<br />
-                  전화: 063-231-4455<br />
-                  이메일: forestjb@hanmail.net
-                </p>
-              </div>
-            </div>
-          )
+          type: 'api'
         };
       case 'volunteer':
         return {
           title: '자원봉사활동 신청',
           description: '자원봉사활동 신청 및 안내를 확인하실 수 있습니다.',
-          type: 'static',
-          content: (
-            <div className="space-y-6">
-              <div className="bg-orange-50 p-6 rounded-lg">
-                <h3 className="text-xl font-semibold text-orange-800 mb-4">자원봉사활동</h3>
-                <p className="text-orange-700 mb-4">
-                  숲을 가꾸고 보전하는 활동에 함께 참여하실 수 있습니다. 
-                  여러분의 소중한 시간이 더 푸른 숲을 만듭니다.
-                </p>
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div className="bg-white p-4 rounded-lg">
-                    <h4 className="font-semibold text-gray-800 mb-2">봉사 활동</h4>
-                    <ul className="space-y-2 text-sm text-gray-600">
-                      <li>• 숲 가꾸기 활동</li>
-                      <li>• 쓰레기 줍기</li>
-                      <li>• 생태 복원 활동</li>
-                      <li>• 교육 보조</li>
-                    </ul>
-                  </div>
-                  <div className="bg-white p-4 rounded-lg">
-                    <h4 className="font-semibold text-gray-800 mb-2">활동 시간</h4>
-                    <ul className="space-y-2 text-sm text-gray-600">
-                      <li>• 평일: 오전 9시 ~ 오후 6시</li>
-                      <li>• 주말: 오전 9시 ~ 오후 5시</li>
-                      <li>• 계절별 조정 가능</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-              <div className="bg-green-50 p-6 rounded-lg">
-                <h3 className="text-lg font-semibold text-green-800 mb-3">신청 방법</h3>
-                <p className="text-green-700">
-                  자원봉사 신청은 아래 연락처로 문의해주세요.<br />
-                  전화: 063-231-4455<br />
-                  이메일: forestjb@hanmail.net
-                </p>
-              </div>
-            </div>
-          )
+          type: 'api'
         };
       default:
         return {

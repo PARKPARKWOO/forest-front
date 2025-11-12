@@ -16,9 +16,18 @@ export const createProgram = async (formData) => {
 };
 
 // 프로그램 목록 조회
-export const fetchPrograms = async (page = 1, size = 9) => {
+export const fetchPrograms = async (page = 1, size = 9, category = null) => {
   try {
-    const response = await axiosInstance.get(`/program/information?page=${page}&size=${size}`);
+    const params = new URLSearchParams({
+      page: page.toString(),
+      size: size.toString(),
+    });
+    
+    if (category) {
+      params.append('category', category);
+    }
+    
+    const response = await axiosInstance.get(`/program/information?${params}`);
     // 서버 응답 구조: { data: { contents: [], hasNextPage: boolean, totalCount: number } }
     return response.data;
   } catch (error) {
