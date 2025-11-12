@@ -1,0 +1,26 @@
+# 전북생명의숲 - robots.txt
+User-agent: *
+Allow: /
+
+# 크롤링 제외 경로
+Disallow: /admin
+Disallow: /api/
+Disallow: /login
+Disallow: /signup
+
+# 사이트맵 위치
+Sitemap: https://forest.platformholder.site/sitemap.xml
+
+# 검색엔진별 설정
+User-agent: Googlebot
+Allow: /
+
+User-agent: Yeti
+Allow: /
+
+User-agent: Daumoa
+Allow: /
+
+# 크롤링 속도 조절
+Crawl-delay: 1
+
