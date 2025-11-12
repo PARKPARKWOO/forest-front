@@ -20,6 +20,7 @@ export default function ProgramEdit() {
     eventDate: '',
     maxParticipants: '',
     status: 'UPCOMING',
+    category: 'participate',
     files: [],
   });
   const [fileNames, setFileNames] = useState([]);
@@ -45,6 +46,7 @@ export default function ProgramEdit() {
         eventDate: program.eventDate ? program.eventDate.substring(0, 16).replace(' ', 'T') : '',
         maxParticipants: program.maxParticipants || '',
         status: program.status || 'UPCOMING',
+        category: program.category ? program.category.toLowerCase() : 'participate',
         files: [],
       });
       
@@ -276,20 +278,37 @@ export default function ProgramEdit() {
           </div>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            상태
-          </label>
-          <select
-            value={formData.status}
-            onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
-          >
-            <option value="UPCOMING">접수전</option>
-            <option value="IN_PROGRESS">접수중</option>
-            <option value="CLOSED">접수마감</option>
-            <option value="DONE">프로그램 종료</option>
-          </select>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              상태
+            </label>
+            <select
+              value={formData.status}
+              onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+            >
+              <option value="UPCOMING">접수전</option>
+              <option value="IN_PROGRESS">접수중</option>
+              <option value="CLOSED">접수마감</option>
+              <option value="DONE">프로그램 종료</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              카테고리 <span className="text-red-600">*</span>
+            </label>
+            <select
+              value={formData.category}
+              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+              required
+            >
+              <option value="participate">참여 프로그램</option>
+              <option value="guide">숲 해설가 양성교육</option>
+              <option value="volunteer">자원봉사활동</option>
+            </select>
+          </div>
         </div>
 
         <div>

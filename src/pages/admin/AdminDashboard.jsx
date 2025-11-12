@@ -9,6 +9,26 @@ import UserManagement from './UserManagement';
 import ProgramFormBuilder from '../../components/program/ProgramFormBuilder';
 import ProgramApplyDetailModal from '../../components/program/ProgramApplyDetailModal';
 
+// 카테고리 뱃지 헬퍼 함수
+const getCategoryBadge = (category) => {
+  const categoryInfo = {
+    PARTICIPATE: { label: '참여 프로그램', className: 'bg-green-100 text-green-800' },
+    participate: { label: '참여 프로그램', className: 'bg-green-100 text-green-800' },
+    GUIDE: { label: '양성교육', className: 'bg-blue-100 text-blue-800' },
+    guide: { label: '양성교육', className: 'bg-blue-100 text-blue-800' },
+    VOLUNTEER: { label: '자원봉사', className: 'bg-orange-100 text-orange-800' },
+    volunteer: { label: '자원봉사', className: 'bg-orange-100 text-orange-800' },
+  };
+
+  const info = categoryInfo[category] || { label: '참여', className: 'bg-gray-100 text-gray-800' };
+  
+  return (
+    <span className={`px-2 py-1 rounded-full text-xs font-medium ${info.className}`}>
+      {info.label}
+    </span>
+  );
+};
+
 export default function AdminDashboard() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -23,6 +43,7 @@ export default function AdminDashboard() {
   const [existingForm, setExistingForm] = useState(null);
   const [showApplyDetailModal, setShowApplyDetailModal] = useState(false);
   const [selectedApply, setSelectedApply] = useState(null);
+  const [categoryFilter, setCategoryFilter] = useState('all');
 
   // 카테고리 목록 조회
   const { data: categories, isLoading: categoriesLoading } = useQuery({
@@ -32,8 +53,8 @@ export default function AdminDashboard() {
 
   // 프로그램 목록 조회
   const { data: programsData, isLoading: programsLoading } = useQuery({
-    queryKey: ['programs'],
-    queryFn: () => fetchPrograms(1, 100),
+    queryKey: ['programs', categoryFilter],
+    queryFn: () => fetchPrograms(1, 100, categoryFilter === 'all' ? null : categoryFilter),
   });
 
   // 서버 응답 구조에서 programs 추출 (안전한 접근)
@@ -291,7 +312,19 @@ export default function AdminDashboard() {
         {activeMenu === 'programs' && (
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-lg font-medium">프로그램 목록</h3>
+              <div className="flex items-center space-x-4">
+                <h3 className="text-lg font-medium">프로그램 목록</h3>
+                <select
+                  value={categoryFilter}
+                  onChange={(e) => setCategoryFilter(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                >
+                  <option value="all">전체 카테고리</option>
+                  <option value="participate">참여 프로그램</option>
+                  <option value="guide">숲 해설가 양성교육</option>
+                  <option value="volunteer">자원봉사활동</option>
+                </select>
+              </div>
               <button 
                 className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
                 onClick={() => navigate('/programs/create')}
@@ -385,6 +418,7 @@ export default function AdminDashboard() {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">제목</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">카테고리</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">상태</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">신청기간</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">모집인원</th>
@@ -398,6 +432,9 @@ export default function AdminDashboard() {
                     <tr key={program.id}>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {program.title}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        {getCategoryBadge(program.category)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${getProgramStatusInfo(program.status).className}`}>

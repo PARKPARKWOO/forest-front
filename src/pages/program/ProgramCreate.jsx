@@ -18,7 +18,7 @@ export default function ProgramCreate() {
     applyEndDate: '',
     eventDate: '',
     maxParticipants: '',
-    categoryId: '',
+    category: 'participate',
     files: [],
   });
   const [fileNames, setFileNames] = useState([]);
@@ -198,6 +198,22 @@ export default function ProgramCreate() {
             className="w-full px-3 py-2 border border-gray-300 rounded-md"
             required
           />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            카테고리 <span className="text-red-600">*</span>
+          </label>
+          <select
+            value={formData.category}
+            onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+            required
+          >
+            <option value="participate">참여 프로그램</option>
+            <option value="guide">숲 해설가 양성교육</option>
+            <option value="volunteer">자원봉사활동</option>
+          </select>
         </div>
 
         <div>
