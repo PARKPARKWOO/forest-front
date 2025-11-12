@@ -173,6 +173,7 @@ function FieldEditor({ field, onUpdate, onDelete, onMoveUp, onMoveDown, isFirst,
                       {option}
                     </span>
                     <button
+                      type="button"
                       onClick={() => handleRemoveOption(idx)}
                       className="text-red-600 hover:text-red-700 text-sm"
                     >
@@ -190,6 +191,7 @@ function FieldEditor({ field, onUpdate, onDelete, onMoveUp, onMoveDown, isFirst,
                     className="flex-1 px-3 py-1 border border-gray-300 rounded-md text-sm"
                   />
                   <button
+                    type="button"
                     onClick={handleAddOption}
                     className="px-3 py-1 bg-green-600 text-white rounded-md text-sm hover:bg-green-700"
                   >
