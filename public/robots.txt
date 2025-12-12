@@ -9,7 +9,7 @@ Disallow: /login
 Disallow: /signup
 
 # 사이트맵 위치
-Sitemap: https://forest.platformholder.site/sitemap.xml
+Sitemap: https://forest-front-psi.vercel.app/sitemap.xml
 
 # 검색엔진별 설정
 User-agent: Googlebot

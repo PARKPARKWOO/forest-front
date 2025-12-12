@@ -2,53 +2,53 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>전북생명의숲</title>
-    <link>https://forest.platformholder.site</link>
+    <link>https://forest-front-psi.vercel.app</link>
     <description>전북 지역의 숲을 보호하고 시민들과 함께하는 숲 체험 프로그램, 숲 해설가 양성교육, 자원봉사활동을 운영합니다.</description>
     <language>ko</language>
     <lastBuildDate>2025-01-30T00:00:00+09:00</lastBuildDate>
-    <atom:link href="https://forest.platformholder.site/rss.xml" rel="self" type="application/rss+xml" />
+    <atom:link href="https://forest-front-psi.vercel.app/rss.xml" rel="self" type="application/rss+xml" />
     
     <!-- 메인 페이지 -->
     <item>
       <title>전북생명의숲 | 숲과 함께하는 녹색 미래</title>
-      <link>https://forest.platformholder.site/</link>
+      <link>https://forest-front-psi.vercel.app/</link>
       <description>전북 지역 숲 보호 및 시민 참여 프로그램을 운영하는 전북생명의숲입니다.</description>
       <pubDate>2025-01-30T00:00:00+09:00</pubDate>
-      <guid>https://forest.platformholder.site/</guid>
+      <guid>https://forest-front-psi.vercel.app/</guid>
     </item>
     
     <!-- 프로그램 -->
     <item>
       <title>참여 프로그램</title>
-      <link>https://forest.platformholder.site/programs/participate</link>
+      <link>https://forest-front-psi.vercel.app/programs/participate</link>
       <description>전북생명의숲에서 운영하는 다양한 숲 체험 프로그램에 참여하세요.</description>
       <pubDate>2025-01-30T00:00:00+09:00</pubDate>
-      <guid>https://forest.platformholder.site/programs/participate</guid>
+      <guid>https://forest-front-psi.vercel.app/programs/participate</guid>
     </item>
     
     <item>
       <title>숲 해설가 양성교육</title>
-      <link>https://forest.platformholder.site/programs/guide</link>
+      <link>https://forest-front-psi.vercel.app/programs/guide</link>
       <description>숲 해설가 양성교육 프로그램에 참여하여 숲의 가치를 전달하는 전문가가 되세요.</description>
       <pubDate>2025-01-30T00:00:00+09:00</pubDate>
-      <guid>https://forest.platformholder.site/programs/guide</guid>
+      <guid>https://forest-front-psi.vercel.app/programs/guide</guid>
     </item>
     
     <item>
       <title>자원봉사활동 신청</title>
-      <link>https://forest.platformholder.site/programs/volunteer</link>
+      <link>https://forest-front-psi.vercel.app/programs/volunteer</link>
       <description>숲 보호와 환경 보전을 위한 자원봉사활동에 참여하세요.</description>
       <pubDate>2025-01-30T00:00:00+09:00</pubDate>
-      <guid>https://forest.platformholder.site/programs/volunteer</guid>
+      <guid>https://forest-front-psi.vercel.app/programs/volunteer</guid>
     </item>
     
     <!-- 소식 -->
     <item>
       <title>전북생명의숲 소식</title>
-      <link>https://forest.platformholder.site/news</link>
+      <link>https://forest-front-psi.vercel.app/news</link>
       <description>전북생명의숲의 최신 소식과 활동 내용을 확인하세요.</description>
       <pubDate>2025-01-30T00:00:00+09:00</pubDate>
-      <guid>https://forest.platformholder.site/news</guid>
+      <guid>https://forest-front-psi.vercel.app/news</guid>
     </item>
     
   </channel>

@@ -8,13 +8,13 @@ export default function SEO({
   title = '전북생명의숲',
   description = '전북생명의숲은 전북 지역의 숲을 보호하고 시민들과 함께하는 숲 체험 프로그램, 숲 해설가 양성교육, 자원봉사활동을 운영합니다.',
   keywords = '전북생명의숲, 숲체험, 숲해설가, 자원봉사, 환경보호, 전북, 숲교육, 생태보전',
-  image = 'https://forest.platformholder.site/og-image.jpg',
+  image = 'https://forest-front-psi.vercel.app/og-image.jpg',
   url,
   type = 'website',
   children
 }) {
   const fullTitle = title === '전북생명의숲' ? title : `${title} | 전북생명의숲`;
-  const fullUrl = url ? `https://forest.platformholder.site${url}` : 'https://forest.platformholder.site';
+  const fullUrl = url ? `https://forest-front-psi.vercel.app${url}` : 'https://forest-front-psi.vercel.app';
 
   return (
     <Helmet>
