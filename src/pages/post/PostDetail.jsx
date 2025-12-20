@@ -141,20 +141,6 @@ export default function PostDetail() {
               </div>
             )}
 
-            {/* 동적 필드 - 관리자만 표시 */}
-            {isAdmin && post.dynamicFields && Object.keys(post.dynamicFields).length > 0 && (
-              <div className="mt-8 border-t pt-6">
-                <h3 className="text-lg font-semibold mb-4">추가 정보</h3>
-                <dl className="grid grid-cols-2 gap-4">
-                  {Object.entries(post.dynamicFields).map(([key, value]) => (
-                    <div key={key}>
-                      <dt className="text-sm font-medium text-gray-500">{key}</dt>
-                      <dd className="mt-1 text-sm text-gray-900">{value.toString()}</dd>
-                    </div>
-                  ))}
-                </dl>
-              </div>
-            )}
           </>
         )}
       </div>

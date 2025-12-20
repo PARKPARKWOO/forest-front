@@ -171,20 +171,6 @@ export default function NoticeDetail() {
             />
           </div>
 
-          {/* 동적 필드 - 관리자만 표시 */}
-          {isAdmin && notice.dynamicFields && Object.keys(notice.dynamicFields).length > 0 && (
-            <div className="mt-8 pt-6 border-t border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">추가 정보</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {Object.entries(notice.dynamicFields).map(([key, value]) => (
-                  <div key={key} className="bg-gray-50 p-4 rounded-lg">
-                    <dt className="text-sm font-medium text-gray-500 mb-1">{key}</dt>
-                    <dd className="text-gray-900">{String(value)}</dd>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </div>
       
