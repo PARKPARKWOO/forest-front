@@ -39,6 +39,8 @@ export default function NoticeDetail() {
 
   // 본문 내 이미지 클릭 이벤트 추가 (이벤트 위임 사용)
   useEffect(() => {
+    if (!notice?.content) return;
+
     const handleImageClick = (e) => {
       if (e.target.tagName === 'IMG') {
         setSelectedImage(e.target.src);
@@ -46,21 +48,23 @@ export default function NoticeDetail() {
     };
 
     const contentElement = contentRef.current;
-    if (contentElement) {
-      // 모든 이미지에 커서 스타일 추가
-      const images = contentElement.querySelectorAll('img');
-      images.forEach((img) => {
-        img.style.cursor = 'pointer';
-      });
+    if (!contentElement) return;
 
-      // 이벤트 위임으로 클릭 이벤트 처리
-      contentElement.addEventListener('click', handleImageClick);
+    // 모든 이미지에 커서 스타일 추가
+    const images = contentElement.querySelectorAll('img');
+    images.forEach((img) => {
+      img.style.cursor = 'pointer';
+    });
 
-      return () => {
+    // 이벤트 위임으로 클릭 이벤트 처리
+    contentElement.addEventListener('click', handleImageClick);
+
+    return () => {
+      if (contentElement) {
         contentElement.removeEventListener('click', handleImageClick);
-      };
-    }
-  }, [notice?.content]);
+      }
+    };
+  }, [notice]);
 
   if (!notice) {
     return (

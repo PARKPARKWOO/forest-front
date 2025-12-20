@@ -1,13 +1,14 @@
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 
 export default function ImageModal({ imageUrl, onClose }) {
+  const handleEscape = useCallback((e) => {
+    if (e.key === 'Escape') {
+      onClose();
+    }
+  }, [onClose]);
+
   useEffect(() => {
     // ESC 키로 모달 닫기
-    const handleEscape = (e) => {
-      if (e.key === 'Escape') {
-        onClose();
-      }
-    };
     document.addEventListener('keydown', handleEscape);
     // 스크롤 방지
     document.body.style.overflow = 'hidden';
@@ -16,7 +17,7 @@ export default function ImageModal({ imageUrl, onClose }) {
       document.removeEventListener('keydown', handleEscape);
       document.body.style.overflow = 'unset';
     };
-  }, [onClose]);
+  }, [handleEscape]);
 
   return (
     <div
