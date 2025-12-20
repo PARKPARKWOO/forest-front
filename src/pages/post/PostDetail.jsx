@@ -23,21 +23,27 @@ export default function PostDetail() {
     enabled: !!finalCategoryId && !!postId,
   });
 
-  // 본문 내 이미지 클릭 이벤트 추가
+  // 본문 내 이미지 클릭 이벤트 추가 (이벤트 위임 사용)
   useEffect(() => {
-    if (contentRef.current) {
-      const images = contentRef.current.querySelectorAll('img');
+    const handleImageClick = (e) => {
+      if (e.target.tagName === 'IMG') {
+        setSelectedImage(e.target.src);
+      }
+    };
+
+    const contentElement = contentRef.current;
+    if (contentElement) {
+      // 모든 이미지에 커서 스타일 추가
+      const images = contentElement.querySelectorAll('img');
       images.forEach((img) => {
         img.style.cursor = 'pointer';
-        img.addEventListener('click', () => {
-          setSelectedImage(img.src);
-        });
       });
 
+      // 이벤트 위임으로 클릭 이벤트 처리
+      contentElement.addEventListener('click', handleImageClick);
+
       return () => {
-        images.forEach((img) => {
-          img.removeEventListener('click', () => {});
-        });
+        contentElement.removeEventListener('click', handleImageClick);
       };
     }
   }, [post?.content]);
