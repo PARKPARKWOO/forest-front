@@ -1,9 +1,15 @@
+import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { getNoticeDetail } from '../../services/noticeService';
+import { useAuth } from '../../contexts/AuthContext';
+import ImageModal from '../../components/ImageModal';
 
 export default function NoticeDetail() {
   const { noticeId } = useParams();
+  const { isAdmin } = useAuth();
+  const [selectedImage, setSelectedImage] = useState(null);
+  const contentRef = useRef(null);
 
   const { data: noticeData, isLoading, error } = useQuery({
     queryKey: ['notice', noticeId],
@@ -30,6 +36,25 @@ export default function NoticeDetail() {
   }
 
   const notice = noticeData?.data;
+
+  // 본문 내 이미지 클릭 이벤트 추가
+  useEffect(() => {
+    if (contentRef.current) {
+      const images = contentRef.current.querySelectorAll('img');
+      images.forEach((img) => {
+        img.style.cursor = 'pointer';
+        img.addEventListener('click', () => {
+          setSelectedImage(img.src);
+        });
+      });
+
+      return () => {
+        images.forEach((img) => {
+          img.removeEventListener('click', () => {});
+        });
+      };
+    }
+  }, [notice?.content]);
 
   if (!notice) {
     return (
@@ -88,12 +113,31 @@ export default function NoticeDetail() {
               <h3 className="text-lg font-semibold text-gray-900 mb-3">첨부 이미지</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {notice.images.map((image, index) => (
-                  <div key={index} className="relative">
+                  <div
+                    key={index}
+                    className="relative cursor-pointer group"
+                    onClick={() => setSelectedImage(image)}
+                  >
                     <img
                       src={image}
                       alt={`첨부 이미지 ${index + 1}`}
-                      className="w-full h-48 object-cover rounded-lg shadow-sm"
+                      className="w-full h-48 object-cover rounded-lg shadow-sm transition-transform duration-200 group-hover:scale-105"
                     />
+                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-200 rounded-lg flex items-center justify-center">
+                      <svg
+                        className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"
+                        />
+                      </svg>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -103,13 +147,14 @@ export default function NoticeDetail() {
           {/* 본문 */}
           <div className="prose max-w-none">
             <div 
+              ref={contentRef}
               className="text-gray-700 leading-relaxed"
               dangerouslySetInnerHTML={{ __html: notice.content }}
             />
           </div>
 
-          {/* 동적 필드 */}
-          {notice.dynamicFields && Object.keys(notice.dynamicFields).length > 0 && (
+          {/* 동적 필드 - 관리자만 표시 */}
+          {isAdmin && notice.dynamicFields && Object.keys(notice.dynamicFields).length > 0 && (
             <div className="mt-8 pt-6 border-t border-gray-200">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">추가 정보</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -124,6 +169,14 @@ export default function NoticeDetail() {
           )}
         </div>
       </div>
+      
+      {/* 이미지 모달 */}
+      {selectedImage && (
+        <ImageModal
+          imageUrl={selectedImage}
+          onClose={() => setSelectedImage(null)}
+        />
+      )}
     </div>
   );
 } 

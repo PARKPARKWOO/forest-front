@@ -1,11 +1,17 @@
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { fetchPostById } from '../../services/postService';
+import { useAuth } from '../../contexts/AuthContext';
+import ImageModal from '../../components/ImageModal';
 
 export default function PostDetail() {
   const { categoryId, postId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const { isAdmin } = useAuth();
+  const [selectedImage, setSelectedImage] = useState(null);
+  const contentRef = useRef(null);
   
   // URL 파라미터에서 categoryId를 가져오거나, 기존 방식대로 location.state에서 가져오기
   const finalCategoryId = categoryId || location.state?.categoryId;
@@ -16,6 +22,25 @@ export default function PostDetail() {
     queryFn: () => fetchPostById(finalCategoryId, postId),
     enabled: !!finalCategoryId && !!postId,
   });
+
+  // 본문 내 이미지 클릭 이벤트 추가
+  useEffect(() => {
+    if (contentRef.current) {
+      const images = contentRef.current.querySelectorAll('img');
+      images.forEach((img) => {
+        img.style.cursor = 'pointer';
+        img.addEventListener('click', () => {
+          setSelectedImage(img.src);
+        });
+      });
+
+      return () => {
+        images.forEach((img) => {
+          img.removeEventListener('click', () => {});
+        });
+      };
+    }
+  }, [post?.content]);
 
   if (!finalCategoryId) {
     return (
@@ -49,12 +74,17 @@ export default function PostDetail() {
           // INFORMATION 타입일 경우 이미지 그리드만 표시
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {post.images && post.images.map((imageUrl, index) => (
-              <img
+              <div
                 key={index}
-                src={imageUrl}
-                alt={`이미지 ${index + 1}`}
-                className="w-full rounded-lg shadow-sm"
-              />
+                className="cursor-pointer group"
+                onClick={() => setSelectedImage(imageUrl)}
+              >
+                <img
+                  src={imageUrl}
+                  alt={`이미지 ${index + 1}`}
+                  className="w-full rounded-lg shadow-sm transition-transform duration-200 group-hover:scale-105"
+                />
+              </div>
             ))}
           </div>
         ) : (
@@ -69,6 +99,7 @@ export default function PostDetail() {
             </div>
 
             <div 
+              ref={contentRef}
               className="prose max-w-none"
               dangerouslySetInnerHTML={{ __html: post.content }}
             />
@@ -76,17 +107,23 @@ export default function PostDetail() {
             {post.images && post.images.length > 0 && (
               <div className="mt-8 grid grid-cols-2 md:grid-cols-3 gap-4">
                 {post.images.map((imageUrl, index) => (
-                  <img
+                  <div
                     key={index}
-                    src={imageUrl}
-                    alt={`첨부 이미지 ${index + 1}`}
-                    className="rounded-lg shadow-sm"
-                  />
+                    className="cursor-pointer group"
+                    onClick={() => setSelectedImage(imageUrl)}
+                  >
+                    <img
+                      src={imageUrl}
+                      alt={`첨부 이미지 ${index + 1}`}
+                      className="rounded-lg shadow-sm transition-transform duration-200 group-hover:scale-105"
+                    />
+                  </div>
                 ))}
               </div>
             )}
 
-            {post.dynamicFields && Object.keys(post.dynamicFields).length > 0 && (
+            {/* 동적 필드 - 관리자만 표시 */}
+            {isAdmin && post.dynamicFields && Object.keys(post.dynamicFields).length > 0 && (
               <div className="mt-8 border-t pt-6">
                 <h3 className="text-lg font-semibold mb-4">추가 정보</h3>
                 <dl className="grid grid-cols-2 gap-4">
@@ -102,6 +139,14 @@ export default function PostDetail() {
           </>
         )}
       </div>
+      
+      {/* 이미지 모달 */}
+      {selectedImage && (
+        <ImageModal
+          imageUrl={selectedImage}
+          onClose={() => setSelectedImage(null)}
+        />
+      )}
     </div>
   );
 } 
