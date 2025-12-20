@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { fetchPostById } from '../../services/postService';
@@ -12,7 +12,7 @@ export default function PostDetail() {
   const { isAdmin } = useAuth();
   const [selectedImage, setSelectedImage] = useState(null);
   const contentRef = useRef(null);
-  
+
   // URL 파라미터에서 categoryId를 가져오거나, 기존 방식대로 location.state에서 가져오기
   const finalCategoryId = categoryId || location.state?.categoryId;
   const postType = location.state?.postType;
@@ -23,18 +23,26 @@ export default function PostDetail() {
     enabled: !!finalCategoryId && !!postId,
   });
 
+  const postContent = useMemo(() => post?.content, [post?.content]);
+
+  // onClose 핸들러 메모이제이션
+  const handleCloseModal = useCallback(() => {
+    setSelectedImage(null);
+  }, []);
+
   // 본문 내 이미지 클릭 이벤트 추가 (이벤트 위임 사용)
   useEffect(() => {
-    if (!post?.content) return;
+    const contentElement = contentRef.current;
+    if (!contentElement || !postContent) {
+      // cleanup은 항상 반환 (이벤트 리스너가 없어도 안전)
+      return () => {};
+    }
 
     const handleImageClick = (e) => {
       if (e.target.tagName === 'IMG') {
         setSelectedImage(e.target.src);
       }
     };
-
-    const contentElement = contentRef.current;
-    if (!contentElement) return;
 
     // 모든 이미지에 커서 스타일 추가
     const images = contentElement.querySelectorAll('img');
@@ -46,11 +54,12 @@ export default function PostDetail() {
     contentElement.addEventListener('click', handleImageClick);
 
     return () => {
+      // cleanup: 이벤트 리스너 제거
       if (contentElement) {
         contentElement.removeEventListener('click', handleImageClick);
       }
     };
-  }, [post]);
+  }, [postContent]);
 
   if (!finalCategoryId) {
     return (
@@ -154,7 +163,7 @@ export default function PostDetail() {
       {selectedImage && (
         <ImageModal
           imageUrl={selectedImage}
-          onClose={() => setSelectedImage(null)}
+          onClose={handleCloseModal}
         />
       )}
     </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { getNoticeDetail } from '../../services/noticeService';
@@ -15,6 +15,45 @@ export default function NoticeDetail() {
     queryKey: ['notice', noticeId],
     queryFn: () => getNoticeDetail(noticeId),
   });
+
+  const notice = noticeData?.data;
+  const noticeContent = useMemo(() => notice?.content, [notice?.content]);
+
+  // onClose 핸들러 메모이제이션
+  const handleCloseModal = useCallback(() => {
+    setSelectedImage(null);
+  }, []);
+
+  // 본문 내 이미지 클릭 이벤트 추가 (이벤트 위임 사용)
+  useEffect(() => {
+    const contentElement = contentRef.current;
+    if (!contentElement || !noticeContent) {
+      // cleanup은 항상 반환 (이벤트 리스너가 없어도 안전)
+      return () => {};
+    }
+
+    const handleImageClick = (e) => {
+      if (e.target.tagName === 'IMG') {
+        setSelectedImage(e.target.src);
+      }
+    };
+
+    // 모든 이미지에 커서 스타일 추가
+    const images = contentElement.querySelectorAll('img');
+    images.forEach((img) => {
+      img.style.cursor = 'pointer';
+    });
+
+    // 이벤트 위임으로 클릭 이벤트 처리
+    contentElement.addEventListener('click', handleImageClick);
+
+    return () => {
+      // cleanup: 이벤트 리스너 제거
+      if (contentElement) {
+        contentElement.removeEventListener('click', handleImageClick);
+      }
+    };
+  }, [noticeContent]);
 
   if (isLoading) {
     return (
@@ -34,37 +73,6 @@ export default function NoticeDetail() {
       </div>
     );
   }
-
-  const notice = noticeData?.data;
-
-  // 본문 내 이미지 클릭 이벤트 추가 (이벤트 위임 사용)
-  useEffect(() => {
-    if (!notice?.content) return;
-
-    const handleImageClick = (e) => {
-      if (e.target.tagName === 'IMG') {
-        setSelectedImage(e.target.src);
-      }
-    };
-
-    const contentElement = contentRef.current;
-    if (!contentElement) return;
-
-    // 모든 이미지에 커서 스타일 추가
-    const images = contentElement.querySelectorAll('img');
-    images.forEach((img) => {
-      img.style.cursor = 'pointer';
-    });
-
-    // 이벤트 위임으로 클릭 이벤트 처리
-    contentElement.addEventListener('click', handleImageClick);
-
-    return () => {
-      if (contentElement) {
-        contentElement.removeEventListener('click', handleImageClick);
-      }
-    };
-  }, [notice]);
 
   if (!notice) {
     return (
@@ -184,7 +192,7 @@ export default function NoticeDetail() {
       {selectedImage && (
         <ImageModal
           imageUrl={selectedImage}
-          onClose={() => setSelectedImage(null)}
+          onClose={handleCloseModal}
         />
       )}
     </div>

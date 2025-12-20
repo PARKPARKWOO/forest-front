@@ -1,14 +1,21 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useRef } from 'react';
 
 export default function ImageModal({ imageUrl, onClose }) {
-  const handleEscape = useCallback((e) => {
-    if (e.key === 'Escape') {
-      onClose();
-    }
+  const onCloseRef = useRef(onClose);
+  
+  // onClose가 변경될 때마다 ref 업데이트
+  useEffect(() => {
+    onCloseRef.current = onClose;
   }, [onClose]);
 
   useEffect(() => {
     // ESC 키로 모달 닫기
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') {
+        onCloseRef.current();
+      }
+    };
+    
     document.addEventListener('keydown', handleEscape);
     // 스크롤 방지
     document.body.style.overflow = 'hidden';
@@ -17,7 +24,7 @@ export default function ImageModal({ imageUrl, onClose }) {
       document.removeEventListener('keydown', handleEscape);
       document.body.style.overflow = 'unset';
     };
-  }, [handleEscape]);
+  }, []); // 빈 dependency 배열 - 마운트 시 한 번만 실행
 
   return (
     <div
