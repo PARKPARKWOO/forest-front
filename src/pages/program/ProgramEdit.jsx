@@ -38,15 +38,54 @@ export default function ProgramEdit() {
   useEffect(() => {
     if (program) {
       console.log('ProgramEdit - 프로그램 데이터 로드됨:', program);
+      
+      // 날짜/시간을 datetime-local 형식으로 변환
+      const formatDateTimeForInput = (dateTimeString) => {
+        if (!dateTimeString) return '';
+        // ISO 형식 (YYYY-MM-DDTHH:mm:ss.sssZ)을 datetime-local 형식 (YYYY-MM-DDTHH:mm)으로 변환
+        const date = new Date(dateTimeString);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        return `${year}-${month}-${day}T${hours}:${minutes}`;
+      };
+      
+      // 날짜만 표시하는 경우 (eventDate for guide category)
+      const formatDateForInput = (dateTimeString) => {
+        if (!dateTimeString) return '';
+        // ISO 형식 (YYYY-MM-DDTHH:mm:ss.sssZ)을 date 형식 (YYYY-MM-DD)으로 변환
+        const date = new Date(dateTimeString);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
+      
+      // 카테고리에 따라 eventDate 포맷 결정
+      const formatEventDateForInput = (dateTimeString, category) => {
+        if (!dateTimeString) return '';
+        if (category === 'guide') {
+          // guide는 날짜만
+          return formatDateForInput(dateTimeString);
+        } else {
+          // 나머지는 날짜+시간
+          return formatDateTimeForInput(dateTimeString);
+        }
+      };
+      
+      const category = program.category ? program.category.toLowerCase() : 'participate';
+      
       setFormData({
         title: program.title || '',
         content: program.content || '',
-        applyStartDate: program.applyStartDate ? program.applyStartDate.substring(0, 10) : '',
-        applyEndDate: program.applyEndDate ? program.applyEndDate.substring(0, 10) : '',
-        eventDate: program.eventDate ? program.eventDate.substring(0, 16).replace(' ', 'T') : '',
+        applyStartDate: formatDateTimeForInput(program.applyStartDate),
+        applyEndDate: formatDateTimeForInput(program.applyEndDate),
+        eventDate: formatEventDateForInput(program.eventDate, category),
         maxParticipants: program.maxParticipants || '',
         status: program.status || 'UPCOMING',
-        category: program.category ? program.category.toLowerCase() : 'participate',
+        category: category,
         files: [],
       });
       
@@ -133,13 +172,46 @@ export default function ProgramEdit() {
   const { mutate: submitProgram, isPending } = useMutation({
     mutationFn: (data) => {
       const formDataToSend = new FormData();
+      
+      // 날짜/시간을 ISO 형식으로 변환 (시간대 정보 없이)
+      const formatDateTime = (dateTimeString) => {
+        if (!dateTimeString) return null;
+        // datetime-local 형식 (YYYY-MM-DDTHH:mm)을 ISO 형식으로 변환
+        // 시간대 정보 없이 로컬 시간 그대로 사용
+        return dateTimeString + ':00'; // HH:mm -> HH:mm:00
+      };
+      
+      // 날짜만 입력받는 경우 (eventDate for guide category) - 시간을 00:00:00으로 설정
+      const formatDate = (dateString) => {
+        if (!dateString) return null;
+        // date 형식 (YYYY-MM-DD)을 ISO 형식으로 변환 (시간은 00:00:00)
+        return dateString + 'T00:00:00';
+      };
+      
+      // 카테고리에 따라 eventDate 포맷 결정
+      const formatEventDate = (dateString, category) => {
+        if (!dateString) return null;
+        if (category === 'guide') {
+          // guide는 날짜만
+          return formatDate(dateString);
+        } else {
+          // 나머지는 날짜+시간
+          return formatDateTime(dateString);
+        }
+      };
+      
       formDataToSend.append('title', data.title);
       formDataToSend.append('content', data.content);
-      formDataToSend.append('applyStartDate', data.applyStartDate);
-      formDataToSend.append('applyEndDate', data.applyEndDate);
-      formDataToSend.append('eventDate', data.eventDate);
+      formDataToSend.append('applyStartDate', formatDateTime(data.applyStartDate));
+      if (data.applyEndDate) {
+        formDataToSend.append('applyEndDate', formatDateTime(data.applyEndDate));
+      }
+      formDataToSend.append('eventDate', formatEventDate(data.eventDate, data.category));
       formDataToSend.append('maxParticipants', data.maxParticipants);
       formDataToSend.append('status', data.status);
+      if (data.category) {
+        formDataToSend.append('category', data.category);
+      }
       
       // 삭제할 파일 URL 추가
       deleteFiles.forEach(fileUrl => {
@@ -227,10 +299,10 @@ export default function ProgramEdit() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              신청 시작일
+              신청 시작일시
             </label>
             <input
-              type="date"
+              type="datetime-local"
               value={formData.applyStartDate}
               onChange={(e) => setFormData({ ...formData, applyStartDate: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
@@ -239,14 +311,13 @@ export default function ProgramEdit() {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              신청 종료일
+              신청 종료일시
             </label>
             <input
-              type="date"
+              type="datetime-local"
               value={formData.applyEndDate}
               onChange={(e) => setFormData({ ...formData, applyEndDate: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
-              required
             />
           </div>
         </div>
@@ -254,10 +325,10 @@ export default function ProgramEdit() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              행사 일시
+              {formData.category === 'guide' ? '신청자 발표' : '행사 일시'}
             </label>
             <input
-              type="datetime-local"
+              type={formData.category === 'guide' ? 'date' : 'datetime-local'}
               value={formData.eventDate}
               onChange={(e) => setFormData({ ...formData, eventDate: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"

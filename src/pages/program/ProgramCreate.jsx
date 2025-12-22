@@ -116,9 +116,39 @@ export default function ProgramCreate() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    // 날짜/시간을 ISO 형식으로 변환 (시간대 정보 없이)
+    const formatDateTime = (dateTimeString) => {
+      if (!dateTimeString) return null;
+      // datetime-local 형식 (YYYY-MM-DDTHH:mm)을 ISO 형식으로 변환
+      // 시간대 정보 없이 로컬 시간 그대로 사용
+      return dateTimeString + ':00'; // HH:mm -> HH:mm:00
+    };
+    
+    // 날짜만 입력받는 경우 (eventDate for guide category) - 시간을 00:00:00으로 설정
+    const formatDate = (dateString) => {
+      if (!dateString) return null;
+      // date 형식 (YYYY-MM-DD)을 ISO 형식으로 변환 (시간은 00:00:00)
+      return dateString + 'T00:00:00';
+    };
+    
+    // 카테고리에 따라 eventDate 포맷 결정
+    const formatEventDate = (dateString, category) => {
+      if (!dateString) return null;
+      if (category === 'guide') {
+        // guide는 날짜만
+        return formatDate(dateString);
+      } else {
+        // 나머지는 날짜+시간
+        return formatDateTime(dateString);
+      }
+    };
+    
     submitProgram({
       ...formData,
-      eventDate: new Date(formData.eventDate).toISOString(),
+      applyStartDate: formatDateTime(formData.applyStartDate),
+      applyEndDate: formatDateTime(formData.applyEndDate),
+      eventDate: formatEventDate(formData.eventDate, formData.category),
     });
   };
 
@@ -150,10 +180,10 @@ export default function ProgramCreate() {
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            신청 시작일
+            신청 시작일시
           </label>
           <input
-            type="date"
+            type="datetime-local"
             value={formData.applyStartDate}
             onChange={(e) => setFormData({ ...formData, applyStartDate: e.target.value })}
             className="w-full px-3 py-2 border border-gray-300 rounded-md"
@@ -163,23 +193,22 @@ export default function ProgramCreate() {
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            신청 마감일
+            신청 마감일시
           </label>
           <input
-            type="date"
+            type="datetime-local"
             value={formData.applyEndDate}
             onChange={(e) => setFormData({ ...formData, applyEndDate: e.target.value })}
             className="w-full px-3 py-2 border border-gray-300 rounded-md"
-            required
           />
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            행사 일시
+            {formData.category === 'guide' ? '신청자 발표' : '행사 일시'}
           </label>
           <input
-            type="datetime-local"
+            type={formData.category === 'guide' ? 'date' : 'datetime-local'}
             value={formData.eventDate}
             onChange={(e) => setFormData({ ...formData, eventDate: e.target.value })}
             className="w-full px-3 py-2 border border-gray-300 rounded-md"

@@ -31,18 +31,31 @@ export default function ProgramDetail() {
     setShowApplyModal(true);
   };
 
-  // 날짜 포맷팅 함수
-  const formatDate = (dateString) => {
+  // 날짜/시간 포맷팅 함수
+  const formatDateTime = (dateString) => {
+    if (!dateString) return '';
     try {
-      return new Date(dateString).toLocaleDateString();
+      return new Date(dateString).toLocaleString('ko-KR', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
     } catch (e) {
       return dateString;
     }
   };
 
-  const formatDateTime = (dateString) => {
+  // 날짜만 포맷팅 함수
+  const formatDate = (dateString) => {
+    if (!dateString) return '';
     try {
-      return new Date(dateString).toLocaleString();
+      return new Date(dateString).toLocaleDateString('ko-KR', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
     } catch (e) {
       return dateString;
     }
@@ -61,11 +74,20 @@ export default function ProgramDetail() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 bg-gray-50 p-4 rounded-lg">
           <div>
             <h3 className="text-sm font-medium text-gray-500 mb-1">신청 기간</h3>
-            <p className="text-gray-900">{formatDate(program.applyStartDate)} ~ {formatDate(program.applyEndDate)}</p>
+            <p className="text-gray-900">
+              {formatDateTime(program.applyStartDate)}
+              {program.applyEndDate && ` ~ ${formatDateTime(program.applyEndDate)}`}
+            </p>
           </div>
           <div>
-            <h3 className="text-sm font-medium text-gray-500 mb-1">행사 일시</h3>
-            <p className="text-gray-900">{formatDateTime(program.eventDate)}</p>
+            <h3 className="text-sm font-medium text-gray-500 mb-1">
+              {program.category === 'GUIDE' || program.category?.toLowerCase() === 'guide' ? '신청자 발표' : '행사 일시'}
+            </h3>
+            <p className="text-gray-900">
+              {(program.category === 'GUIDE' || program.category?.toLowerCase() === 'guide') 
+                ? formatDate(program.eventDate) 
+                : formatDateTime(program.eventDate)}
+            </p>
           </div>
           <div>
             <h3 className="text-sm font-medium text-gray-500 mb-1">모집 인원</h3>
@@ -88,7 +110,7 @@ export default function ProgramDetail() {
               {program.files.map((file, index) => (
                 <li key={index}>
                   <a
-                    href={file}
+                    href={file.downloadUrl || file}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-green-600 hover:text-green-700 flex items-center"
@@ -98,7 +120,7 @@ export default function ProgramDetail() {
                         d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" 
                       />
                     </svg>
-                    파일 다운로드
+                    {file.fileName || file.bucketId || '파일 다운로드'}
                   </a>
                 </li>
               ))}
