@@ -3,7 +3,8 @@ import { fetchCategories, deleteCategory } from '../../services/categoryService'
 import { fetchPrograms, deleteProgram, fetchProgramApplies, fetchProgramForm } from '../../services/programService';
 import { fetchSupporters, markSupportComplete } from '../../services/supportService';
 import { getStaticContent, updateStaticContent } from '../../services/staticContentService';
-import { useMemo, useRef, useState } from 'react';
+import { getHomeBanner, updateHomeBanner } from '../../services/homeBannerService';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { getProgramStatusInfo, sortProgramsByStatus } from '../../utils/programStatus';
 import { formatKoreanDateRange } from '../../utils/dateFormat';
@@ -42,6 +43,26 @@ const INTRO_CONTENT_ITEMS = [
   { key: 'intro-location', label: '오시는 길', path: '/intro/location' },
 ];
 
+const HOME_BANNER_DEFAULT = {
+  badgeText: '2026 숲과 함께하는 시민 활동',
+  title: '전북생명의숲에 오신 것을 환영합니다',
+  description:
+    '숲을 통해 생명의 가치를 전하고 지속가능한 미래를 만들어갑니다. 함께 참여하고 소통하며 더 나은 환경을 만들어보세요.',
+  backgroundImageUrl:
+    'https://images.unsplash.com/photo-1542273917363-3b1817f69a2d?auto=format&fit=crop&w=1600&q=80',
+  sideImageUrl:
+    'https://images.unsplash.com/photo-1472396961693-142e6e269027?auto=format&fit=crop&w=1200&q=80',
+  titleColor: '#FFFFFF',
+  descriptionColor: '#ECFDF5',
+  badgeTextColor: '#ECFDF5',
+  primaryButtonText: '소개 보기',
+  primaryButtonLink: '/intro',
+  secondaryButtonText: '프로그램 참여',
+  secondaryButtonLink: '/programs',
+  sideTitle: '이번 달 추천 프로그램',
+  sideDescription: '숲해설가 양성교육 · 시민 자원봉사 모집 중',
+};
+
 export default function AdminDashboard() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -60,6 +81,8 @@ export default function AdminDashboard() {
   const [selectedIntroItem, setSelectedIntroItem] = useState(null);
   const [introDraft, setIntroDraft] = useState('');
   const [showIntroModal, setShowIntroModal] = useState(false);
+  const [homeBannerForm, setHomeBannerForm] = useState(HOME_BANNER_DEFAULT);
+  const [uploadingBannerField, setUploadingBannerField] = useState(null);
   const introQuillRef = useRef(null);
 
   // 카테고리 목록 조회
@@ -136,6 +159,12 @@ export default function AdminDashboard() {
     enabled: activeMenu === 'intro',
   });
 
+  const { data: homeBannerData, isLoading: homeBannerLoading } = useQuery({
+    queryKey: ['homeBanner', 'admin'],
+    queryFn: getHomeBanner,
+    enabled: activeMenu === 'homeBanner',
+  });
+
   // 후원신청 완료 처리
   const { mutate: completeSupport } = useMutation({
     mutationFn: markSupportComplete,
@@ -187,6 +216,18 @@ export default function AdminDashboard() {
     },
     onError: (error) => {
       alert('소개글 저장에 실패했습니다: ' + error.message);
+    },
+  });
+
+  const { mutate: saveHomeBanner, isPending: isSavingHomeBanner } = useMutation({
+    mutationFn: updateHomeBanner,
+    onSuccess: () => {
+      alert('홈 배너가 저장되었습니다.');
+      queryClient.invalidateQueries({ queryKey: ['homeBanner'] });
+      queryClient.invalidateQueries({ queryKey: ['homeBanner', 'admin'] });
+    },
+    onError: (error) => {
+      alert('홈 배너 저장에 실패했습니다: ' + error.message);
     },
   });
 
@@ -244,6 +285,46 @@ export default function AdminDashboard() {
       content: introDraft,
     });
   };
+
+  const handleHomeBannerFieldChange = (field, value) => {
+    setHomeBannerForm((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  const handleHomeBannerImageUpload = async (field, event) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    setUploadingBannerField(field);
+    try {
+      const imageUrl = await uploadImage(file);
+      handleHomeBannerFieldChange(field, imageUrl);
+    } catch (error) {
+      console.error('홈 배너 이미지 업로드 실패:', error);
+      alert('이미지 업로드에 실패했습니다.');
+    } finally {
+      setUploadingBannerField(null);
+      event.target.value = '';
+    }
+  };
+
+  const handleSaveHomeBanner = () => {
+    saveHomeBanner(homeBannerForm);
+  };
+
+  useEffect(() => {
+    if (!homeBannerData?.content) {
+      return;
+    }
+    setHomeBannerForm({
+      ...HOME_BANNER_DEFAULT,
+      ...homeBannerData.content,
+    });
+  }, [homeBannerData]);
 
   const introEditorModules = useMemo(() => ({
     toolbar: {
@@ -354,6 +435,16 @@ export default function AdminDashboard() {
           </button>
           <button
             className={`w-full text-left px-4 py-2 ${
+              activeMenu === 'homeBanner'
+                ? 'bg-green-50 text-green-700 border-l-4 border-green-500'
+                : 'text-gray-600 hover:bg-gray-50'
+            }`}
+            onClick={() => setActiveMenu('homeBanner')}
+          >
+            홈배너 관리
+          </button>
+          <button
+            className={`w-full text-left px-4 py-2 ${
               activeMenu === 'donations' 
                 ? 'bg-green-50 text-green-700 border-l-4 border-green-500' 
                 : 'text-gray-600 hover:bg-gray-50'
@@ -383,6 +474,7 @@ export default function AdminDashboard() {
             {activeMenu === 'programs' && '프로그램 관리'}
             {activeMenu === 'users' && '사용자 관리'}
             {activeMenu === 'intro' && '소개글 관리'}
+            {activeMenu === 'homeBanner' && '홈배너 관리'}
             {activeMenu === 'donations' && '후원금 관리'}
             {activeMenu === 'mail' && '메일 발송'}
           </h1>
@@ -714,6 +806,293 @@ export default function AdminDashboard() {
                   })}
                 </tbody>
               </table>
+            )}
+          </div>
+        )}
+
+        {/* 홈 배너 관리 */}
+        {activeMenu === 'homeBanner' && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-lg shadow p-6">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+                <div>
+                  <h3 className="text-lg font-medium">홈 화면 메인 배너 편집</h3>
+                  <p className="text-sm text-gray-500 mt-1">
+                    텍스트, 버튼, 색상, 이미지를 수정하면 홈 첫 화면에 즉시 반영됩니다.
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => setHomeBannerForm(HOME_BANNER_DEFAULT)}
+                    className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50"
+                  >
+                    기본값 적용
+                  </button>
+                  <button
+                    onClick={handleSaveHomeBanner}
+                    disabled={homeBannerLoading || isSavingHomeBanner}
+                    className="px-4 py-2 rounded-md bg-green-600 text-white hover:bg-green-700 disabled:bg-gray-400"
+                  >
+                    {isSavingHomeBanner ? '저장 중...' : '저장'}
+                  </button>
+                </div>
+              </div>
+
+              {homeBannerLoading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-green-500 mx-auto"></div>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">배지 문구</label>
+                      <input
+                        type="text"
+                        value={homeBannerForm.badgeText}
+                        onChange={(e) => handleHomeBannerFieldChange('badgeText', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">제목</label>
+                      <input
+                        type="text"
+                        value={homeBannerForm.title}
+                        onChange={(e) => handleHomeBannerFieldChange('title', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">설명 문구</label>
+                    <textarea
+                      value={homeBannerForm.description}
+                      onChange={(e) => handleHomeBannerFieldChange('description', e.target.value)}
+                      rows={3}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                    />
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">주 버튼 텍스트</label>
+                      <input
+                        type="text"
+                        value={homeBannerForm.primaryButtonText}
+                        onChange={(e) => handleHomeBannerFieldChange('primaryButtonText', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">주 버튼 링크</label>
+                      <input
+                        type="text"
+                        value={homeBannerForm.primaryButtonLink}
+                        onChange={(e) => handleHomeBannerFieldChange('primaryButtonLink', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">보조 버튼 텍스트</label>
+                      <input
+                        type="text"
+                        value={homeBannerForm.secondaryButtonText}
+                        onChange={(e) => handleHomeBannerFieldChange('secondaryButtonText', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">보조 버튼 링크</label>
+                      <input
+                        type="text"
+                        value={homeBannerForm.secondaryButtonLink}
+                        onChange={(e) => handleHomeBannerFieldChange('secondaryButtonLink', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">배지 색상</label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="color"
+                          value={homeBannerForm.badgeTextColor}
+                          onChange={(e) => handleHomeBannerFieldChange('badgeTextColor', e.target.value)}
+                          className="h-10 w-14 border border-gray-300 rounded"
+                        />
+                        <input
+                          type="text"
+                          value={homeBannerForm.badgeTextColor}
+                          onChange={(e) => handleHomeBannerFieldChange('badgeTextColor', e.target.value)}
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">제목 색상</label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="color"
+                          value={homeBannerForm.titleColor}
+                          onChange={(e) => handleHomeBannerFieldChange('titleColor', e.target.value)}
+                          className="h-10 w-14 border border-gray-300 rounded"
+                        />
+                        <input
+                          type="text"
+                          value={homeBannerForm.titleColor}
+                          onChange={(e) => handleHomeBannerFieldChange('titleColor', e.target.value)}
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">설명 색상</label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="color"
+                          value={homeBannerForm.descriptionColor}
+                          onChange={(e) => handleHomeBannerFieldChange('descriptionColor', e.target.value)}
+                          className="h-10 w-14 border border-gray-300 rounded"
+                        />
+                        <input
+                          type="text"
+                          value={homeBannerForm.descriptionColor}
+                          onChange={(e) => handleHomeBannerFieldChange('descriptionColor', e.target.value)}
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid lg:grid-cols-2 gap-6">
+                    <div className="space-y-3">
+                      <label className="block text-sm font-medium text-gray-700">배경 이미지</label>
+                      <input
+                        type="text"
+                        value={homeBannerForm.backgroundImageUrl}
+                        onChange={(e) => handleHomeBannerFieldChange('backgroundImageUrl', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                      />
+                      <label className="inline-flex items-center px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-md text-sm text-gray-700 cursor-pointer">
+                        이미지 업로드
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => handleHomeBannerImageUpload('backgroundImageUrl', e)}
+                        />
+                      </label>
+                      {uploadingBannerField === 'backgroundImageUrl' && (
+                        <p className="text-xs text-gray-500">배경 이미지 업로드 중...</p>
+                      )}
+                    </div>
+                    <div className="space-y-3">
+                      <label className="block text-sm font-medium text-gray-700">우측 카드 이미지</label>
+                      <input
+                        type="text"
+                        value={homeBannerForm.sideImageUrl}
+                        onChange={(e) => handleHomeBannerFieldChange('sideImageUrl', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                      />
+                      <label className="inline-flex items-center px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-md text-sm text-gray-700 cursor-pointer">
+                        이미지 업로드
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => handleHomeBannerImageUpload('sideImageUrl', e)}
+                        />
+                      </label>
+                      {uploadingBannerField === 'sideImageUrl' && (
+                        <p className="text-xs text-gray-500">우측 이미지 업로드 중...</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">우측 카드 제목</label>
+                      <input
+                        type="text"
+                        value={homeBannerForm.sideTitle}
+                        onChange={(e) => handleHomeBannerFieldChange('sideTitle', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">우측 카드 설명</label>
+                      <input
+                        type="text"
+                        value={homeBannerForm.sideDescription}
+                        onChange={(e) => handleHomeBannerFieldChange('sideDescription', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {!homeBannerLoading && (
+              <div className="bg-white rounded-lg shadow p-6">
+                <h4 className="text-lg font-medium mb-4">미리보기</h4>
+                <div className="relative rounded-3xl overflow-hidden">
+                  <img
+                    src={homeBannerForm.backgroundImageUrl || HOME_BANNER_DEFAULT.backgroundImageUrl}
+                    alt="홈 배너 미리보기 배경"
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-r from-emerald-900/90 via-green-800/80 to-green-600/70" />
+
+                  <div className="relative grid md:grid-cols-2 items-center">
+                    <div className="p-6 md:p-8">
+                      <span
+                        className="inline-flex items-center rounded-full bg-white/20 border border-white/30 px-4 py-1.5 text-sm font-semibold mb-4"
+                        style={{ color: homeBannerForm.badgeTextColor }}
+                      >
+                        {homeBannerForm.badgeText}
+                      </span>
+                      <h2
+                        className="text-2xl md:text-3xl leading-tight font-bold mb-3"
+                        style={{ color: homeBannerForm.titleColor }}
+                      >
+                        {homeBannerForm.title}
+                      </h2>
+                      <p
+                        className="text-sm md:text-base leading-relaxed mb-5"
+                        style={{ color: homeBannerForm.descriptionColor }}
+                      >
+                        {homeBannerForm.description}
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        <span className="px-4 py-2 rounded-full bg-white text-green-700 text-sm font-semibold">
+                          {homeBannerForm.primaryButtonText}
+                        </span>
+                        <span className="px-4 py-2 rounded-full bg-emerald-700/90 text-white text-sm font-semibold border border-emerald-300/70">
+                          {homeBannerForm.secondaryButtonText}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="hidden md:block p-6">
+                      <div className="rounded-2xl overflow-hidden border border-white/30 bg-white/10">
+                        <img
+                          src={homeBannerForm.sideImageUrl || HOME_BANNER_DEFAULT.sideImageUrl}
+                          alt="홈 배너 우측 카드 미리보기"
+                          className="w-full h-48 object-cover"
+                        />
+                        <div className="px-4 py-3 text-green-50">
+                          <p className="text-sm font-semibold">{homeBannerForm.sideTitle}</p>
+                          <p className="text-xs mt-1 text-green-100/95">{homeBannerForm.sideDescription}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             )}
           </div>
         )}

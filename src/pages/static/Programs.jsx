@@ -2,8 +2,31 @@ import { useQuery } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
 import { fetchPrograms } from '../../services/programService';
 import { getProgramStatusInfo, sortProgramsByStatus } from '../../utils/programStatus';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { formatKoreanDateRange } from '../../utils/dateFormat';
+
+const PROGRAM_STATUS_SECTIONS = [
+  {
+    status: 'IN_PROGRESS',
+    title: '진행중 프로그램',
+    description: '현재 신청 가능한 프로그램입니다.',
+  },
+  {
+    status: 'UPCOMING',
+    title: '접수 예정 프로그램',
+    description: '곧 신청이 시작되는 프로그램입니다.',
+  },
+  {
+    status: 'CLOSED',
+    title: '접수 마감 프로그램',
+    description: '신청은 마감되었지만 프로그램 참여 정보는 확인할 수 있습니다.',
+  },
+  {
+    status: 'DONE',
+    title: '종료된 프로그램',
+    description: '운영이 종료된 프로그램입니다.',
+  },
+];
 
 export default function Programs() {
   const { subCategory } = useParams();
@@ -168,6 +191,18 @@ export default function Programs() {
   const { contents: programs, totalCount } = programsData.data;
   const sortedPrograms = sortProgramsByStatus(programs || []);
   const totalPages = Math.ceil(totalCount / pageSize);
+  const groupedPrograms = useMemo(() => {
+    const grouped = Object.fromEntries(PROGRAM_STATUS_SECTIONS.map((section) => [section.status, []]));
+
+    sortedPrograms.forEach((program) => {
+      if (grouped[program.status]) {
+        grouped[program.status].push(program);
+      }
+    });
+
+    return grouped;
+  }, [sortedPrograms]);
+  const hasPrograms = sortedPrograms.length > 0;
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
@@ -198,52 +233,80 @@ export default function Programs() {
         </div>
       </div>
 
-      {/* 프로그램 목록 */}
-      <div className="grid md:grid-cols-3 gap-6">
-        {sortedPrograms.map((program, index) => (
-          <Link
-            key={program.id}
-            to={`/programs/detail/${program.id}`}
-            className={`
-              rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-all duration-300
-              ${index % 3 === 0 ? 'bg-gradient-to-br from-green-50 to-emerald-100' : 
-                index % 3 === 1 ? 'bg-gradient-to-br from-blue-50 to-sky-100' :
-                'bg-gradient-to-br from-amber-50 to-orange-100'}
-            `}
-          >
-            {program.thumbnail && (
-              <div className="relative h-48 overflow-hidden">
-                <img 
-                  src={program.thumbnail} 
-                  alt={program.title}
-                  className="w-full h-full object-cover transform hover:scale-105 transition-transform duration-300"
-                />
-                <div className="absolute top-2 right-2">
-                  <span className={`px-3 py-1 text-sm rounded-full font-medium 
-                    ${getProgramStatusInfo(program.status).className} shadow-sm`}>
-                    {getProgramStatusInfo(program.status).text}
+      {/* 프로그램 목록 (상태별 분리) */}
+      {!hasPrograms ? (
+        <div className="text-center py-12 bg-white rounded-xl border border-gray-100">
+          <p className="text-gray-600">등록된 프로그램이 없습니다.</p>
+        </div>
+      ) : (
+        <div className="space-y-10">
+          {PROGRAM_STATUS_SECTIONS.map((section) => {
+            const sectionPrograms = groupedPrograms[section.status] || [];
+            if (sectionPrograms.length === 0) {
+              return null;
+            }
+
+            return (
+              <section key={section.status} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-6">
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900">{section.title}</h2>
+                    <p className="text-gray-600 text-sm mt-1">{section.description}</p>
+                  </div>
+                  <span className="inline-flex items-center self-start md:self-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-700">
+                    {sectionPrograms.length}건
                   </span>
                 </div>
-              </div>
-            )}
-            <div className="p-5">
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">
-                {program.title}
-              </h3>
-              <div className="space-y-2 text-sm text-gray-600">
-                <p className="flex items-center">
-                  <span className="w-20">신청기간</span>
-                  <span>{formatKoreanDateRange(program.applyStartDate, program.applyEndDate)}</span>
-                </p>
-                <p className="flex items-center">
-                  <span className="w-20">모집인원</span>
-                  <span>{program.maxParticipants}명</span>
-                </p>
-              </div>
-            </div>
-          </Link>
-        ))}
-      </div>
+
+                <div className="grid md:grid-cols-3 gap-6">
+                  {sectionPrograms.map((program, index) => (
+                    <Link
+                      key={program.id}
+                      to={`/programs/detail/${program.id}`}
+                      className={`
+                        rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-all duration-300
+                        ${index % 3 === 0 ? 'bg-gradient-to-br from-green-50 to-emerald-100' :
+                          index % 3 === 1 ? 'bg-gradient-to-br from-blue-50 to-sky-100' :
+                          'bg-gradient-to-br from-amber-50 to-orange-100'}
+                      `}
+                    >
+                      {program.thumbnail && (
+                        <div className="relative h-48 overflow-hidden">
+                          <img
+                            src={program.thumbnail}
+                            alt={program.title}
+                            className="w-full h-full object-cover transform hover:scale-105 transition-transform duration-300"
+                          />
+                          <div className="absolute top-2 right-2">
+                            <span className={`px-3 py-1 text-sm rounded-full font-medium ${getProgramStatusInfo(program.status).className} shadow-sm`}>
+                              {getProgramStatusInfo(program.status).text}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                      <div className="p-5">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                          {program.title}
+                        </h3>
+                        <div className="space-y-2 text-sm text-gray-600">
+                          <p className="flex items-center">
+                            <span className="w-20">신청기간</span>
+                            <span>{formatKoreanDateRange(program.applyStartDate, program.applyEndDate)}</span>
+                          </p>
+                          <p className="flex items-center">
+                            <span className="w-20">모집인원</span>
+                            <span>{program.maxParticipants}명</span>
+                          </p>
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </section>
+            );
+          })}
+        </div>
+      )}
 
       {/* 페이지네이션 */}
       {totalPages > 1 && (
