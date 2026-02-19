@@ -41,6 +41,20 @@ export const fetchPostById = async (categoryId, postId) => {
 export const deletePost = (categoryId, postId) =>
   axiosInstance.delete(`/posts/${String(categoryId)}/${String(postId)}`);
 
+// 게시글 수정
+export const updatePost = async (categoryId, postId, payload) => {
+  try {
+    const response = await axiosInstance.put(
+      `/posts/${String(categoryId)}/${String(postId)}`,
+      payload
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Error updating post:', error);
+    throw error;
+  }
+};
+
 // 이미지 업로드
 export const uploadImage = async (file) => {
   try {

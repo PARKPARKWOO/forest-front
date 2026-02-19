@@ -18,6 +18,8 @@ export default function ProgramEdit() {
     applyStartDate: '',
     applyEndDate: '',
     eventDate: '',
+    applyUrl: '',
+    programUrl: '',
     maxParticipants: '',
     status: 'UPCOMING',
     category: 'participate',
@@ -83,6 +85,8 @@ export default function ProgramEdit() {
         applyStartDate: formatDateTimeForInput(program.applyStartDate),
         applyEndDate: formatDateTimeForInput(program.applyEndDate),
         eventDate: formatEventDateForInput(program.eventDate, category),
+        applyUrl: program.applyUrl || '',
+        programUrl: program.programUrl || '',
         maxParticipants: program.maxParticipants || '',
         status: program.status || 'UPCOMING',
         category: category,
@@ -149,7 +153,12 @@ export default function ProgramEdit() {
 
   const handleRemoveExistingFile = (index) => {
     const fileToDelete = existingFiles[index];
-    setDeleteFiles(prev => [...prev, fileToDelete]);
+    const parsedBucketId = Number(fileToDelete?.bucketId ?? fileToDelete?.id ?? fileToDelete);
+    if (Number.isNaN(parsedBucketId)) {
+      alert('삭제할 파일 식별자를 읽지 못했습니다.');
+      return;
+    }
+    setDeleteFiles(prev => [...prev, parsedBucketId]);
     setExistingFiles(prev => prev.filter((_, i) => i !== index));
   };
 
@@ -207,6 +216,12 @@ export default function ProgramEdit() {
         formDataToSend.append('applyEndDate', formatDateTime(data.applyEndDate));
       }
       formDataToSend.append('eventDate', formatEventDate(data.eventDate, data.category));
+      if (data.applyUrl) {
+        formDataToSend.append('applyUrl', data.applyUrl);
+      }
+      if (data.programUrl) {
+        formDataToSend.append('programUrl', data.programUrl);
+      }
       formDataToSend.append('maxParticipants', data.maxParticipants);
       formDataToSend.append('status', data.status);
       if (data.category) {
@@ -352,6 +367,33 @@ export default function ProgramEdit() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
+              외부 신청 링크 (선택, 구글폼 등)
+            </label>
+            <input
+              type="url"
+              value={formData.applyUrl}
+              onChange={(e) => setFormData({ ...formData, applyUrl: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+              placeholder="https://forms.google.com/..."
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              프로그램 참고 링크 (선택)
+            </label>
+            <input
+              type="url"
+              value={formData.programUrl}
+              onChange={(e) => setFormData({ ...formData, programUrl: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+              placeholder="https://..."
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               상태
             </label>
             <select
@@ -426,12 +468,12 @@ export default function ProgramEdit() {
                 {existingFiles.map((fileUrl, index) => (
                   <li key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
                     <a 
-                      href={fileUrl} 
+                      href={fileUrl.downloadUrl || '#'} 
                       target="_blank" 
                       rel="noopener noreferrer"
                       className="text-sm text-green-600 hover:text-green-700"
                     >
-                      파일 #{index + 1}
+                      {fileUrl.fileName || `파일 #${index + 1}`}
                     </a>
                     <button
                       type="button"

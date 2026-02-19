@@ -84,11 +84,6 @@ export default function News() {
                                 <span className="mx-2">•</span>
                                 <span>{new Date(post.updatedAt).toLocaleDateString()}</span>
                               </div>
-                              {post.content && (
-                                <div className="mt-2 text-gray-600 text-sm line-clamp-2">
-                                  {post.content.replace(/<[^>]*>/g, '').substring(0, 100)}...
-                                </div>
-                              )}
                             </div>
                           </div>
                         </div>

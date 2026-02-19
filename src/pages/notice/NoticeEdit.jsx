@@ -1,21 +1,37 @@
-import { useMemo, useRef, useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useMemo, useRef, useState, useEffect } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useNavigate, useParams } from 'react-router-dom';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
-import { createNotice } from '../../services/noticeService';
+import { getNoticeDetail, updateNotice } from '../../services/noticeService';
 import { uploadImage } from '../../services/postService';
 import { useAuth } from '../../contexts/AuthContext';
 
-export default function NoticeWrite() {
+export default function NoticeEdit() {
+  const { noticeId } = useParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { isAdmin } = useAuth();
   const quillRef = useRef(null);
 
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [isImportant, setIsImportant] = useState(false);
-  const [images, setImages] = useState([]);
+
+  const { data: noticeData, isLoading } = useQuery({
+    queryKey: ['notice', noticeId],
+    queryFn: () => getNoticeDetail(noticeId),
+    enabled: !!noticeId,
+  });
+
+  useEffect(() => {
+    const notice = noticeData?.data;
+    if (!notice) return;
+
+    setTitle(notice.title || '');
+    setContent(notice.content || '');
+    setIsImportant(Boolean(notice.dynamicFields?.important));
+  }, [noticeData]);
 
   const modules = useMemo(() => ({
     toolbar: {
@@ -54,28 +70,20 @@ export default function NoticeWrite() {
     },
   }), []);
 
-  const { mutate: submitNotice, isPending } = useMutation({
-    mutationFn: async () => {
-      const formData = new FormData();
-      formData.append('title', title);
-      formData.append('content', content);
-      images.forEach((image) => formData.append('images', image));
-
-      if (isImportant) {
-        const dynamicFieldsBlob = new Blob([JSON.stringify({ important: true })], {
-          type: 'application/json',
-        });
-        formData.append('dynamic_fields', dynamicFieldsBlob);
-      }
-
-      return createNotice(formData);
-    },
+  const { mutate: submitEdit, isPending } = useMutation({
+    mutationFn: () => updateNotice(noticeId, {
+      title,
+      content,
+      dynamicFields: isImportant ? { important: true } : {},
+    }),
     onSuccess: () => {
-      alert('공지사항이 등록되었습니다.');
-      navigate('/news/notice');
+      queryClient.invalidateQueries({ queryKey: ['notice', noticeId] });
+      queryClient.invalidateQueries({ queryKey: ['notices'] });
+      alert('공지사항이 수정되었습니다.');
+      navigate(`/news/notice/${noticeId}`);
     },
     onError: (error) => {
-      alert('공지사항 등록에 실패했습니다: ' + error.message);
+      alert('공지사항 수정에 실패했습니다: ' + error.message);
     },
   });
 
@@ -84,9 +92,7 @@ export default function NoticeWrite() {
     const files = Array.from(event.dataTransfer.files || []);
     const imageFiles = files.filter((file) => file.type.startsWith('image/'));
 
-    if (imageFiles.length === 0) {
-      return;
-    }
+    if (imageFiles.length === 0) return;
 
     try {
       for (const file of imageFiles) {
@@ -119,17 +125,7 @@ export default function NoticeWrite() {
       return;
     }
 
-    submitNotice();
-  };
-
-  const handleImageChange = (e) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length === 0) return;
-    setImages((prev) => [...prev, ...files]);
-  };
-
-  const handleRemoveImage = (indexToRemove) => {
-    setImages((prev) => prev.filter((_, index) => index !== indexToRemove));
+    submitEdit();
   };
 
   if (!isAdmin) {
@@ -137,15 +133,23 @@ export default function NoticeWrite() {
       <div className="min-h-[60vh] flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-red-600 mb-4">접근 권한이 없습니다</h2>
-          <p className="text-gray-500">공지사항 작성은 관리자만 가능합니다.</p>
+          <p className="text-gray-500">공지사항 수정은 관리자만 가능합니다.</p>
         </div>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500" />
       </div>
     );
   }
 
   return (
     <div className="max-w-4xl mx-auto p-6">
-      <h1 className="text-3xl font-bold mb-8">공지사항 작성</h1>
+      <h1 className="text-3xl font-bold mb-8">공지사항 수정</h1>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
@@ -190,46 +194,13 @@ export default function NoticeWrite() {
           <div className="h-24" />
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            이미지 첨부
-          </label>
-          <input
-            type="file"
-            multiple
-            accept="image/*"
-            onChange={handleImageChange}
-            className="w-full px-4 py-2 border border-gray-300 rounded-md"
-          />
-          {images.length > 0 && (
-            <div className="mt-2 flex gap-2 flex-wrap">
-              {images.map((image, index) => (
-                <div key={`${image.name}-${index}`} className="relative">
-                  <img
-                    src={URL.createObjectURL(image)}
-                    alt={`Preview ${index}`}
-                    className="h-20 w-20 object-cover rounded"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveImage(index)}
-                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center"
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
         <div className="flex justify-end">
           <button
             type="submit"
             disabled={isPending}
             className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-gray-400"
           >
-            {isPending ? '등록 중...' : '등록'}
+            {isPending ? '수정 중...' : '수정'}
           </button>
         </div>
       </form>

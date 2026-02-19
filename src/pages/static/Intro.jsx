@@ -1,5 +1,8 @@
+import { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useParams, Link } from 'react-router-dom';
 import logo from '../../assets/logo.png';
+import { getStaticContent } from '../../services/staticContentService';
 
 export default function Intro() {
   const { subCategory } = useParams();
@@ -12,7 +15,38 @@ export default function Intro() {
     { id: 'location', name: '오시는 길', path: '/intro/location' },
   ];
 
+  const activeSubCategory = subCategory || null;
+  const activeSubCategoryName = subCategories.find((item) => item.id === activeSubCategory)?.name || '소개';
+  const activeContentKey = activeSubCategory ? `intro-${activeSubCategory}` : null;
+
+  const { data: introStaticContent } = useQuery({
+    queryKey: ['staticContent', activeContentKey],
+    queryFn: () => getStaticContent(activeContentKey),
+    enabled: !!activeContentKey,
+  });
+
+  const dynamicIntroContent = useMemo(
+    () => introStaticContent?.content || '',
+    [introStaticContent]
+  );
+
   const getContent = () => {
+    if (activeSubCategory && dynamicIntroContent) {
+      return {
+        title: activeSubCategoryName,
+        content: (
+          <div className="space-y-8">
+            <div className="bg-white p-10 rounded-xl border border-green-200 shadow-sm">
+              <div
+                className="prose prose-lg max-w-none text-gray-800"
+                dangerouslySetInnerHTML={{ __html: dynamicIntroContent }}
+              />
+            </div>
+          </div>
+        )
+      };
+    }
+
     switch (subCategory) {
       case 'greeting':
         return {
@@ -435,4 +469,4 @@ export default function Intro() {
       </div>
     </div>
   );
-} 
+}

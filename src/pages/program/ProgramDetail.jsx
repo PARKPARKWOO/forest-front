@@ -24,6 +24,11 @@ export default function ProgramDetail() {
   if (!program) return <div className="text-center py-8">프로그램을 찾을 수 없습니다.</div>;
 
   const handleApplyClick = () => {
+    if (program.applyUrl) {
+      window.open(program.applyUrl, '_blank', 'noopener,noreferrer');
+      return;
+    }
+
     if (!isAuthenticated) {
       setShowLoginModal(true);
       return;
@@ -97,6 +102,19 @@ export default function ProgramDetail() {
             <h3 className="text-sm font-medium text-gray-500 mb-1">카테고리</h3>
             <p className="text-gray-900">{program.categoryName || '일반'}</p>
           </div>
+          {program.programUrl && (
+            <div className="md:col-span-2">
+              <h3 className="text-sm font-medium text-gray-500 mb-1">프로그램 링크</h3>
+              <a
+                href={program.programUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-green-700 hover:text-green-800 underline break-all"
+              >
+                {program.programUrl}
+              </a>
+            </div>
+          )}
         </div>
 
         <div className="prose prose-green max-w-none mb-6">
@@ -135,7 +153,7 @@ export default function ProgramDetail() {
               className="px-6 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 
                 transition-colors duration-200 text-lg font-medium"
             >
-              신청하기
+              {program.applyUrl ? '외부 신청하기' : '신청하기'}
             </button>
           </div>
         )}

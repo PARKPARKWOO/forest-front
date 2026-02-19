@@ -48,6 +48,20 @@ export default function UserHome() {
 
   const notices = noticeData?.data?.contents || [];
 
+  // 소식(활동보기) 조회 - categoryId 0
+  const { data: newsPosts } = useQuery({
+    queryKey: ['newsPosts', 'home'],
+    queryFn: () => fetchPostsByCategory('0'),
+  });
+
+  const extractThumbnail = (post) => {
+    if (post?.thumbnail) {
+      return post.thumbnail;
+    }
+    const match = post?.content?.match(/<img[^>]+src=['"]([^'"]+)['"]/i);
+    return match?.[1] || null;
+  };
+
   // 중요 공지사항을 상단에 정렬
   const sortedNotices = [...notices].sort((a, b) => {
     const aImportant = a.dynamicFields?.important || false;
@@ -157,6 +171,59 @@ export default function UserHome() {
             )}
           </div>
         </div>
+      </div>
+
+      {/* 소식 섹션 */}
+      <div className="mb-12">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold text-gray-900">소식</h2>
+          <Link
+            to="/news/activities"
+            className="text-green-600 hover:text-green-700 font-medium flex items-center"
+          >
+            전체 소식 보기
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
+            </svg>
+          </Link>
+        </div>
+
+        {newsPosts?.length > 0 ? (
+          <div className="grid md:grid-cols-3 gap-6">
+            {newsPosts.slice(0, 3).map((post) => (
+              <Link
+                key={post.id}
+                to={`/post/0/${post.id}`}
+                state={{ categoryId: '0', postType: 'POST' }}
+                className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-200"
+              >
+                <div className="h-44 bg-gray-100 overflow-hidden">
+                  {extractThumbnail(post) ? (
+                    <img
+                      src={extractThumbnail(post)}
+                      alt={post.title}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">
+                      썸네일 없음
+                    </div>
+                  )}
+                </div>
+                <div className="p-4">
+                  <h3 className="font-semibold text-gray-900 line-clamp-2">{post.title}</h3>
+                  <p className="text-sm text-gray-500 mt-2">
+                    {new Date(post.updatedAt).toLocaleDateString('ko-KR')}
+                  </p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <div className="bg-gray-50 rounded-lg py-10 text-center text-gray-500">
+            등록된 소식이 없습니다.
+          </div>
+        )}
       </div>
 
       {/* 카테고리별 게시글 섹션 */}

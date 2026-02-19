@@ -4,7 +4,6 @@ import { useMutation } from '@tanstack/react-query';
 import { createProgram } from '../../services/programService';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
-import axiosInstance from '../../axiosInstance';
 import { uploadImage } from '../../services/uploadService';
 
 export default function ProgramCreate() {
@@ -17,6 +16,8 @@ export default function ProgramCreate() {
     applyStartDate: '',
     applyEndDate: '',
     eventDate: '',
+    applyUrl: '',
+    programUrl: '',
     maxParticipants: '',
     category: 'participate',
     files: [],
@@ -199,6 +200,32 @@ export default function ProgramCreate() {
             type="datetime-local"
             value={formData.applyEndDate}
             onChange={(e) => setFormData({ ...formData, applyEndDate: e.target.value })}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            외부 신청 링크 (선택, 구글폼 등)
+          </label>
+          <input
+            type="url"
+            value={formData.applyUrl}
+            onChange={(e) => setFormData({ ...formData, applyUrl: e.target.value })}
+            placeholder="https://forms.google.com/..."
+            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            프로그램 참고 링크 (선택)
+          </label>
+          <input
+            type="url"
+            value={formData.programUrl}
+            onChange={(e) => setFormData({ ...formData, programUrl: e.target.value })}
+            placeholder="https://..."
             className="w-full px-3 py-2 border border-gray-300 rounded-md"
           />
         </div>

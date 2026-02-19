@@ -89,7 +89,7 @@ export default function NoticeDetail() {
     <div className="min-h-[60vh] bg-gray-50">
       <div className="container mx-auto px-6 py-8">
         {/* 뒤로가기 버튼 */}
-        <div className="mb-6">
+        <div className="mb-6 flex items-center justify-between">
           <Link
             to="/news/notice"
             className="inline-flex items-center text-green-600 hover:text-green-700 transition-colors duration-200"
@@ -99,6 +99,15 @@ export default function NoticeDetail() {
             </svg>
             공지사항 목록으로 돌아가기
           </Link>
+
+          {isAdmin && (
+            <Link
+              to={`/news/notice/edit/${notice.id}`}
+              className="px-4 py-2 text-sm bg-green-600 text-white rounded-md hover:bg-green-700"
+            >
+              수정
+            </Link>
+          )}
         </div>
 
         {/* 공지사항 내용 */}

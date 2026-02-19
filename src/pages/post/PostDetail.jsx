@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { fetchPostById } from '../../services/postService';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { deletePost, fetchPostById } from '../../services/postService';
 import { useAuth } from '../../contexts/AuthContext';
 import ImageModal from '../../components/ImageModal';
 
@@ -9,7 +9,8 @@ export default function PostDetail() {
   const { categoryId, postId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAdmin } = useAuth();
+  const queryClient = useQueryClient();
+  const { isAdmin, isAuthenticated, user } = useAuth();
   const [selectedImage, setSelectedImage] = useState(null);
   const contentRef = useRef(null);
 
@@ -24,6 +25,25 @@ export default function PostDetail() {
   });
 
   const postContent = useMemo(() => post?.content, [post?.content]);
+  const currentUserId = user?.userId || user?.id;
+  const canManage = Boolean(
+    post &&
+    finalCategoryId &&
+    isAuthenticated &&
+    (isAdmin || String(currentUserId) === String(post.authorId))
+  );
+
+  const { mutate: removePost, isPending: isDeleting } = useMutation({
+    mutationFn: () => deletePost(finalCategoryId, postId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['posts', finalCategoryId] });
+      alert('게시글이 삭제되었습니다.');
+      navigate(`/category/${finalCategoryId}`);
+    },
+    onError: (error) => {
+      alert('게시글 삭제에 실패했습니다: ' + error.message);
+    },
+  });
 
   // onClose 핸들러 메모이제이션
   const handleCloseModal = useCallback(() => {
@@ -86,6 +106,13 @@ export default function PostDetail() {
     );
   }
 
+  const handleDelete = () => {
+    if (!window.confirm('정말 삭제하시겠습니까?')) {
+      return;
+    }
+    removePost();
+  };
+
   return (
     <div className="max-w-4xl mx-auto p-6">
       <div className="bg-white rounded-lg shadow-sm p-8">
@@ -109,7 +136,28 @@ export default function PostDetail() {
         ) : (
           // 일반 게시글 표시
           <>
-            <h1 className="text-3xl font-bold text-gray-800 mb-4">{post.title}</h1>
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <h1 className="text-3xl font-bold text-gray-800">{post.title}</h1>
+              {canManage && (
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/category/${finalCategoryId}/edit/${postId}`)}
+                    className="px-3 py-1.5 text-sm bg-green-600 text-white rounded-md hover:bg-green-700"
+                  >
+                    수정
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleDelete}
+                    disabled={isDeleting}
+                    className="px-3 py-1.5 text-sm bg-red-600 text-white rounded-md hover:bg-red-700 disabled:bg-gray-400"
+                  >
+                    {isDeleting ? '삭제 중...' : '삭제'}
+                  </button>
+                </div>
+              )}
+            </div>
             
             <div className="flex items-center text-gray-500 mb-8">
               <span>{post.authorName}</span>

@@ -43,3 +43,14 @@ export const deleteNotice = async (noticeId) => {
     throw error;
   }
 };
+
+// 공지사항 수정
+export const updateNotice = async (noticeId, payload) => {
+  try {
+    const response = await axiosInstance.put(`/notice/${noticeId}`, payload);
+    return response.data;
+  } catch (error) {
+    console.error('공지사항 수정 중 오류:', error);
+    throw error;
+  }
+};

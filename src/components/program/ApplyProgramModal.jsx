@@ -157,16 +157,58 @@ function DynamicFormField({ field, value, onChange }) {
           </select>
         );
 
-      case 'FILE_UPLOAD':
+      case 'FILE_UPLOAD': {
+        const allowedExtensions = (field.validation?.allowedExtensions || [])
+          .map((ext) => ext.trim().replace(/^\./, '').toLowerCase())
+          .filter((ext) => ext.length > 0);
+        const accept = allowedExtensions.length > 0
+          ? allowedExtensions.map((ext) => `.${ext}`).join(',')
+          : undefined;
+
         return (
-          <input
-            type="file"
-            onChange={(e) => onChange(field.id, e.target.files[0])}
-            required={field.required}
-            accept={field.validation?.allowedExtensions?.map(ext => `.${ext}`).join(',')}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
-          />
+          <div>
+            <input
+              type="file"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (!file) {
+                  onChange(field.id, undefined);
+                  return;
+                }
+
+                if (allowedExtensions.length > 0) {
+                  const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
+                  if (!allowedExtensions.includes(fileExtension)) {
+                    alert(`허용된 파일 형식: ${allowedExtensions.join(', ')}`);
+                    e.target.value = '';
+                    return;
+                  }
+                }
+
+                const maxFileSize = field.validation?.maxFileSize;
+                if (maxFileSize && file.size > maxFileSize) {
+                  const maxMb = Math.floor(maxFileSize / (1024 * 1024));
+                  alert(`파일 크기는 ${maxMb}MB 이하여야 합니다.`);
+                  e.target.value = '';
+                  return;
+                }
+
+                onChange(field.id, file);
+              }}
+              required={field.required}
+              accept={accept}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
+            />
+            {(allowedExtensions.length > 0 || field.validation?.maxFileSize) && (
+              <p className="mt-1 text-xs text-gray-500">
+                {allowedExtensions.length > 0 && `확장자: ${allowedExtensions.join(', ')}`}
+                {allowedExtensions.length > 0 && field.validation?.maxFileSize && ' / '}
+                {field.validation?.maxFileSize && `최대 ${Math.floor(field.validation.maxFileSize / (1024 * 1024))}MB`}
+              </p>
+            )}
+          </div>
         );
+      }
 
       default:
         return (

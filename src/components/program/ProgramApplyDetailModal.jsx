@@ -9,6 +9,18 @@ export default function ProgramApplyDetailModal({ apply, programId, onClose }) {
     enabled: !!programId && !!apply?.formResponses,
   });
 
+  const buildDownloadUrl = (rawUrl) => {
+    if (typeof rawUrl !== 'string' || !rawUrl) return '#';
+
+    try {
+      const parsed = new URL(rawUrl, window.location.origin);
+      parsed.searchParams.set('download', 'true');
+      return parsed.toString();
+    } catch {
+      return `${rawUrl}${rawUrl.includes('?') ? '&' : '?'}download=true`;
+    }
+  };
+
   const renderFieldValue = (fieldId, value, field) => {
     if (!value) return <span className="text-gray-400">응답 없음</span>;
 
@@ -26,12 +38,18 @@ export default function ProgramApplyDetailModal({ apply, programId, onClose }) {
     }
 
     // 파일인 경우
-    if (field?.type === 'FILE_UPLOAD' && typeof value === 'string') {
+    const fileValue =
+      typeof value === 'string'
+        ? { url: value, name: null }
+        : value && typeof value === 'object' && !Array.isArray(value) && typeof value.url === 'string'
+          ? { url: value.url, name: value.name ?? null }
+          : null;
+
+    if (field?.type === 'FILE_UPLOAD' && fileValue) {
       return (
         <a 
-          href={value} 
-          target="_blank" 
-          rel="noopener noreferrer"
+          href={buildDownloadUrl(fileValue.url)}
+          download={fileValue.name || ''}
           className="text-blue-600 hover:text-blue-800 flex items-center"
         >
           <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -39,7 +57,7 @@ export default function ProgramApplyDetailModal({ apply, programId, onClose }) {
               d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" 
             />
           </svg>
-          파일 다운로드
+          {fileValue.name || '파일 다운로드'}
         </a>
       );
     }
@@ -185,4 +203,3 @@ export default function ProgramApplyDetailModal({ apply, programId, onClose }) {
     </div>
   );
 }
-

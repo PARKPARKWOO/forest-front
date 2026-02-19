@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchCategories, deleteCategory } from '../../services/categoryService';
 import { fetchPrograms, deleteProgram, fetchProgramApplies, fetchProgramForm } from '../../services/programService';
 import { fetchSupporters, markSupportComplete } from '../../services/supportService';
+import { getStaticContent, updateStaticContent } from '../../services/staticContentService';
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { getProgramStatusInfo } from '../../utils/programStatus';
@@ -29,6 +30,14 @@ const getCategoryBadge = (category) => {
   );
 };
 
+const INTRO_CONTENT_ITEMS = [
+  { key: 'intro-greeting', label: '인사말', path: '/intro/greeting' },
+  { key: 'intro-declaration', label: '창립선언문', path: '/intro/declaration' },
+  { key: 'intro-people', label: '함께하는이들', path: '/intro/people' },
+  { key: 'intro-activities', label: '주요활동', path: '/intro/activities' },
+  { key: 'intro-location', label: '오시는 길', path: '/intro/location' },
+];
+
 export default function AdminDashboard() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -44,6 +53,9 @@ export default function AdminDashboard() {
   const [showApplyDetailModal, setShowApplyDetailModal] = useState(false);
   const [selectedApply, setSelectedApply] = useState(null);
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [selectedIntroItem, setSelectedIntroItem] = useState(null);
+  const [introDraft, setIntroDraft] = useState('');
+  const [showIntroModal, setShowIntroModal] = useState(false);
 
   // 카테고리 목록 조회
   const { data: categories, isLoading: categoriesLoading } = useQuery({
@@ -99,6 +111,21 @@ export default function AdminDashboard() {
   const totalPages = supportersData?.data?.totalPages || 0;
   const totalElements = supportersData?.data?.totalCount || 0;
 
+  // 소개(정적 카테고리) 콘텐츠 조회
+  const { data: introContents, isLoading: introContentsLoading } = useQuery({
+    queryKey: ['introContents'],
+    queryFn: async () => {
+      const responses = await Promise.all(
+        INTRO_CONTENT_ITEMS.map(async (item) => {
+          const content = await getStaticContent(item.key);
+          return [item.key, content];
+        })
+      );
+      return Object.fromEntries(responses);
+    },
+    enabled: activeMenu === 'intro',
+  });
+
   // 후원신청 완료 처리
   const { mutate: completeSupport } = useMutation({
     mutationFn: markSupportComplete,
@@ -135,6 +162,24 @@ export default function AdminDashboard() {
     },
   });
 
+  // 소개글 저장
+  const { mutate: saveIntroContent, isPending: isSavingIntroContent } = useMutation({
+    mutationFn: ({ key, label, content }) => updateStaticContent(key, {
+      title: label,
+      content,
+    }),
+    onSuccess: () => {
+      alert('소개글이 저장되었습니다.');
+      queryClient.invalidateQueries({ queryKey: ['introContents'] });
+      setShowIntroModal(false);
+      setSelectedIntroItem(null);
+      setIntroDraft('');
+    },
+    onError: (error) => {
+      alert('소개글 저장에 실패했습니다: ' + error.message);
+    },
+  });
+
   // 신청 폼 생성/수정 열기
   const handleOpenFormBuilder = async (program) => {
     setSelectedProgramForForm(program);
@@ -164,6 +209,30 @@ export default function AdminDashboard() {
   const handleCloseApplyDetail = () => {
     setShowApplyDetailModal(false);
     setSelectedApply(null);
+  };
+
+  const handleOpenIntroEditor = (item) => {
+    const existingContent = introContents?.[item.key]?.content || '';
+    setSelectedIntroItem(item);
+    setIntroDraft(existingContent);
+    setShowIntroModal(true);
+  };
+
+  const handleCloseIntroEditor = () => {
+    setShowIntroModal(false);
+    setSelectedIntroItem(null);
+    setIntroDraft('');
+  };
+
+  const handleSaveIntroContent = () => {
+    if (!selectedIntroItem) {
+      return;
+    }
+    saveIntroContent({
+      key: selectedIntroItem.key,
+      label: selectedIntroItem.label,
+      content: introDraft,
+    });
   };
 
   return (
@@ -206,6 +275,16 @@ export default function AdminDashboard() {
           </button>
           <button
             className={`w-full text-left px-4 py-2 ${
+              activeMenu === 'intro'
+                ? 'bg-green-50 text-green-700 border-l-4 border-green-500'
+                : 'text-gray-600 hover:bg-gray-50'
+            }`}
+            onClick={() => setActiveMenu('intro')}
+          >
+            소개글 관리
+          </button>
+          <button
+            className={`w-full text-left px-4 py-2 ${
               activeMenu === 'donations' 
                 ? 'bg-green-50 text-green-700 border-l-4 border-green-500' 
                 : 'text-gray-600 hover:bg-gray-50'
@@ -234,6 +313,7 @@ export default function AdminDashboard() {
             {activeMenu === 'categories' && '카테고리 관리'}
             {activeMenu === 'programs' && '프로그램 관리'}
             {activeMenu === 'users' && '사용자 관리'}
+            {activeMenu === 'intro' && '소개글 관리'}
             {activeMenu === 'donations' && '후원금 관리'}
             {activeMenu === 'mail' && '메일 발송'}
           </h1>
@@ -497,6 +577,78 @@ export default function AdminDashboard() {
           </div>
         )}
 
+        {/* 소개글 관리 */}
+        {activeMenu === 'intro' && (
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-lg font-medium">소개(정적 카테고리) 편집</h3>
+              <span className="text-sm text-gray-500">
+                저장 후 즉시 프론트 소개 페이지에 반영됩니다.
+              </span>
+            </div>
+
+            {introContentsLoading ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-green-500 mx-auto"></div>
+              </div>
+            ) : (
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">항목</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">상태</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">미리보기</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">작업</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {INTRO_CONTENT_ITEMS.map((item) => {
+                    const content = introContents?.[item.key];
+                    const hasCustomContent = Boolean(content?.content);
+                    const previewText = content?.content
+                      ? content.content.replace(/<[^>]*>/g, '').trim().slice(0, 80)
+                      : '기본 템플릿 사용 중';
+
+                    return (
+                      <tr key={item.key}>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          {item.label}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            hasCustomContent ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-700'
+                          }`}>
+                            {hasCustomContent ? '커스텀 적용' : '기본값'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-500 max-w-xs">
+                          <div className="line-clamp-2">{previewText || '내용 없음'}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          <button
+                            onClick={() => handleOpenIntroEditor(item)}
+                            className="text-green-600 hover:text-green-800 mr-3"
+                          >
+                            수정
+                          </button>
+                          <Link
+                            to={item.path}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-800"
+                          >
+                            보기
+                          </Link>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+        )}
+
         {/* 메일 발송 폼 */}
         {activeMenu === 'mail' && (
           <div className="bg-white rounded-lg shadow p-6">
@@ -650,6 +802,54 @@ export default function AdminDashboard() {
                 후원신청이 없습니다.
               </div>
             )}
+          </div>
+        )}
+
+        {/* 소개글 편집 모달 */}
+        {showIntroModal && selectedIntroItem && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-center p-6 border-b">
+                <h3 className="text-lg font-medium">{selectedIntroItem.label} 소개글 수정</h3>
+                <button
+                  onClick={handleCloseIntroEditor}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="p-6 space-y-4">
+                <p className="text-sm text-gray-500">
+                  HTML 형식으로 저장됩니다. 비어 있으면 기존 프론트 기본 콘텐츠가 노출됩니다.
+                </p>
+                <textarea
+                  value={introDraft}
+                  onChange={(e) => setIntroDraft(e.target.value)}
+                  rows={20}
+                  className="w-full border border-gray-300 rounded-md p-3 font-mono text-sm"
+                  placeholder="<p>소개글 내용을 입력하세요</p>"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 p-6 border-t bg-gray-50">
+                <button
+                  onClick={handleCloseIntroEditor}
+                  className="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-md text-sm font-medium"
+                >
+                  취소
+                </button>
+                <button
+                  onClick={handleSaveIntroContent}
+                  disabled={isSavingIntroContent}
+                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium disabled:bg-gray-400"
+                >
+                  {isSavingIntroContent ? '저장 중...' : '저장'}
+                </button>
+              </div>
+            </div>
           </div>
         )}
 

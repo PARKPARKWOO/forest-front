@@ -282,6 +282,60 @@ function FieldEditor({ field, onUpdate, onDelete, onMoveUp, onMoveDown, isFirst,
               </div>
             </div>
           )}
+
+          {field.type === 'FILE_UPLOAD' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">
+                  허용 확장자 (쉼표 구분)
+                </label>
+                <input
+                  type="text"
+                  value={(field.validation?.allowedExtensions || []).join(',')}
+                  onChange={(e) => {
+                    const allowedExtensions = e.target.value
+                      .split(',')
+                      .map((ext) => ext.trim().replace(/^\./, ''))
+                      .filter((ext) => ext.length > 0);
+
+                    onUpdate(field.id, {
+                      ...field,
+                      validation: {
+                        ...field.validation,
+                        allowedExtensions,
+                      },
+                    });
+                  }}
+                  placeholder="pdf,jpg,png"
+                  className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">최대 크기(MB)</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={
+                    field.validation?.maxFileSize
+                      ? Math.floor(field.validation.maxFileSize / (1024 * 1024))
+                      : ''
+                  }
+                  onChange={(e) => {
+                    const mb = Number(e.target.value);
+                    onUpdate(field.id, {
+                      ...field,
+                      validation: {
+                        ...field.validation,
+                        maxFileSize: mb > 0 ? mb * 1024 * 1024 : null,
+                      },
+                    });
+                  }}
+                  placeholder="10"
+                  className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                />
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -507,4 +561,3 @@ export default function ProgramFormBuilder({ programId, existingForm, onClose, o
     </div>
   );
 }
-

@@ -6,6 +6,7 @@ import Category from './components/Category';
 import CategoryCreate from './pages/admin/CategoryCreate';
 import PostWrite from './pages/post/PostWrite';
 import PostDetail from './pages/post/PostDetail';
+import PostEdit from './pages/post/PostEdit';
 import Login from './pages/Login';
 import Intro from './pages/static/Intro';
 import Programs from './pages/static/Programs';
@@ -19,6 +20,7 @@ import ProgramDetail from './pages/program/ProgramDetail';
 import ProgramEdit from './pages/program/ProgramEdit';
 import NoticeDetail from './pages/notice/NoticeDetail';
 import NoticeWrite from './pages/notice/NoticeWrite';
+import NoticeEdit from './pages/notice/NoticeEdit';
 import ProtectedRoute from './components/ProtectedRoute';
 import UserManagement from './pages/admin/UserManagement';
 
@@ -53,6 +55,11 @@ const router = createBrowserRouter([
           <NoticeWrite />
         </ProtectedRoute>
       ) },
+      { path: 'news/notice/edit/:noticeId', element: (
+        <ProtectedRoute>
+          <NoticeEdit />
+        </ProtectedRoute>
+      ) },
       { path: 'admin', element: (
         <ProtectedRoute>
           <AdminDashboard />
@@ -70,6 +77,7 @@ const router = createBrowserRouter([
       ) },
       { path: 'category/:categoryId', element: <Category /> },
       { path: 'category/:categoryId/write', element: <PostWrite /> },
+      { path: 'category/:categoryId/edit/:postId', element: <PostEdit /> },
       { path: 'post/:categoryId/:postId', element: <PostDetail /> },
       { path: 'post/:postId', element: <PostDetail /> },
     ],
