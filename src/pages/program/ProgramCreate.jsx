@@ -5,6 +5,7 @@ import { createProgram } from '../../services/programService';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import { uploadImage } from '../../services/uploadService';
+import { normalizeListMarkup } from '../../utils/editorContent';
 
 export default function ProgramCreate() {
   const navigate = useNavigate();
@@ -147,6 +148,7 @@ export default function ProgramCreate() {
     
     submitProgram({
       ...formData,
+      content: normalizeListMarkup(formData.content),
       applyStartDate: formatDateTime(formData.applyStartDate),
       applyEndDate: formatDateTime(formData.applyEndDate),
       eventDate: formatEventDate(formData.eventDate, formData.category),

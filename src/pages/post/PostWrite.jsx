@@ -2,6 +2,7 @@ import { useState, useRef, useMemo } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { createPost, uploadImage } from '../../services/postService';
+import { normalizeListMarkup } from '../../utils/editorContent';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 
@@ -47,7 +48,7 @@ export default function PostWrite() {
     } else {
       // 일반 게시글일 경우 모든 데이터 전송
       formData.append('title', title);
-      formData.append('content', content);
+      formData.append('content', normalizeListMarkup(content));
       images.forEach((image) => {
         formData.append('images', image);
       });
@@ -94,7 +95,7 @@ export default function PostWrite() {
           };
         }
       }
-    }
+    },
   }), []); // 빈 의존성 배열로 한 번만 생성
 
   // 드래그 앤 드롭 핸들러

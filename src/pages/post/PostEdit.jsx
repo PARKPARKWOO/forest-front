@@ -4,6 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import { fetchPostById, updatePost, uploadImage } from '../../services/postService';
+import { normalizeListMarkup } from '../../utils/editorContent';
 import { useAuth } from '../../contexts/AuthContext';
 
 export default function PostEdit() {
@@ -26,7 +27,7 @@ export default function PostEdit() {
   useEffect(() => {
     if (!post) return;
     setTitle(post.title || '');
-    setContent(post.content || '');
+    setContent(normalizeListMarkup(post.content || ''));
     setDynamicFields(post.dynamicFields || {});
   }, [post]);
 
@@ -69,7 +70,7 @@ export default function PostEdit() {
   const { mutate: submitEdit, isPending } = useMutation({
     mutationFn: () => updatePost(categoryId, postId, {
       title,
-      content,
+      content: normalizeListMarkup(content),
       dynamicFields,
     }),
     onSuccess: () => {

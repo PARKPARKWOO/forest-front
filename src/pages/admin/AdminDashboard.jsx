@@ -10,6 +10,7 @@ import { getProgramStatusInfo, sortProgramsByStatus } from '../../utils/programS
 import { formatKoreanDateRange } from '../../utils/dateFormat';
 import { uploadImage } from '../../services/postService';
 import { getHtmlPreviewText, hasMeaningfulHtmlContent } from '../../utils/contentUtils';
+import { normalizeListMarkup } from '../../utils/editorContent';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import UserManagement from './UserManagement';
@@ -271,7 +272,7 @@ export default function AdminDashboard() {
   const handleOpenIntroEditor = (item) => {
     const existingContent = introContents?.[item.key]?.content || '';
     setSelectedIntroItem(item);
-    setIntroDraft(existingContent);
+    setIntroDraft(normalizeListMarkup(existingContent));
     setShowIntroModal(true);
   };
 
@@ -288,7 +289,7 @@ export default function AdminDashboard() {
     saveIntroContent({
       key: selectedIntroItem.key,
       label: selectedIntroItem.label,
-      content: introDraft,
+      content: normalizeListMarkup(introDraft),
     });
   };
 

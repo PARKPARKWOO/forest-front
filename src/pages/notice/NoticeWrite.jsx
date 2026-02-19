@@ -5,6 +5,7 @@ import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import { createNotice } from '../../services/noticeService';
 import { uploadImage } from '../../services/postService';
+import { normalizeListMarkup } from '../../utils/editorContent';
 import { useAuth } from '../../contexts/AuthContext';
 
 export default function NoticeWrite() {
@@ -58,7 +59,7 @@ export default function NoticeWrite() {
     mutationFn: async () => {
       const formData = new FormData();
       formData.append('title', title);
-      formData.append('content', content);
+      formData.append('content', normalizeListMarkup(content));
       images.forEach((image) => formData.append('images', image));
 
       if (isImportant) {

@@ -5,6 +5,7 @@ import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import { getNoticeDetail, updateNotice } from '../../services/noticeService';
 import { uploadImage } from '../../services/postService';
+import { normalizeListMarkup } from '../../utils/editorContent';
 import { useAuth } from '../../contexts/AuthContext';
 
 export default function NoticeEdit() {
@@ -29,7 +30,7 @@ export default function NoticeEdit() {
     if (!notice) return;
 
     setTitle(notice.title || '');
-    setContent(notice.content || '');
+    setContent(normalizeListMarkup(notice.content || ''));
     setIsImportant(Boolean(notice.dynamicFields?.important));
   }, [noticeData]);
 
@@ -73,7 +74,7 @@ export default function NoticeEdit() {
   const { mutate: submitEdit, isPending } = useMutation({
     mutationFn: () => updateNotice(noticeId, {
       title,
-      content,
+      content: normalizeListMarkup(content),
       dynamicFields: isImportant ? { important: true } : {},
     }),
     onSuccess: () => {

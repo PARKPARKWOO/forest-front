@@ -5,6 +5,7 @@ import { fetchProgramById, updateProgram } from '../../services/programService';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import { uploadImage } from '../../services/uploadService';
+import { normalizeListMarkup } from '../../utils/editorContent';
 
 export default function ProgramEdit() {
   const { id } = useParams();
@@ -81,7 +82,7 @@ export default function ProgramEdit() {
       
       setFormData({
         title: program.title || '',
-        content: program.content || '',
+        content: normalizeListMarkup(program.content || ''),
         applyStartDate: formatDateTimeForInput(program.applyStartDate),
         applyEndDate: formatDateTimeForInput(program.applyEndDate),
         eventDate: formatEventDateForInput(program.eventDate, category),
@@ -210,7 +211,7 @@ export default function ProgramEdit() {
       };
       
       formDataToSend.append('title', data.title);
-      formDataToSend.append('content', data.content);
+      formDataToSend.append('content', normalizeListMarkup(data.content));
       formDataToSend.append('applyStartDate', formatDateTime(data.applyStartDate));
       if (data.applyEndDate) {
         formDataToSend.append('applyEndDate', formatDateTime(data.applyEndDate));
