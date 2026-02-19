@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { getNoticeDetail } from '../../services/noticeService';
 import { useAuth } from '../../contexts/AuthContext';
 import ImageModal from '../../components/ImageModal';
+import { normalizeListMarkup } from '../../utils/editorContent';
 
 export default function NoticeDetail() {
   const { noticeId } = useParams();
@@ -17,7 +18,7 @@ export default function NoticeDetail() {
   });
 
   const notice = noticeData?.data;
-  const noticeContent = useMemo(() => notice?.content, [notice?.content]);
+  const noticeContent = useMemo(() => normalizeListMarkup(notice?.content || ''), [notice?.content]);
 
   // onClose 핸들러 메모이제이션
   const handleCloseModal = useCallback(() => {
@@ -172,11 +173,11 @@ export default function NoticeDetail() {
           )}
 
           {/* 본문 */}
-          <div className="prose max-w-none">
+          <div className="rich-content max-w-none">
             <div 
               ref={contentRef}
               className="text-gray-700 leading-relaxed"
-              dangerouslySetInnerHTML={{ __html: notice.content }}
+              dangerouslySetInnerHTML={{ __html: noticeContent }}
             />
           </div>
 

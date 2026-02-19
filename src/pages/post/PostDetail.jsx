@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { deletePost, fetchPostById } from '../../services/postService';
 import { useAuth } from '../../contexts/AuthContext';
 import ImageModal from '../../components/ImageModal';
+import { normalizeListMarkup } from '../../utils/editorContent';
 
 export default function PostDetail() {
   const { categoryId, postId } = useParams();
@@ -24,7 +25,7 @@ export default function PostDetail() {
     enabled: !!finalCategoryId && !!postId,
   });
 
-  const postContent = useMemo(() => post?.content, [post?.content]);
+  const postContent = useMemo(() => normalizeListMarkup(post?.content || ''), [post?.content]);
   const currentUserId = user?.userId || user?.id;
   const canManage = Boolean(
     post &&
@@ -167,8 +168,8 @@ export default function PostDetail() {
 
             <div 
               ref={contentRef}
-              className="prose max-w-none"
-              dangerouslySetInnerHTML={{ __html: post.content }}
+              className="rich-content max-w-none"
+              dangerouslySetInnerHTML={{ __html: postContent }}
             />
 
             {post.images && post.images.length > 0 && (

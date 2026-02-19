@@ -4,6 +4,7 @@ import { useParams, Link } from 'react-router-dom';
 import logo from '../../assets/logo.png';
 import { getStaticContent } from '../../services/staticContentService';
 import { hasMeaningfulHtmlContent } from '../../utils/contentUtils';
+import { normalizeListMarkup } from '../../utils/editorContent';
 
 export default function Intro() {
   const { subCategory } = useParams();
@@ -27,7 +28,7 @@ export default function Intro() {
   });
 
   const dynamicIntroContent = useMemo(
-    () => introStaticContent?.content || '',
+    () => normalizeListMarkup(introStaticContent?.content || ''),
     [introStaticContent]
   );
   const hasDynamicIntroContent = useMemo(
@@ -43,7 +44,7 @@ export default function Intro() {
           <div className="space-y-8">
             <div className="bg-white p-10 rounded-xl border border-green-200 shadow-sm">
               <div
-                className="prose prose-lg max-w-none text-gray-800"
+                className="rich-content prose prose-lg max-w-none text-gray-800"
                 dangerouslySetInnerHTML={{ __html: dynamicIntroContent }}
               />
             </div>

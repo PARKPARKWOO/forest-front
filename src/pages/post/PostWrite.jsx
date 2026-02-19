@@ -204,7 +204,6 @@ export default function PostWrite() {
                   onChange={setContent}
                   modules={modules}
                   className="h-[450px]"
-                  preserveWhitespace
                 />
               </div>
             </div>

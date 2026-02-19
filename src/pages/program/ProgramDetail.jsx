@@ -5,6 +5,7 @@ import { getProgramStatusInfo } from '../../utils/programStatus';
 import { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import ApplyProgramModal from '../../components/program/ApplyProgramModal';
+import { normalizeListMarkup } from '../../utils/editorContent';
 
 export default function ProgramDetail() {
   const { id } = useParams();
@@ -119,8 +120,8 @@ export default function ProgramDetail() {
           )}
         </div>
 
-        <div className="prose prose-green max-w-none mb-6">
-          <div dangerouslySetInnerHTML={{ __html: program.content }} />
+        <div className="rich-content max-w-none mb-6">
+          <div dangerouslySetInnerHTML={{ __html: normalizeListMarkup(program.content || '') }} />
         </div>
 
         {program.files?.length > 0 && (

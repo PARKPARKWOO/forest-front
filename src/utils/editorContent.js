@@ -37,6 +37,54 @@ const isSimpleTextBlock = (node) => {
   return Array.from(node.children).every((child) => child.tagName.toLowerCase() === 'br');
 };
 
+const normalizeQuillListBlocks = (root, doc) => {
+  const quillLists = Array.from(root.querySelectorAll('ol')).filter((node) => {
+    return Array.from(node.children).some((child) => {
+      return child.nodeType === 1
+        && child.tagName.toLowerCase() === 'li'
+        && child.hasAttribute('data-list');
+    });
+  });
+
+  quillLists.forEach((originalList) => {
+    const replacement = doc.createDocumentFragment();
+    let currentList = null;
+    let currentType = null;
+
+    const flushCurrent = () => {
+      if (!currentList) {
+        return;
+      }
+      replacement.appendChild(currentList);
+      currentList = null;
+      currentType = null;
+    };
+
+    Array.from(originalList.children).forEach((child) => {
+      if (child.nodeType !== 1 || child.tagName.toLowerCase() !== 'li') {
+        flushCurrent();
+        replacement.appendChild(child.cloneNode(true));
+        return;
+      }
+
+      const dataListType = child.getAttribute('data-list');
+      const nextType = dataListType === 'ordered' ? 'ol' : 'ul';
+      if (!currentList || currentType !== nextType) {
+        flushCurrent();
+        currentType = nextType;
+        currentList = doc.createElement(nextType);
+      }
+
+      const nextLi = child.cloneNode(true);
+      nextLi.removeAttribute('data-list');
+      currentList.appendChild(nextLi);
+    });
+
+    flushCurrent();
+    originalList.replaceWith(replacement);
+  });
+};
+
 export const normalizeListMarkup = (html = '') => {
   if (typeof html !== 'string' || !html.trim()) {
     return html || '';
@@ -52,6 +100,8 @@ export const normalizeListMarkup = (html = '') => {
   if (!root) {
     return html;
   }
+
+  normalizeQuillListBlocks(root, doc);
 
   const fragment = doc.createDocumentFragment();
   let currentList = null;
