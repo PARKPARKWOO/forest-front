@@ -99,6 +99,22 @@ export default function Programs() {
   };
 
   const { title, description, type, content } = getContent();
+  const apiPrograms = programsData?.data?.contents || [];
+  const totalCount = programsData?.data?.totalCount || 0;
+  const totalPages = Math.ceil(totalCount / pageSize);
+  const sortedPrograms = useMemo(() => sortProgramsByStatus(apiPrograms), [apiPrograms]);
+  const groupedPrograms = useMemo(() => {
+    const grouped = Object.fromEntries(PROGRAM_STATUS_SECTIONS.map((section) => [section.status, []]));
+
+    sortedPrograms.forEach((program) => {
+      if (grouped[program.status]) {
+        grouped[program.status].push(program);
+      }
+    });
+
+    return grouped;
+  }, [sortedPrograms]);
+  const hasPrograms = sortedPrograms.length > 0;
 
   // 참여 프로그램이 아닌 경우 정적 콘텐츠 표시
   if (type === 'static') {
@@ -186,23 +202,6 @@ export default function Programs() {
       </div>
     );
   }
-
-  // 서버 응답 구조: { data: { contents: [], hasNextPage: boolean, totalCount: number } }
-  const { contents: programs, totalCount } = programsData.data;
-  const sortedPrograms = sortProgramsByStatus(programs || []);
-  const totalPages = Math.ceil(totalCount / pageSize);
-  const groupedPrograms = useMemo(() => {
-    const grouped = Object.fromEntries(PROGRAM_STATUS_SECTIONS.map((section) => [section.status, []]));
-
-    sortedPrograms.forEach((program) => {
-      if (grouped[program.status]) {
-        grouped[program.status].push(program);
-      }
-    });
-
-    return grouped;
-  }, [sortedPrograms]);
-  const hasPrograms = sortedPrograms.length > 0;
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
