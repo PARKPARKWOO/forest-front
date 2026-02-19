@@ -14,6 +14,7 @@ import 'react-quill/dist/quill.snow.css';
 import UserManagement from './UserManagement';
 import ProgramFormBuilder from '../../components/program/ProgramFormBuilder';
 import ProgramApplyDetailModal from '../../components/program/ProgramApplyDetailModal';
+import HomeBannerHero from '../../components/HomeBannerHero';
 
 // 카테고리 뱃지 헬퍼 함수
 const getCategoryBadge = (category) => {
@@ -1040,58 +1041,13 @@ export default function AdminDashboard() {
             {!homeBannerLoading && (
               <div className="bg-white rounded-lg shadow p-6">
                 <h4 className="text-lg font-medium mb-4">미리보기</h4>
-                <div className="relative rounded-3xl overflow-hidden">
-                  <img
-                    src={homeBannerForm.backgroundImageUrl || HOME_BANNER_DEFAULT.backgroundImageUrl}
-                    alt="홈 배너 미리보기 배경"
-                    className="absolute inset-0 w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-r from-emerald-900/90 via-green-800/80 to-green-600/70" />
-
-                  <div className="relative grid md:grid-cols-2 items-center">
-                    <div className="p-6 md:p-8">
-                      <span
-                        className="inline-flex items-center rounded-full bg-white/20 border border-white/30 px-4 py-1.5 text-sm font-semibold mb-4"
-                        style={{ color: homeBannerForm.badgeTextColor }}
-                      >
-                        {homeBannerForm.badgeText}
-                      </span>
-                      <h2
-                        className="text-2xl md:text-3xl leading-tight font-bold mb-3"
-                        style={{ color: homeBannerForm.titleColor }}
-                      >
-                        {homeBannerForm.title}
-                      </h2>
-                      <p
-                        className="text-sm md:text-base leading-relaxed mb-5"
-                        style={{ color: homeBannerForm.descriptionColor }}
-                      >
-                        {homeBannerForm.description}
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        <span className="px-4 py-2 rounded-full bg-white text-green-700 text-sm font-semibold">
-                          {homeBannerForm.primaryButtonText}
-                        </span>
-                        <span className="px-4 py-2 rounded-full bg-emerald-700/90 text-white text-sm font-semibold border border-emerald-300/70">
-                          {homeBannerForm.secondaryButtonText}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="hidden md:block p-6">
-                      <div className="rounded-2xl overflow-hidden border border-white/30 bg-white/10">
-                        <img
-                          src={homeBannerForm.sideImageUrl || HOME_BANNER_DEFAULT.sideImageUrl}
-                          alt="홈 배너 우측 카드 미리보기"
-                          className="w-full h-48 object-cover"
-                        />
-                        <div className="px-4 py-3 text-green-50">
-                          <p className="text-sm font-semibold">{homeBannerForm.sideTitle}</p>
-                          <p className="text-xs mt-1 text-green-100/95">{homeBannerForm.sideDescription}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <HomeBannerHero
+                  banner={{
+                    ...HOME_BANNER_DEFAULT,
+                    ...homeBannerForm,
+                  }}
+                  isPreview
+                />
               </div>
             )}
           </div>

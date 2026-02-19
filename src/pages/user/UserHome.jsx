@@ -7,6 +7,7 @@ import { fetchPostsByCategory } from '../../services/postService';
 import { getNoticeList } from '../../services/noticeService';
 import { formatKoreanDateRange } from '../../utils/dateFormat';
 import { getHomeBanner } from '../../services/homeBannerService';
+import HomeBannerHero from '../../components/HomeBannerHero';
 
 export default function UserHome() {
   const defaultHomeBanner = {
@@ -101,68 +102,7 @@ export default function UserHome() {
   return (
     <div className="w-full py-2 md:py-4">
       {/* 메인 배너 */}
-      <div className="relative rounded-3xl shadow-xl mb-14 overflow-hidden">
-        <img
-          src={homeBanner.backgroundImageUrl}
-          alt="초록 숲길 풍경"
-          className="absolute inset-0 w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-emerald-900/92 via-green-800/82 to-green-600/74" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.32),transparent_42%)]" />
-
-        <div className="relative grid md:grid-cols-2 items-center">
-          <div className="p-8 md:p-12 lg:p-14">
-            <span
-              className="inline-flex items-center rounded-full bg-white/20 border border-white/30 px-4 py-1.5 text-sm md:text-base font-semibold tracking-wide mb-5"
-              style={{ color: homeBanner.badgeTextColor }}
-            >
-              {homeBanner.badgeText}
-            </span>
-            <h1
-              className="text-3xl md:text-4xl lg:text-[2.7rem] leading-tight font-bold mb-4"
-              style={{ color: homeBanner.titleColor }}
-            >
-              {homeBanner.title}
-            </h1>
-            <p
-              className="text-base md:text-lg leading-relaxed mb-8 max-w-2xl"
-              style={{ color: homeBanner.descriptionColor }}
-            >
-              {homeBanner.description}
-            </p>
-            <div className="flex flex-wrap gap-4">
-              <Link
-                to={homeBanner.primaryButtonLink}
-                className="bg-white text-green-700 text-base md:text-lg px-8 py-3 rounded-full font-semibold hover:bg-green-50 transition-colors duration-300"
-              >
-                {homeBanner.primaryButtonText}
-              </Link>
-              <Link
-                to={homeBanner.secondaryButtonLink}
-                className="bg-emerald-700/90 text-white text-base md:text-lg px-8 py-3 rounded-full font-semibold hover:bg-emerald-800 transition-colors duration-300 border border-emerald-300/70"
-              >
-                {homeBanner.secondaryButtonText}
-              </Link>
-            </div>
-          </div>
-
-          <div className="hidden md:block p-8 lg:p-10">
-            <div className="rounded-2xl overflow-hidden border border-white/30 shadow-2xl bg-white/10 backdrop-blur-sm">
-              <img
-                src={homeBanner.sideImageUrl}
-                alt="숲속 자연 배너"
-                className="w-full h-72 object-cover"
-              />
-              <div className="px-5 py-4 text-green-50">
-                <p className="text-base font-semibold">{homeBanner.sideTitle}</p>
-                <p className="mt-1 text-sm text-green-100/95">
-                  {homeBanner.sideDescription}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <HomeBannerHero banner={homeBanner} className="mb-14" />
 
       {/* 공지사항 섹션 */}
       <div className="mb-12">
