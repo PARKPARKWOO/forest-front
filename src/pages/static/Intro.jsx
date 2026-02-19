@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useParams, Link } from 'react-router-dom';
 import logo from '../../assets/logo.png';
 import { getStaticContent } from '../../services/staticContentService';
+import { hasMeaningfulHtmlContent } from '../../utils/contentUtils';
 
 export default function Intro() {
   const { subCategory } = useParams();
@@ -29,9 +30,13 @@ export default function Intro() {
     () => introStaticContent?.content || '',
     [introStaticContent]
   );
+  const hasDynamicIntroContent = useMemo(
+    () => hasMeaningfulHtmlContent(dynamicIntroContent),
+    [dynamicIntroContent],
+  );
 
   const getContent = () => {
-    if (activeSubCategory && dynamicIntroContent) {
+    if (activeSubCategory && hasDynamicIntroContent) {
       return {
         title: activeSubCategoryName,
         content: (

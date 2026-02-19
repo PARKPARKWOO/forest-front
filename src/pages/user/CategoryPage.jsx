@@ -209,16 +209,24 @@ export default function CategoryPage() {
                           </div>
                         </div>
                         {isAdmin && (
-                          <button
-                            onClick={() => {
-                              if (window.confirm('이 게시글을 삭제하시겠습니까?')) {
-                                removePost({ categoryId, postId: post.id });
-                              }
-                            }}
-                            className="ml-4 px-3 py-1 text-sm text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors duration-200"
-                          >
-                            삭제
-                          </button>
+                          <div className="ml-4 flex items-center gap-2">
+                            <Link
+                              to={`/category/${categoryId}/edit/${post.id}`}
+                              className="px-3 py-1 text-sm text-green-600 hover:text-green-800 hover:bg-green-50 rounded transition-colors duration-200"
+                            >
+                              수정
+                            </Link>
+                            <button
+                              onClick={() => {
+                                if (window.confirm('이 게시글을 삭제하시겠습니까?')) {
+                                  removePost({ categoryId, postId: post.id });
+                                }
+                              }}
+                              className="px-3 py-1 text-sm text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors duration-200"
+                            >
+                              삭제
+                            </button>
+                          </div>
                         )}
                       </div>
                     </div>

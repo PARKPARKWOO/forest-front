@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { fetchCategories } from '../../services/categoryService';
 import { fetchPrograms } from '../../services/programService';
@@ -97,12 +98,90 @@ export default function UserHome() {
     return new Date(b.updatedAt) - new Date(a.updatedAt);
   });
 
-  const homeBanner = homeBannerData?.content || defaultHomeBanner;
+  const homeBanners = useMemo(() => {
+    const banners = homeBannerData?.banners;
+    if (Array.isArray(banners) && banners.length > 0) {
+      return banners;
+    }
+    if (homeBannerData?.content) {
+      return [homeBannerData.content];
+    }
+    return [defaultHomeBanner];
+  }, [homeBannerData]);
+
+  const autoSlideSeconds = Math.min(
+    30,
+    Math.max(2, Number(homeBannerData?.autoSlideSeconds) || 5),
+  );
+  const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
+  const [isBannerVisible, setIsBannerVisible] = useState(true);
+
+  const moveToBanner = (nextIndex) => {
+    if (nextIndex === currentBannerIndex) {
+      return;
+    }
+    setIsBannerVisible(false);
+    window.setTimeout(() => {
+      setCurrentBannerIndex(nextIndex);
+      setIsBannerVisible(true);
+    }, 180);
+  };
+
+  useEffect(() => {
+    setCurrentBannerIndex(0);
+  }, [homeBanners.length]);
+
+  useEffect(() => {
+    if (homeBanners.length <= 1) {
+      return undefined;
+    }
+    const intervalId = window.setInterval(() => {
+      const nextIndex = (currentBannerIndex + 1) % homeBanners.length;
+      moveToBanner(nextIndex);
+    }, autoSlideSeconds * 1000);
+    return () => window.clearInterval(intervalId);
+  }, [homeBanners.length, autoSlideSeconds, currentBannerIndex]);
+
+  const currentBanner = homeBanners[currentBannerIndex] || defaultHomeBanner;
 
   return (
     <div className="w-full py-2 md:py-4">
       {/* 메인 배너 */}
-      <HomeBannerHero banner={homeBanner} className="mb-14" />
+      <div className="relative mb-14">
+        <div className={`transition-opacity duration-500 ${isBannerVisible ? 'opacity-100' : 'opacity-0'}`}>
+          <HomeBannerHero banner={currentBanner} />
+        </div>
+        {homeBanners.length > 1 && (
+          <>
+            <button
+              onClick={() => moveToBanner((currentBannerIndex - 1 + homeBanners.length) % homeBanners.length)}
+              className="absolute left-3 top-1/2 -translate-y-1/2 z-10 bg-white/85 hover:bg-white text-gray-700 rounded-full w-10 h-10 shadow flex items-center justify-center"
+              aria-label="이전 배너"
+            >
+              ‹
+            </button>
+            <button
+              onClick={() => moveToBanner((currentBannerIndex + 1) % homeBanners.length)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 z-10 bg-white/85 hover:bg-white text-gray-700 rounded-full w-10 h-10 shadow flex items-center justify-center"
+              aria-label="다음 배너"
+            >
+              ›
+            </button>
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 bg-black/25 px-3 py-1.5 rounded-full">
+              {homeBanners.map((_, index) => (
+                <button
+                  key={`banner-dot-${index}`}
+                  onClick={() => moveToBanner(index)}
+                  className={`h-2.5 w-2.5 rounded-full transition-all ${
+                    currentBannerIndex === index ? 'bg-white w-6' : 'bg-white/60'
+                  }`}
+                  aria-label={`${index + 1}번 배너 보기`}
+                />
+              ))}
+            </div>
+          </>
+        )}
+      </div>
 
       {/* 공지사항 섹션 */}
       <div className="mb-12">

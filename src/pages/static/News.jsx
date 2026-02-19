@@ -1,11 +1,12 @@
 import { useParams, Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../contexts/AuthContext';
-import { fetchPostsByCategory } from '../../services/postService';
+import { deletePost, fetchPostsByCategory } from '../../services/postService';
 
 export default function News() {
   const { subCategory } = useParams();
   const { isAdmin } = useAuth();
+  const queryClient = useQueryClient();
 
   const subCategories = [
     { id: 'notice', name: '공지사항', path: '/news/notice' },
@@ -17,6 +18,18 @@ export default function News() {
     queryKey: ['posts', '0'],
     queryFn: () => fetchPostsByCategory('0'),
     enabled: subCategory === 'activities',
+  });
+
+  const { mutate: removePost, isPending: isDeletingPost } = useMutation({
+    mutationFn: (postId) => deletePost('0', postId),
+    onSuccess: () => {
+      alert('게시글이 삭제되었습니다.');
+      queryClient.invalidateQueries({ queryKey: ['posts', '0'] });
+      queryClient.invalidateQueries({ queryKey: ['newsPosts', 'home'] });
+    },
+    onError: (error) => {
+      alert('게시글 삭제에 실패했습니다: ' + error.message);
+    },
   });
 
   const getContent = () => {
@@ -85,6 +98,27 @@ export default function News() {
                                 <span>{new Date(post.updatedAt).toLocaleDateString()}</span>
                               </div>
                             </div>
+                            {isAdmin && (
+                              <div className="ml-4 flex items-center gap-2">
+                                <Link
+                                  to={`/category/0/edit/${post.id}`}
+                                  className="px-3 py-1 text-sm text-green-600 hover:text-green-800 hover:bg-green-50 rounded transition-colors duration-200"
+                                >
+                                  수정
+                                </Link>
+                                <button
+                                  onClick={() => {
+                                    if (window.confirm('이 게시글을 삭제하시겠습니까?')) {
+                                      removePost(post.id);
+                                    }
+                                  }}
+                                  disabled={isDeletingPost}
+                                  className="px-3 py-1 text-sm text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors duration-200 disabled:opacity-50"
+                                >
+                                  삭제
+                                </button>
+                              </div>
+                            )}
                           </div>
                         </div>
                       ))}

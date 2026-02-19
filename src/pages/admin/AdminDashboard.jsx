@@ -9,6 +9,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { getProgramStatusInfo, sortProgramsByStatus } from '../../utils/programStatus';
 import { formatKoreanDateRange } from '../../utils/dateFormat';
 import { uploadImage } from '../../services/postService';
+import { getHtmlPreviewText, hasMeaningfulHtmlContent } from '../../utils/contentUtils';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import UserManagement from './UserManagement';
@@ -63,6 +64,7 @@ const HOME_BANNER_DEFAULT = {
   sideTitle: '이번 달 추천 프로그램',
   sideDescription: '숲해설가 양성교육 · 시민 자원봉사 모집 중',
 };
+const HOME_BANNER_DEFAULT_SLIDE_SECONDS = 5;
 
 export default function AdminDashboard() {
   const queryClient = useQueryClient();
@@ -82,9 +84,12 @@ export default function AdminDashboard() {
   const [selectedIntroItem, setSelectedIntroItem] = useState(null);
   const [introDraft, setIntroDraft] = useState('');
   const [showIntroModal, setShowIntroModal] = useState(false);
-  const [homeBannerForm, setHomeBannerForm] = useState(HOME_BANNER_DEFAULT);
+  const [homeBanners, setHomeBanners] = useState([HOME_BANNER_DEFAULT]);
+  const [selectedHomeBannerIndex, setSelectedHomeBannerIndex] = useState(0);
+  const [homeBannerAutoSlideSeconds, setHomeBannerAutoSlideSeconds] = useState(HOME_BANNER_DEFAULT_SLIDE_SECONDS);
   const [uploadingBannerField, setUploadingBannerField] = useState(null);
   const introQuillRef = useRef(null);
+  const homeBannerForm = homeBanners[selectedHomeBannerIndex] || HOME_BANNER_DEFAULT;
 
   // 카테고리 목록 조회
   const { data: categories, isLoading: categoriesLoading } = useQuery({
@@ -288,10 +293,11 @@ export default function AdminDashboard() {
   };
 
   const handleHomeBannerFieldChange = (field, value) => {
-    setHomeBannerForm((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
+    setHomeBanners((prev) => prev.map((banner, index) => (
+      index === selectedHomeBannerIndex
+        ? { ...banner, [field]: value }
+        : banner
+    )));
   };
 
   const handleHomeBannerImageUpload = async (field, event) => {
@@ -314,17 +320,56 @@ export default function AdminDashboard() {
   };
 
   const handleSaveHomeBanner = () => {
-    saveHomeBanner(homeBannerForm);
+    saveHomeBanner({
+      banners: homeBanners,
+      autoSlideSeconds: homeBannerAutoSlideSeconds,
+    });
+  };
+
+  const handleAddHomeBanner = () => {
+    const nextBanner = {
+      ...HOME_BANNER_DEFAULT,
+      title: `${HOME_BANNER_DEFAULT.title} ${homeBanners.length + 1}`,
+    };
+    setHomeBanners((prev) => [...prev, nextBanner]);
+    setSelectedHomeBannerIndex(homeBanners.length);
+  };
+
+  const handleRemoveCurrentHomeBanner = () => {
+    if (homeBanners.length <= 1) {
+      alert('최소 1개의 배너는 필요합니다.');
+      return;
+    }
+    setHomeBanners((prev) => prev.filter((_, index) => index !== selectedHomeBannerIndex));
+    setSelectedHomeBannerIndex((prev) => Math.max(0, prev - 1));
+  };
+
+  const handleApplyDefaultHomeBanner = () => {
+    setHomeBanners((prev) => prev.map((banner, index) => (
+      index === selectedHomeBannerIndex
+        ? { ...HOME_BANNER_DEFAULT, title: banner.title || HOME_BANNER_DEFAULT.title }
+        : banner
+    )));
   };
 
   useEffect(() => {
-    if (!homeBannerData?.content) {
-      return;
-    }
-    setHomeBannerForm({
+    const banners = homeBannerData?.banners?.length
+      ? homeBannerData.banners
+      : homeBannerData?.content
+        ? [homeBannerData.content]
+        : [HOME_BANNER_DEFAULT];
+
+    setHomeBanners(banners.map((banner) => ({
       ...HOME_BANNER_DEFAULT,
-      ...homeBannerData.content,
-    });
+      ...banner,
+    })));
+    setSelectedHomeBannerIndex(0);
+    setHomeBannerAutoSlideSeconds(
+      Math.min(
+        30,
+        Math.max(2, Number(homeBannerData?.autoSlideSeconds) || HOME_BANNER_DEFAULT_SLIDE_SECONDS),
+      )
+    );
   }, [homeBannerData]);
 
   const introEditorModules = useMemo(() => ({
@@ -766,9 +811,10 @@ export default function AdminDashboard() {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {INTRO_CONTENT_ITEMS.map((item) => {
                     const content = introContents?.[item.key];
-                    const hasCustomContent = Boolean(content?.content);
-                    const previewText = content?.content
-                      ? content.content.replace(/<[^>]*>/g, '').trim().slice(0, 80)
+                    const rawContent = content?.content || '';
+                    const hasCustomContent = hasMeaningfulHtmlContent(rawContent);
+                    const previewText = hasCustomContent
+                      ? getHtmlPreviewText(rawContent)
                       : '기본 템플릿 사용 중';
 
                     return (
@@ -824,10 +870,22 @@ export default function AdminDashboard() {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <button
-                    onClick={() => setHomeBannerForm(HOME_BANNER_DEFAULT)}
+                    onClick={handleApplyDefaultHomeBanner}
                     className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50"
                   >
-                    기본값 적용
+                    현재 배너 초기화
+                  </button>
+                  <button
+                    onClick={handleAddHomeBanner}
+                    className="px-4 py-2 rounded-md border border-blue-300 text-blue-700 hover:bg-blue-50"
+                  >
+                    배너 추가
+                  </button>
+                  <button
+                    onClick={handleRemoveCurrentHomeBanner}
+                    className="px-4 py-2 rounded-md border border-red-300 text-red-700 hover:bg-red-50"
+                  >
+                    현재 배너 삭제
                   </button>
                   <button
                     onClick={handleSaveHomeBanner}
@@ -838,6 +896,42 @@ export default function AdminDashboard() {
                   </button>
                 </div>
               </div>
+
+              {!homeBannerLoading && (
+                <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-100 space-y-4">
+                  <div className="flex flex-wrap items-center gap-2">
+                    {homeBanners.map((_, index) => (
+                      <button
+                        key={`home-banner-tab-${index}`}
+                        onClick={() => setSelectedHomeBannerIndex(index)}
+                        className={`px-3 py-1.5 rounded-full text-sm font-medium ${
+                          selectedHomeBannerIndex === index
+                            ? 'bg-green-600 text-white'
+                            : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-100'
+                        }`}
+                      >
+                        배너 {index + 1}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="max-w-xs">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">자동 전환 간격(초)</label>
+                    <input
+                      type="number"
+                      min={2}
+                      max={30}
+                      value={homeBannerAutoSlideSeconds}
+                      onChange={(e) => {
+                        const value = Number(e.target.value);
+                        if (Number.isNaN(value)) return;
+                        setHomeBannerAutoSlideSeconds(Math.min(30, Math.max(2, value)));
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">홈 화면에서 배너가 자동으로 넘어가는 시간입니다.</p>
+                  </div>
+                </div>
+              )}
 
               {homeBannerLoading ? (
                 <div className="text-center py-8">
