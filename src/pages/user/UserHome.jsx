@@ -6,8 +6,26 @@ import { getProgramStatusInfo, sortProgramsByStatus } from '../../utils/programS
 import { fetchPostsByCategory } from '../../services/postService';
 import { getNoticeList } from '../../services/noticeService';
 import { formatKoreanDateRange } from '../../utils/dateFormat';
+import { getHomeBanner } from '../../services/homeBannerService';
 
 export default function UserHome() {
+  const defaultHomeBanner = {
+    badgeText: '2026 숲과 함께하는 시민 활동',
+    title: '전북생명의숲에 오신 것을 환영합니다',
+    description: '숲을 통해 생명의 가치를 전하고 지속가능한 미래를 만들어갑니다. 함께 참여하고 소통하며 더 나은 환경을 만들어보세요.',
+    backgroundImageUrl: 'https://images.unsplash.com/photo-1542273917363-3b1817f69a2d?auto=format&fit=crop&w=1600&q=80',
+    sideImageUrl: 'https://images.unsplash.com/photo-1472396961693-142e6e269027?auto=format&fit=crop&w=1200&q=80',
+    titleColor: '#FFFFFF',
+    descriptionColor: '#ECFDF5',
+    badgeTextColor: '#ECFDF5',
+    primaryButtonText: '소개 보기',
+    primaryButtonLink: '/intro',
+    secondaryButtonText: '프로그램 참여',
+    secondaryButtonLink: '/programs',
+    sideTitle: '이번 달 추천 프로그램',
+    sideDescription: '숲해설가 양성교육 · 시민 자원봉사 모집 중',
+  };
+
   // 카테고리 조회
   const { data: categories } = useQuery({
     queryKey: ['categories'],
@@ -49,6 +67,12 @@ export default function UserHome() {
 
   const notices = noticeData?.data?.contents || [];
 
+  // 홈 배너 조회
+  const { data: homeBannerData } = useQuery({
+    queryKey: ['homeBanner'],
+    queryFn: getHomeBanner,
+  });
+
   // 소식(활동보기) 조회 - categoryId 0
   const { data: newsPosts } = useQuery({
     queryKey: ['newsPosts', 'home'],
@@ -72,40 +96,70 @@ export default function UserHome() {
     return new Date(b.updatedAt) - new Date(a.updatedAt);
   });
 
+  const homeBanner = homeBannerData?.content || defaultHomeBanner;
+
   return (
-    <div className="max-w-7xl mx-auto px-5 md:px-8 py-10 md:py-12">
+    <div className="w-full py-2 md:py-4">
       {/* 메인 배너 */}
-      <div className="bg-gradient-to-r from-green-700 to-green-500 rounded-2xl shadow-lg mb-14 overflow-hidden">
-        <div className="flex flex-col md:flex-row items-center">
-          <div className="p-9 md:p-14 md:w-1/2">
-            <h1 className="text-4xl md:text-5xl leading-tight font-bold text-white mb-5">
-              전북생명의숲에 오신 것을 환영합니다
+      <div className="relative rounded-3xl shadow-xl mb-14 overflow-hidden">
+        <img
+          src={homeBanner.backgroundImageUrl}
+          alt="초록 숲길 풍경"
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-emerald-900/92 via-green-800/82 to-green-600/74" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.32),transparent_42%)]" />
+
+        <div className="relative grid md:grid-cols-2 items-center">
+          <div className="p-8 md:p-12 lg:p-14">
+            <span
+              className="inline-flex items-center rounded-full bg-white/20 border border-white/30 px-4 py-1.5 text-sm md:text-base font-semibold tracking-wide mb-5"
+              style={{ color: homeBanner.badgeTextColor }}
+            >
+              {homeBanner.badgeText}
+            </span>
+            <h1
+              className="text-3xl md:text-4xl lg:text-[2.7rem] leading-tight font-bold mb-4"
+              style={{ color: homeBanner.titleColor }}
+            >
+              {homeBanner.title}
             </h1>
-            <p className="text-green-100 text-lg md:text-xl leading-relaxed mb-8">
-              숲을 통해 생명의 가치를 전하고 지속가능한 미래를 만들어갑니다.
-              함께 참여하고 소통하며 더 나은 환경을 만들어보세요.
+            <p
+              className="text-base md:text-lg leading-relaxed mb-8 max-w-2xl"
+              style={{ color: homeBanner.descriptionColor }}
+            >
+              {homeBanner.description}
             </p>
             <div className="flex flex-wrap gap-4">
-              <Link 
-                to="/intro" 
-                className="bg-white text-green-700 text-lg px-8 py-3 rounded-full font-semibold hover:bg-green-50 transition-colors duration-300"
+              <Link
+                to={homeBanner.primaryButtonLink}
+                className="bg-white text-green-700 text-base md:text-lg px-8 py-3 rounded-full font-semibold hover:bg-green-50 transition-colors duration-300"
               >
-                소개 보기
+                {homeBanner.primaryButtonText}
               </Link>
-              <Link 
-                to="/programs" 
-                className="bg-green-600 text-white text-lg px-8 py-3 rounded-full font-semibold hover:bg-green-800 transition-colors duration-300 border border-green-400"
+              <Link
+                to={homeBanner.secondaryButtonLink}
+                className="bg-emerald-700/90 text-white text-base md:text-lg px-8 py-3 rounded-full font-semibold hover:bg-emerald-800 transition-colors duration-300 border border-emerald-300/70"
               >
-                프로그램 참여
+                {homeBanner.secondaryButtonText}
               </Link>
             </div>
           </div>
-          <div className="md:w-1/2 h-72 md:h-96">
-            <img 
-              src="https://images.unsplash.com/photo-1448375240586-882707db888b?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80" 
-              alt="숲 이미지" 
-              className="w-full h-full object-cover"
-            />
+
+          <div className="hidden md:block p-8 lg:p-10">
+            <div className="rounded-2xl overflow-hidden border border-white/30 shadow-2xl bg-white/10 backdrop-blur-sm">
+              <img
+                src={homeBanner.sideImageUrl}
+                alt="숲속 자연 배너"
+                className="w-full h-72 object-cover"
+              />
+              <div className="px-5 py-4 text-green-50">
+                <p className="text-base font-semibold">{homeBanner.sideTitle}</p>
+                <p className="mt-1 text-sm text-green-100/95">
+                  {homeBanner.sideDescription}
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -253,7 +307,7 @@ export default function UserHome() {
                 >
                   <div className="flex items-center gap-4 py-3 border-b border-green-100">
                     {extractThumbnail(post) && (
-                      <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 shrink-0">
+                      <div className="w-20 h-20 rounded-lg overflow-hidden bg-gray-100 shrink-0">
                         <img
                           src={extractThumbnail(post)}
                           alt={post.title}

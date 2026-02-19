@@ -1,4 +1,4 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { fetchCategories } from '../services/categoryService';
 import kakaoLogo from '../assets/kakao.png';
@@ -73,6 +73,7 @@ const STATIC_CATEGORIES = [
 export default function Layout({ children, showLoginModal, setShowLoginModal }) {
   const { isAuthenticated, logout, isAdmin, user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [hoveredCategory, setHoveredCategory] = useState(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState(null);
   const [hideTimeout, setHideTimeout] = useState(null);
@@ -111,6 +112,11 @@ export default function Layout({ children, showLoginModal, setShowLoginModal }) 
     }, 150); // 150ms 지연
     setHideTimeout(timeout);
   };
+
+  const isHomeRoute = location.pathname === '/';
+  const mainClassName = isHomeRoute
+    ? 'w-full px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-20 py-10 mt-32'
+    : 'container mx-auto px-6 py-10 mt-32';
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
@@ -360,7 +366,7 @@ export default function Layout({ children, showLoginModal, setShowLoginModal }) 
         </nav>
       </header>
 
-      <main className="container mx-auto px-6 py-10 mt-32">
+      <main className={mainClassName}>
         {children}
       </main>
 
