@@ -23,17 +23,19 @@ export default function ProgramDetail() {
   if (error) return <div className="text-center py-8 text-red-600">에러가 발생했습니다: {error.message}</div>;
   if (!program) return <div className="text-center py-8">프로그램을 찾을 수 없습니다.</div>;
 
-  const handleApplyClick = () => {
-    if (program.applyUrl) {
-      window.open(program.applyUrl, '_blank', 'noopener,noreferrer');
-      return;
-    }
-
+  const handleHomepageApplyClick = () => {
     if (!isAuthenticated) {
       setShowLoginModal(true);
       return;
     }
     setShowApplyModal(true);
+  };
+
+  const handleGoogleFormApplyClick = () => {
+    if (!program.applyUrl) {
+      return;
+    }
+    window.open(program.applyUrl, '_blank', 'noopener,noreferrer');
   };
 
   // 날짜/시간 포맷팅 함수
@@ -148,14 +150,35 @@ export default function ProgramDetail() {
 
         {program.status === 'IN_PROGRESS' && (
           <div className="mt-8 flex justify-center">
-            <button
-              onClick={handleApplyClick}
-              className="px-6 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 
-                transition-colors duration-200 text-lg font-medium"
-            >
-              {program.applyUrl ? '외부 신청하기' : '신청하기'}
-            </button>
+            <div className="w-full max-w-2xl grid grid-cols-1 md:grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={handleGoogleFormApplyClick}
+                disabled={!program.applyUrl}
+                className={`px-6 py-3 rounded-md transition-colors duration-200 text-lg font-medium ${
+                  program.applyUrl
+                    ? 'bg-blue-600 text-white hover:bg-blue-700'
+                    : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                }`}
+              >
+                구글폼 신청하기
+              </button>
+              <button
+                type="button"
+                onClick={handleHomepageApplyClick}
+                className="px-6 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 
+                  transition-colors duration-200 text-lg font-medium"
+              >
+                홈페이지에서 신청하기
+              </button>
+            </div>
           </div>
+        )}
+
+        {program.status === 'IN_PROGRESS' && !program.applyUrl && (
+          <p className="mt-3 text-center text-sm text-gray-500">
+            현재 구글폼 링크가 등록되지 않아 홈페이지 신청만 가능합니다.
+          </p>
         )}
       </div>
 

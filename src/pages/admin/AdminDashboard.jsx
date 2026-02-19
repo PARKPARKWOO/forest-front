@@ -3,9 +3,13 @@ import { fetchCategories, deleteCategory } from '../../services/categoryService'
 import { fetchPrograms, deleteProgram, fetchProgramApplies, fetchProgramForm } from '../../services/programService';
 import { fetchSupporters, markSupportComplete } from '../../services/supportService';
 import { getStaticContent, updateStaticContent } from '../../services/staticContentService';
-import { useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { getProgramStatusInfo } from '../../utils/programStatus';
+import { getProgramStatusInfo, sortProgramsByStatus } from '../../utils/programStatus';
+import { formatKoreanDateRange } from '../../utils/dateFormat';
+import { uploadImage } from '../../services/postService';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 import UserManagement from './UserManagement';
 import ProgramFormBuilder from '../../components/program/ProgramFormBuilder';
 import ProgramApplyDetailModal from '../../components/program/ProgramApplyDetailModal';
@@ -56,6 +60,7 @@ export default function AdminDashboard() {
   const [selectedIntroItem, setSelectedIntroItem] = useState(null);
   const [introDraft, setIntroDraft] = useState('');
   const [showIntroModal, setShowIntroModal] = useState(false);
+  const introQuillRef = useRef(null);
 
   // 카테고리 목록 조회
   const { data: categories, isLoading: categoriesLoading } = useQuery({
@@ -70,7 +75,12 @@ export default function AdminDashboard() {
   });
 
   // 서버 응답 구조에서 programs 추출 (안전한 접근)
-  const programs = programsData?.data?.contents || [];
+  const rawPrograms = programsData?.data?.contents || [];
+  const programs = useMemo(() => sortProgramsByStatus(rawPrograms), [rawPrograms]);
+  const programIdsKey = useMemo(
+    () => rawPrograms.map((program) => program.id).join(','),
+    [rawPrograms],
+  );
 
   // 선택된 프로그램의 신청 목록 조회
   const { data: programApplies, isLoading: appliesLoading } = useQuery({
@@ -81,12 +91,12 @@ export default function AdminDashboard() {
 
   // 각 프로그램의 신청자 수 조회
   const { data: programApplyCounts } = useQuery({
-    queryKey: ['programApplyCounts', programs],
+    queryKey: ['programApplyCounts', programIdsKey],
     queryFn: async () => {
-      if (!programs || programs.length === 0) return {};
+      if (!rawPrograms || rawPrograms.length === 0) return {};
       
       const counts = {};
-      for (const program of programs) {
+      for (const program of rawPrograms) {
         try {
           const applies = await fetchProgramApplies(program.id);
           counts[program.id] = applies?.length || 0;
@@ -97,7 +107,7 @@ export default function AdminDashboard() {
       }
       return counts;
     },
-    enabled: !!programs && programs.length > 0,
+    enabled: !!rawPrograms && rawPrograms.length > 0,
   });
 
   // 후원신청 목록 조회
@@ -233,6 +243,65 @@ export default function AdminDashboard() {
       label: selectedIntroItem.label,
       content: introDraft,
     });
+  };
+
+  const introEditorModules = useMemo(() => ({
+    toolbar: {
+      container: [
+        [{ header: [1, 2, 3, 4, 5, 6, false] }],
+        ['bold', 'italic', 'underline', 'strike'],
+        [{ list: 'ordered' }, { list: 'bullet' }],
+        [{ color: [] }, { background: [] }],
+        [{ align: [] }],
+        ['link', 'image'],
+        ['clean'],
+      ],
+      handlers: {
+        image: () => {
+          const input = document.createElement('input');
+          input.setAttribute('type', 'file');
+          input.setAttribute('accept', 'image/*');
+          input.click();
+
+          input.onchange = async () => {
+            const file = input.files?.[0];
+            if (!file) return;
+
+            try {
+              const imageUrl = await uploadImage(file);
+              const editor = introQuillRef.current?.getEditor();
+              const range = editor?.getSelection() || { index: editor?.getLength() || 0 };
+              editor?.insertEmbed(range.index, 'image', imageUrl);
+            } catch (error) {
+              console.error('이미지 업로드 실패:', error);
+              alert('이미지 업로드에 실패했습니다.');
+            }
+          };
+        },
+      },
+    },
+  }), []);
+
+  const handleIntroEditorDrop = async (event) => {
+    event.preventDefault();
+    const files = Array.from(event.dataTransfer.files || []);
+    const imageFiles = files.filter((file) => file.type.startsWith('image/'));
+
+    if (imageFiles.length === 0) {
+      return;
+    }
+
+    try {
+      for (const file of imageFiles) {
+        const imageUrl = await uploadImage(file);
+        const editor = introQuillRef.current?.getEditor();
+        const range = editor?.getSelection() || { index: editor?.getLength() || 0 };
+        editor?.insertEmbed(range.index, 'image', imageUrl);
+      }
+    } catch (error) {
+      console.error('이미지 업로드 실패:', error);
+      alert('이미지 업로드에 실패했습니다.');
+    }
   };
 
   return (
@@ -522,7 +591,7 @@ export default function AdminDashboard() {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {program.applyStartDate} ~ {program.applyEndDate}
+                        {formatKoreanDateRange(program.applyStartDate, program.applyEndDate)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {program.maxParticipants}명
@@ -823,15 +892,23 @@ export default function AdminDashboard() {
 
               <div className="p-6 space-y-4">
                 <p className="text-sm text-gray-500">
-                  HTML 형식으로 저장됩니다. 비어 있으면 기존 프론트 기본 콘텐츠가 노출됩니다.
+                  편집기에서 텍스트와 이미지를 쉽게 꾸밀 수 있습니다. 비어 있으면 기존 프론트 기본 콘텐츠가 노출됩니다.
                 </p>
-                <textarea
-                  value={introDraft}
-                  onChange={(e) => setIntroDraft(e.target.value)}
-                  rows={20}
-                  className="w-full border border-gray-300 rounded-md p-3 font-mono text-sm"
-                  placeholder="<p>소개글 내용을 입력하세요</p>"
-                />
+                <div
+                  className="min-h-[500px]"
+                  onDrop={handleIntroEditorDrop}
+                  onDragOver={(e) => e.preventDefault()}
+                >
+                  <ReactQuill
+                    ref={introQuillRef}
+                    theme="snow"
+                    value={introDraft}
+                    onChange={setIntroDraft}
+                    modules={introEditorModules}
+                    className="h-[450px]"
+                  />
+                </div>
+                <div className="h-24" />
               </div>
 
               <div className="flex justify-end gap-3 p-6 border-t bg-gray-50">

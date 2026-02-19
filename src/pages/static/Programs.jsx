@@ -1,8 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
 import { fetchPrograms } from '../../services/programService';
-import { getProgramStatusInfo } from '../../utils/programStatus';
+import { getProgramStatusInfo, sortProgramsByStatus } from '../../utils/programStatus';
 import { useState } from 'react';
+import { formatKoreanDateRange } from '../../utils/dateFormat';
 
 export default function Programs() {
   const { subCategory } = useParams();
@@ -165,6 +166,7 @@ export default function Programs() {
 
   // 서버 응답 구조: { data: { contents: [], hasNextPage: boolean, totalCount: number } }
   const { contents: programs, totalCount } = programsData.data;
+  const sortedPrograms = sortProgramsByStatus(programs || []);
   const totalPages = Math.ceil(totalCount / pageSize);
 
   return (
@@ -198,7 +200,7 @@ export default function Programs() {
 
       {/* 프로그램 목록 */}
       <div className="grid md:grid-cols-3 gap-6">
-        {programs?.map((program, index) => (
+        {sortedPrograms.map((program, index) => (
           <Link
             key={program.id}
             to={`/programs/detail/${program.id}`}
@@ -231,7 +233,7 @@ export default function Programs() {
               <div className="space-y-2 text-sm text-gray-600">
                 <p className="flex items-center">
                   <span className="w-20">신청기간</span>
-                  <span>{program.applyStartDate} ~ {program.applyEndDate}</span>
+                  <span>{formatKoreanDateRange(program.applyStartDate, program.applyEndDate)}</span>
                 </p>
                 <p className="flex items-center">
                   <span className="w-20">모집인원</span>
