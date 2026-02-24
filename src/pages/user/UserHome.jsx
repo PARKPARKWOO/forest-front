@@ -34,8 +34,8 @@ export default function UserHome() {
     queryFn: fetchCategories,
   });
 
-  // 정렬된 카테고리에서 상위 2개 선택
-  const topCategories = categories?.sort((a, b) => b.order - a.order).slice(0, 2) || [];
+  // 정렬된 카테고리에서 상위 3개 선택
+  const topCategories = categories?.sort((a, b) => b.order - a.order).slice(0, 3) || [];
 
   // 각 카테고리의 최신 게시글 조회
   const categoryPosts = useQuery({
@@ -271,12 +271,12 @@ export default function UserHome() {
                 state={{ categoryId: '0', postType: 'POST' }}
                 className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-200 border border-gray-100"
               >
-                <div className="h-52 bg-gray-100 overflow-hidden">
+                <div className="h-52 bg-gray-100 overflow-hidden flex items-center justify-center">
                   {extractThumbnail(post) ? (
                     <img
                       src={extractThumbnail(post)}
                       alt={post.title}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-contain bg-gray-50 p-1"
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-gray-400 text-base">
@@ -301,7 +301,7 @@ export default function UserHome() {
       </div>
 
       {/* 카테고리별 게시글 섹션 */}
-      <div className="grid md:grid-cols-2 gap-8 mb-12">
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
         {topCategories.map(category => (
           <div key={category.id} className="bg-gradient-to-br from-green-50 to-white rounded-xl shadow-sm p-8">
             <div className="flex justify-between items-center mb-4">
@@ -324,9 +324,9 @@ export default function UserHome() {
                   state={{ categoryId: category.id, postType: category.type }}
                   className="block group"
                 >
-                  <div className="flex items-center gap-4 py-3 border-b border-green-100">
+                  <div className="flex items-center gap-5 py-3 border-b border-green-100">
                     {extractThumbnail(post) && (
-                      <div className="w-20 h-20 rounded-lg overflow-hidden bg-gray-100 shrink-0">
+                      <div className="w-24 h-24 md:w-28 md:h-28 rounded-xl overflow-hidden bg-gray-100 shrink-0">
                         <img
                           src={extractThumbnail(post)}
                           alt={post.title}
