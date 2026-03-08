@@ -5,11 +5,12 @@ import { getNoticeDetail } from '../../services/noticeService';
 import { useAuth } from '../../contexts/AuthContext';
 import ImageModal from '../../components/ImageModal';
 import { normalizeListMarkup } from '../../utils/editorContent';
+import { extractImageUrlsFromHtml, mergeUniqueUrls } from '../../utils/contentUtils';
 
 export default function NoticeDetail() {
   const { noticeId } = useParams();
   const { isAdmin } = useAuth();
-  const [selectedImage, setSelectedImage] = useState(null);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(null);
   const contentRef = useRef(null);
 
   const { data: noticeData, isLoading, error } = useQuery({
@@ -19,42 +20,45 @@ export default function NoticeDetail() {
 
   const notice = noticeData?.data;
   const noticeContent = useMemo(() => normalizeListMarkup(notice?.content || ''), [notice?.content]);
+  const galleryImages = useMemo(() => {
+    const inlineImages = extractImageUrlsFromHtml(noticeContent);
+    return mergeUniqueUrls(inlineImages, notice?.images || []);
+  }, [notice?.images, noticeContent]);
 
-  // onClose 핸들러 메모이제이션
   const handleCloseModal = useCallback(() => {
-    setSelectedImage(null);
+    setSelectedImageIndex(null);
   }, []);
 
-  // 본문 내 이미지 클릭 이벤트 추가 (이벤트 위임 사용)
+  const handleOpenImage = useCallback((imageUrl) => {
+    const imageIndex = galleryImages.indexOf(imageUrl);
+    setSelectedImageIndex(imageIndex >= 0 ? imageIndex : 0);
+  }, [galleryImages]);
+
   useEffect(() => {
     const contentElement = contentRef.current;
     if (!contentElement || !noticeContent) {
-      // cleanup은 항상 반환 (이벤트 리스너가 없어도 안전)
       return () => {};
     }
 
     const handleImageClick = (e) => {
       if (e.target.tagName === 'IMG') {
-        setSelectedImage(e.target.src);
+        handleOpenImage(e.target.currentSrc || e.target.src);
       }
     };
 
-    // 모든 이미지에 커서 스타일 추가
     const images = contentElement.querySelectorAll('img');
     images.forEach((img) => {
       img.style.cursor = 'pointer';
     });
 
-    // 이벤트 위임으로 클릭 이벤트 처리
     contentElement.addEventListener('click', handleImageClick);
 
     return () => {
-      // cleanup: 이벤트 리스너 제거
       if (contentElement) {
         contentElement.removeEventListener('click', handleImageClick);
       }
     };
-  }, [noticeContent]);
+  }, [handleOpenImage, noticeContent]);
 
   if (isLoading) {
     return (
@@ -144,7 +148,7 @@ export default function NoticeDetail() {
                   <div
                     key={index}
                     className="relative cursor-pointer group"
-                    onClick={() => setSelectedImage(image)}
+                    onClick={() => handleOpenImage(image)}
                   >
                     <img
                       src={image}
@@ -185,9 +189,11 @@ export default function NoticeDetail() {
       </div>
       
       {/* 이미지 모달 */}
-      {selectedImage && (
+      {selectedImageIndex !== null && galleryImages.length > 0 && (
         <ImageModal
-          imageUrl={selectedImage}
+          images={galleryImages}
+          currentIndex={selectedImageIndex}
+          onChangeIndex={setSelectedImageIndex}
           onClose={handleCloseModal}
         />
       )}

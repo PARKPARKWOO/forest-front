@@ -5,6 +5,7 @@ import { deletePost, fetchPostById } from '../../services/postService';
 import { useAuth } from '../../contexts/AuthContext';
 import ImageModal from '../../components/ImageModal';
 import { normalizeListMarkup } from '../../utils/editorContent';
+import { extractImageUrlsFromHtml, mergeUniqueUrls } from '../../utils/contentUtils';
 
 export default function PostDetail() {
   const { categoryId, postId } = useParams();
@@ -12,7 +13,7 @@ export default function PostDetail() {
   const location = useLocation();
   const queryClient = useQueryClient();
   const { isAdmin, isAuthenticated, user } = useAuth();
-  const [selectedImage, setSelectedImage] = useState(null);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(null);
   const contentRef = useRef(null);
 
   // URL 파라미터에서 categoryId를 가져오거나, 기존 방식대로 location.state에서 가져오기
@@ -26,6 +27,10 @@ export default function PostDetail() {
   });
 
   const postContent = useMemo(() => normalizeListMarkup(post?.content || ''), [post?.content]);
+  const galleryImages = useMemo(() => {
+    const inlineImages = extractImageUrlsFromHtml(postContent);
+    return mergeUniqueUrls(inlineImages, post?.images || []);
+  }, [post?.images, postContent]);
   const currentUserId = user?.userId || user?.id;
   const canManage = Boolean(
     post &&
@@ -48,39 +53,39 @@ export default function PostDetail() {
 
   // onClose 핸들러 메모이제이션
   const handleCloseModal = useCallback(() => {
-    setSelectedImage(null);
+    setSelectedImageIndex(null);
   }, []);
 
-  // 본문 내 이미지 클릭 이벤트 추가 (이벤트 위임 사용)
+  const handleOpenImage = useCallback((imageUrl) => {
+    const imageIndex = galleryImages.indexOf(imageUrl);
+    setSelectedImageIndex(imageIndex >= 0 ? imageIndex : 0);
+  }, [galleryImages]);
+
   useEffect(() => {
     const contentElement = contentRef.current;
     if (!contentElement || !postContent) {
-      // cleanup은 항상 반환 (이벤트 리스너가 없어도 안전)
       return () => {};
     }
 
     const handleImageClick = (e) => {
       if (e.target.tagName === 'IMG') {
-        setSelectedImage(e.target.src);
+        handleOpenImage(e.target.currentSrc || e.target.src);
       }
     };
 
-    // 모든 이미지에 커서 스타일 추가
     const images = contentElement.querySelectorAll('img');
     images.forEach((img) => {
       img.style.cursor = 'pointer';
     });
 
-    // 이벤트 위임으로 클릭 이벤트 처리
     contentElement.addEventListener('click', handleImageClick);
 
     return () => {
-      // cleanup: 이벤트 리스너 제거
       if (contentElement) {
         contentElement.removeEventListener('click', handleImageClick);
       }
     };
-  }, [postContent]);
+  }, [handleOpenImage, postContent]);
 
   if (!finalCategoryId) {
     return (
@@ -124,7 +129,7 @@ export default function PostDetail() {
               <div
                 key={index}
                 className="cursor-pointer group"
-                onClick={() => setSelectedImage(imageUrl)}
+                onClick={() => handleOpenImage(imageUrl)}
               >
                 <img
                   src={imageUrl}
@@ -178,7 +183,7 @@ export default function PostDetail() {
                   <div
                     key={index}
                     className="cursor-pointer group"
-                    onClick={() => setSelectedImage(imageUrl)}
+                    onClick={() => handleOpenImage(imageUrl)}
                   >
                     <img
                       src={imageUrl}
@@ -195,9 +200,11 @@ export default function PostDetail() {
       </div>
       
       {/* 이미지 모달 */}
-      {selectedImage && (
+      {selectedImageIndex !== null && galleryImages.length > 0 && (
         <ImageModal
-          imageUrl={selectedImage}
+          images={galleryImages}
+          currentIndex={selectedImageIndex}
+          onChangeIndex={setSelectedImageIndex}
           onClose={handleCloseModal}
         />
       )}

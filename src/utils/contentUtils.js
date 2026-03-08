@@ -44,3 +44,36 @@ export const getHtmlPreviewText = (html = '', maxLength = 80) => {
   if (/<(ul|ol)\b/i.test(html)) return '목록 콘텐츠';
   return '서식 콘텐츠';
 };
+
+export const extractImageUrlsFromHtml = (html = '') => {
+  if (!html || typeof html !== 'string' || typeof DOMParser === 'undefined') {
+    return [];
+  }
+
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(`<div id="__content_root__">${html}</div>`, 'text/html');
+  const root = doc.getElementById('__content_root__');
+
+  if (!root) {
+    return [];
+  }
+
+  return Array.from(root.querySelectorAll('img'))
+    .map((image) => image.getAttribute('src')?.trim())
+    .filter(Boolean);
+};
+
+export const mergeUniqueUrls = (...groups) => {
+  const seen = new Set();
+
+  return groups
+    .flat()
+    .filter((url) => {
+      if (!url || seen.has(url)) {
+        return false;
+      }
+
+      seen.add(url);
+      return true;
+    });
+};
