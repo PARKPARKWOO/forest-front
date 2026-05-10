@@ -281,13 +281,14 @@ export default function ProgramCreate() {
           <div className="border rounded-lg">
             <ReactQuill
               ref={quillRef}
+              theme="snow"
               value={formData.content}
               onChange={(content) => setFormData({ ...formData, content })}
               modules={modules}
-              className="h-64"
+              className="h-[450px]"
             />
           </div>
-          <div className="h-24"></div>
+          <div className="h-12" />
         </div>
 
         <div className="border-t pt-8 mt-8">

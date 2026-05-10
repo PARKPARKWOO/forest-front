@@ -429,14 +429,17 @@ export default function ProgramEdit() {
           <label className="block text-sm font-medium text-gray-700 mb-2">
             내용
           </label>
-          <ReactQuill
-            ref={quillRef}
-            theme="snow"
-            value={formData.content}
-            onChange={(content) => setFormData({ ...formData, content })}
-            modules={modules}
-            className="h-64 mb-12"
-          />
+          <div className="border rounded-lg">
+            <ReactQuill
+              ref={quillRef}
+              theme="snow"
+              value={formData.content}
+              onChange={(content) => setFormData({ ...formData, content })}
+              modules={modules}
+              className="h-[450px]"
+            />
+          </div>
+          <div className="h-12" />
         </div>
 
         <div>

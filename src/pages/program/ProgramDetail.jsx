@@ -1,6 +1,6 @@
-import { useQuery } from '@tanstack/react-query';
-import { useParams, useOutletContext } from 'react-router-dom';
-import { fetchProgramById } from '../../services/programService';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
+import { deleteProgram, fetchProgramById } from '../../services/programService';
 import { getProgramStatusInfo } from '../../utils/programStatus';
 import { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -9,15 +9,38 @@ import { normalizeListMarkup } from '../../utils/editorContent';
 
 export default function ProgramDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { setShowLoginModal } = useOutletContext();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isAdmin } = useAuth();
   const [showApplyModal, setShowApplyModal] = useState(false);
-  
+
   const { data: program, isLoading, error } = useQuery({
     queryKey: ['program', id],
     queryFn: () => fetchProgramById(id),
     enabled: !!id, // id가 있을 때만 쿼리 실행
   });
+
+  const { mutate: removeProgram, isPending: isDeleting } = useMutation({
+    mutationFn: () => deleteProgram(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['programs'] });
+      alert('프로그램이 삭제되었습니다.');
+      navigate('/programs');
+    },
+    onError: (err) => {
+      alert('프로그램 삭제에 실패했습니다: ' + (err?.response?.data?.message || err.message));
+    },
+  });
+
+  const canManage = Boolean(program && isAuthenticated && isAdmin);
+
+  const handleDelete = () => {
+    if (!window.confirm('정말 삭제하시겠습니까?')) {
+      return;
+    }
+    removeProgram();
+  };
 
   // 로딩 중이거나 에러 발생 시 처리
   if (isLoading) return <div className="text-center py-8">로딩 중...</div>;
@@ -72,11 +95,32 @@ export default function ProgramDetail() {
   return (
     <div className="max-w-4xl mx-auto p-6">
       <div className="bg-white rounded-lg shadow-sm p-8">
-        <div className="flex justify-between items-start mb-6">
+        <div className="flex justify-between items-start mb-6 gap-4">
           <h1 className="text-3xl font-bold text-gray-800">{program.title}</h1>
-          <span className={`px-3 py-1 rounded-full text-sm font-medium ${getProgramStatusInfo(program.status).className}`}>
-            {getProgramStatusInfo(program.status).text}
-          </span>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <span className={`px-3 py-1 rounded-full text-sm font-medium ${getProgramStatusInfo(program.status).className}`}>
+              {getProgramStatusInfo(program.status).text}
+            </span>
+            {canManage && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => navigate(`/programs/edit/${id}`)}
+                  className="px-3 py-1.5 text-sm bg-green-600 text-white rounded-md hover:bg-green-700"
+                >
+                  수정
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                  className="px-3 py-1.5 text-sm bg-red-600 text-white rounded-md hover:bg-red-700 disabled:bg-gray-400"
+                >
+                  {isDeleting ? '삭제 중...' : '삭제'}
+                </button>
+              </>
+            )}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 bg-gray-50 p-4 rounded-lg">
