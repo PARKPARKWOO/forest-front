@@ -263,7 +263,9 @@ export default function ApplyProgramModal({ programId, onClose }) {
       onClose();
     },
     onError: (error) => {
-      alert('신청 중 오류가 발생했습니다: ' + error.message);
+      // 서버 비즈니스 에러(이미 신청함/정원 마감/신청 기간 아님 등)는 사람용 메시지를 그대로 노출
+      const serverMessage = error.response?.data?.message;
+      alert(serverMessage || '신청 중 오류가 발생했습니다: ' + error.message);
     },
   });
 
