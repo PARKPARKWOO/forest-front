@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createProgramForm, updateProgramForm } from '../../services/programService';
+import useFocusTrap from '../../hooks/useFocusTrap';
 
 // 필드 타입 목록
 const FIELD_TYPES = [
@@ -62,10 +63,9 @@ function FieldEditor({ field, onUpdate, onDelete, onMoveUp, onMoveDown, isFirst,
   };
 
   return (
-    <div className="border border-gray-200 rounded-lg p-4 bg-white">
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center space-x-3 flex-1">
-          <div className="flex flex-col space-y-1">
+    <div className="rounded-xl border border-gray-200 bg-white p-4">
+      <div className="mb-3 flex flex-col gap-3 lg:flex-row lg:items-center">
+          <div className="flex gap-2 lg:flex-col lg:gap-1">
             <button
               type="button"
               onClick={(e) => {
@@ -74,8 +74,9 @@ function FieldEditor({ field, onUpdate, onDelete, onMoveUp, onMoveDown, isFirst,
                 onMoveUp();
               }}
               disabled={isFirst}
-              className="text-gray-400 hover:text-gray-600 disabled:opacity-30"
+              className="min-h-11 min-w-11 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-30"
               title="위로 이동"
+              aria-label={`${field.label} 위로 이동`}
             >
               ▲
             </button>
@@ -87,8 +88,9 @@ function FieldEditor({ field, onUpdate, onDelete, onMoveUp, onMoveDown, isFirst,
                 onMoveDown();
               }}
               disabled={isLast}
-              className="text-gray-400 hover:text-gray-600 disabled:opacity-30"
+              className="min-h-11 min-w-11 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-30"
               title="아래로 이동"
+              aria-label={`${field.label} 아래로 이동`}
             >
               ▼
             </button>
@@ -98,12 +100,14 @@ function FieldEditor({ field, onUpdate, onDelete, onMoveUp, onMoveDown, isFirst,
             value={field.label}
             onChange={(e) => onUpdate(field.id, { ...field, label: e.target.value })}
             placeholder="질문 제목"
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+            aria-label="질문 제목"
+            className="min-h-12 min-w-0 flex-1 rounded-lg border border-gray-300 px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-green-600"
           />
           <select
             value={field.type}
             onChange={(e) => onUpdate(field.id, { ...field, type: e.target.value })}
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+            aria-label={`${field.label} 질문 유형`}
+            className="min-h-12 rounded-lg border border-gray-300 px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-green-600"
           >
             {FIELD_TYPES.map(type => (
               <option key={type.value} value={type.value}>
@@ -114,8 +118,10 @@ function FieldEditor({ field, onUpdate, onDelete, onMoveUp, onMoveDown, isFirst,
           <button
             type="button"
             onClick={handleToggleExpanded}
-            className="text-gray-600 hover:text-gray-800"
+            className="min-h-11 min-w-11 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50"
             title="상세 설정"
+            aria-label={`${field.label} 상세 설정 ${expanded ? '접기' : '펼치기'}`}
+            aria-expanded={expanded}
           >
             {expanded ? '▼' : '▶'}
           </button>
@@ -126,16 +132,16 @@ function FieldEditor({ field, onUpdate, onDelete, onMoveUp, onMoveDown, isFirst,
               e.stopPropagation();
               onDelete(field.id);
             }}
-            className="text-red-600 hover:text-red-700 px-2 py-1"
+            className="min-h-11 min-w-11 rounded-lg border border-red-300 px-2 py-1 text-red-700 hover:bg-red-50"
             title="삭제"
+            aria-label={`${field.label} 삭제`}
           >
             ✕
           </button>
-        </div>
       </div>
 
       {expanded && (
-        <div className="mt-4 space-y-3 pl-10 border-l-2 border-gray-200">
+        <div className="mt-4 space-y-4 border-l-2 border-gray-200 pl-3 sm:pl-6 lg:pl-10">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               설명 (선택)
@@ -362,6 +368,8 @@ function FieldEditor({ field, onUpdate, onDelete, onMoveUp, onMoveDown, isFirst,
 
 export default function ProgramFormBuilder({ programId, existingForm, onClose, onSuccess }) {
   const queryClient = useQueryClient();
+  const modalRef = useRef(null);
+  const closeButtonRef = useRef(null);
   const [formTitle, setFormTitle] = useState(existingForm?.title || '신청 폼');
   const [formDescription, setFormDescription] = useState(existingForm?.description || '');
   const [fields, setFields] = useState(existingForm?.fields || []);
@@ -453,21 +461,39 @@ export default function ProgramFormBuilder({ programId, existingForm, onClose, o
     saveForm(formData);
   };
 
+  useFocusTrap({
+    containerRef: modalRef,
+    initialFocusRef: closeButtonRef,
+    isActive: true,
+    onEscape: onClose,
+    version: `${programId}-${existingForm?.id ?? 'new'}`,
+  });
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-        <div className="flex justify-between items-center p-6 border-b bg-gradient-to-r from-green-50 to-green-100">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-2 sm:p-4">
+      <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="program-form-builder-title"
+        tabIndex={-1}
+        className="flex max-h-[96vh] w-full max-w-4xl flex-col overflow-hidden rounded-xl bg-white shadow-xl"
+      >
+        <div className="flex items-start justify-between gap-4 border-b bg-gradient-to-r from-green-50 to-green-100 p-4 sm:p-6">
           <div>
-            <h2 className="text-2xl font-bold text-gray-800">
+            <h2 id="program-form-builder-title" className="text-xl font-bold text-gray-800 sm:text-2xl">
               {existingForm ? '신청 폼 수정' : '신청 폼 생성'}
             </h2>
-            <p className="text-sm text-gray-600 mt-1">
+            <p className="mt-1 text-base leading-relaxed text-gray-600">
               구글 폼처럼 동적으로 신청 폼을 생성하세요
             </p>
           </div>
           <button
+            ref={closeButtonRef}
+            type="button"
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 text-2xl"
+            aria-label="신청 폼 창 닫기"
+            className="min-h-12 min-w-12 rounded-lg text-2xl text-gray-600 hover:bg-white"
           >
             ✕
           </button>
@@ -483,12 +509,12 @@ export default function ProgramFormBuilder({ programId, existingForm, onClose, o
           }}
           className="flex flex-col flex-1 overflow-hidden"
         >
-          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          <div className="flex-1 space-y-6 overflow-y-auto p-4 sm:p-6">
             {/* 폼 기본 정보 */}
             <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
               <div className="space-y-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="mb-1 block text-base font-semibold text-gray-700">
                     폼 제목 <span className="text-red-600">*</span>
                   </label>
                   <input
@@ -497,11 +523,11 @@ export default function ProgramFormBuilder({ programId, existingForm, onClose, o
                     onChange={(e) => setFormTitle(e.target.value)}
                     placeholder="예: 2024년 봄 숲체험 신청서"
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                    className="min-h-12 w-full rounded-lg border border-gray-300 px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-green-600"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="mb-1 block text-base font-semibold text-gray-700">
                     폼 설명 (선택)
                   </label>
                   <textarea
@@ -509,7 +535,7 @@ export default function ProgramFormBuilder({ programId, existingForm, onClose, o
                     onChange={(e) => setFormDescription(e.target.value)}
                     placeholder="신청자에게 보여질 폼에 대한 설명을 입력하세요"
                     rows={2}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-green-600"
                   />
                 </div>
               </div>
@@ -517,12 +543,12 @@ export default function ProgramFormBuilder({ programId, existingForm, onClose, o
 
             {/* 필드 목록 */}
             <div className="space-y-3">
-              <div className="flex justify-between items-center">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <h3 className="text-lg font-semibold text-gray-800">질문 항목</h3>
                 <button
                   type="button"
                   onClick={handleAddField}
-                  className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors duration-200 flex items-center space-x-2"
+                  className="flex min-h-12 items-center justify-center space-x-2 rounded-lg bg-green-700 px-4 py-3 text-base font-bold text-white hover:bg-green-800"
                 >
                   <span>+</span>
                   <span>질문 추가</span>
@@ -535,7 +561,7 @@ export default function ProgramFormBuilder({ programId, existingForm, onClose, o
                   <button
                     type="button"
                     onClick={handleAddField}
-                    className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                    className="min-h-12 rounded-lg bg-green-700 px-4 py-3 text-base font-bold text-white hover:bg-green-800"
                   >
                     첫 질문 추가하기
                   </button>
@@ -557,19 +583,18 @@ export default function ProgramFormBuilder({ programId, existingForm, onClose, o
             </div>
           </div>
 
-          <div className="flex justify-end space-x-3 p-6 border-t bg-gray-50">
+          <div className="grid grid-cols-2 gap-3 border-t bg-gray-50 p-4 sm:flex sm:justify-end sm:p-6">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-700 rounded-md transition-colors duration-200"
+              className="min-h-12 rounded-lg bg-gray-300 px-5 py-3 text-base font-bold text-gray-800 hover:bg-gray-400"
             >
               취소
             </button>
             <button
               type="submit"
               disabled={isPending}
-              className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 
-                transition-colors duration-200 disabled:bg-gray-400"
+              className="min-h-12 rounded-lg bg-green-700 px-6 py-3 text-base font-bold text-white hover:bg-green-800 disabled:bg-gray-400"
             >
               {isPending ? '저장 중...' : existingForm ? '수정하기' : '생성하기'}
             </button>

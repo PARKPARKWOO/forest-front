@@ -1,5 +1,5 @@
 import { useState, useRef, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { createProgram } from '../../services/programService';
 import ReactQuill from 'react-quill';
@@ -9,6 +9,8 @@ import { normalizeListMarkup } from '../../utils/editorContent';
 
 export default function ProgramCreate() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const returnTo = location.state?.returnTo || '/admin?section=programs';
   const fileInputRef = useRef(null);
   const quillRef = useRef(null);
   const [formData, setFormData] = useState({
@@ -118,7 +120,7 @@ export default function ProgramCreate() {
     },
     onSuccess: () => {
       alert('프로그램이 등록되었습니다.');
-      navigate('/programs');
+      navigate(returnTo);
     },
     onError: (error) => {
       alert('프로그램 등록에 실패했습니다: ' + error.message);
@@ -169,8 +171,9 @@ export default function ProgramCreate() {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-gray-900">프로그램 등록</h1>
         <button
-          onClick={() => navigate('/programs')}
-          className="text-gray-600 hover:text-gray-900"
+          type="button"
+          onClick={() => navigate(returnTo)}
+          className="min-h-12 rounded-lg px-3 text-base font-semibold text-gray-700 hover:bg-gray-100"
         >
           ← 돌아가기
         </button>

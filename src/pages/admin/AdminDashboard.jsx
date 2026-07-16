@@ -1,11 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchCategories, deleteCategory } from '../../services/categoryService';
-import { fetchPrograms, deleteProgram, fetchProgramApplies, fetchProgramForm } from '../../services/programService';
+import {
+  deleteProgram,
+  fetchProgramApplyCounts,
+  fetchProgramApplies,
+  fetchProgramForm,
+  fetchPrograms,
+} from '../../services/programService';
 import { fetchSupporters, markSupportComplete } from '../../services/supportService';
 import { getStaticContent, updateStaticContent } from '../../services/staticContentService';
 import { getHomeBanner, updateHomeBanner } from '../../services/homeBannerService';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { getProgramStatusInfo, sortProgramsByStatus } from '../../utils/programStatus';
 import { formatKoreanDateRange } from '../../utils/dateFormat';
 import { uploadImage } from '../../services/postService';
@@ -18,6 +24,7 @@ import ProgramFormBuilder from '../../components/program/ProgramFormBuilder';
 import ProgramApplyDetailModal from '../../components/program/ProgramApplyDetailModal';
 import HomeBannerHero from '../../components/HomeBannerHero';
 import { useAuth } from '../../contexts/AuthContext';
+import AsyncState from '../../components/AsyncState';
 
 // 카테고리 뱃지 헬퍼 함수
 const getCategoryBadge = (category) => {
@@ -33,7 +40,7 @@ const getCategoryBadge = (category) => {
   const info = categoryInfo[category] || { label: '참여', className: 'bg-gray-100 text-gray-800' };
   
   return (
-    <span className={`px-2 py-1 rounded-full text-xs font-medium ${info.className}`}>
+    <span className={`rounded-full px-3 py-1 text-sm font-semibold ${info.className}`}>
       {info.label}
     </span>
   );
@@ -67,12 +74,64 @@ const HOME_BANNER_DEFAULT = {
   sideDescription: '숲해설가 양성교육 · 시민 자원봉사 모집 중',
 };
 const HOME_BANNER_DEFAULT_SLIDE_SECONDS = 5;
+const ADMIN_MENU_KEYS = new Set([
+  'categories',
+  'programs',
+  'users',
+  'intro',
+  'homeBanner',
+  'donations',
+  'mail',
+]);
+const MAX_ONLY_ADMIN_MENUS = new Set(['categories', 'users']);
+
+const getInitialAdminMenu = (requestedMenu, hasMaxAccess) => {
+  if (
+    ADMIN_MENU_KEYS.has(requestedMenu)
+    && (hasMaxAccess || !MAX_ONLY_ADMIN_MENUS.has(requestedMenu))
+  ) {
+    return requestedMenu;
+  }
+  return hasMaxAccess ? 'categories' : 'programs';
+};
+
+const getRequestErrorMessage = (error, fallback) => (
+  error?.response?.data?.message || fallback
+);
+
+const getProgramApplyCountLabel = ({
+  count,
+  isError,
+  isFetching,
+  maxParticipants,
+}) => {
+  if (count !== undefined) {
+    const safeCount = Number(count) || 0;
+    const safeMaximum = Number(maxParticipants) || 0;
+    return {
+      count: `${safeCount}명`,
+      percentage: safeMaximum > 0
+        ? `${Math.round((safeCount / safeMaximum) * 100)}%`
+        : null,
+    };
+  }
+  if (isError) {
+    return { count: '확인 필요', percentage: null };
+  }
+  return {
+    count: isFetching ? '계산 중…' : '대기 중…',
+    percentage: null,
+  };
+};
 
 export default function AdminDashboard() {
   const { hasMaxAccess } = useAuth();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const [activeMenu, setActiveMenu] = useState(hasMaxAccess ? 'categories' : 'programs');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeMenu, setActiveMenu] = useState(() => (
+    getInitialAdminMenu(searchParams.get('section'), hasMaxAccess)
+  ));
   const [selectedProgramId, setSelectedProgramId] = useState(null);
   const [supportersPage, setSupportersPage] = useState(0);
   const [supportersSize] = useState(10);
@@ -91,13 +150,29 @@ export default function AdminDashboard() {
   const [selectedHomeBannerIndex, setSelectedHomeBannerIndex] = useState(0);
   const [homeBannerAutoSlideSeconds, setHomeBannerAutoSlideSeconds] = useState(HOME_BANNER_DEFAULT_SLIDE_SECONDS);
   const [uploadingBannerField, setUploadingBannerField] = useState(null);
+  const [openingProgramFormId, setOpeningProgramFormId] = useState(null);
+  const [formBuilderLoadError, setFormBuilderLoadError] = useState('');
   const introQuillRef = useRef(null);
+  const programFormRequestRef = useRef(0);
   const homeBannerForm = homeBanners[selectedHomeBannerIndex] || HOME_BANNER_DEFAULT;
+
+  const selectAdminMenu = (menu) => {
+    const nextMenu = getInitialAdminMenu(menu, hasMaxAccess);
+    setActiveMenu(nextMenu);
+    setSelectedProgramId(null);
+    setFormBuilderLoadError('');
+    programFormRequestRef.current += 1;
+    setOpeningProgramFormId(null);
+    setSearchParams({ section: nextMenu }, { replace: true });
+  };
 
   useEffect(() => {
     if (!hasMaxAccess && (activeMenu === 'categories' || activeMenu === 'users')) {
-      setActiveMenu('programs');
+      selectAdminMenu('programs');
     }
+  // selectAdminMenu intentionally depends on current local state and is only
+  // needed when a refreshed session loses MAX access.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeMenu, hasMaxAccess]);
 
   // 카테고리 목록 조회
@@ -107,45 +182,59 @@ export default function AdminDashboard() {
   });
 
   // 프로그램 목록 조회
-  const { data: programsData, isLoading: programsLoading } = useQuery({
+  const {
+    data: programsData,
+    error: programsError,
+    isError: programsIsError,
+    isFetching: programsFetching,
+    isLoading: programsLoading,
+    refetch: refetchPrograms,
+  } = useQuery({
     queryKey: ['programs', categoryFilter],
     queryFn: () => fetchPrograms(1, 100, categoryFilter === 'all' ? null : categoryFilter),
+    enabled: activeMenu === 'programs',
   });
 
-  // 서버 응답 구조에서 programs 추출 (안전한 접근)
-  const rawPrograms = useMemo(() => programsData?.data?.contents || [], [programsData]);
+  const programContents = programsData?.data?.contents;
+  const hasInvalidProgramPayload = Boolean(programsData) && !Array.isArray(programContents);
+  const rawPrograms = useMemo(
+    () => (Array.isArray(programContents) ? programContents : []),
+    [programContents],
+  );
   const programs = useMemo(() => sortProgramsByStatus(rawPrograms), [rawPrograms]);
-  const programIdsKey = useMemo(
-    () => rawPrograms.map((program) => program.id).join(','),
+  const programIds = useMemo(
+    () => rawPrograms.map((program) => program.id),
     [rawPrograms],
   );
 
   // 선택된 프로그램의 신청 목록 조회
-  const { data: programApplies, isLoading: appliesLoading } = useQuery({
+  const {
+    data: programApplies,
+    error: appliesError,
+    isError: appliesIsError,
+    isFetching: appliesFetching,
+    isLoading: appliesLoading,
+    refetch: refetchProgramApplies,
+  } = useQuery({
     queryKey: ['programApplies', selectedProgramId],
     queryFn: () => fetchProgramApplies(selectedProgramId),
-    enabled: !!selectedProgramId,
+    enabled: activeMenu === 'programs' && !!selectedProgramId,
   });
 
-  // 각 프로그램의 신청자 수 조회
-  const { data: programApplyCounts } = useQuery({
-    queryKey: ['programApplyCounts', programIdsKey],
-    queryFn: async () => {
-      if (!rawPrograms || rawPrograms.length === 0) return {};
-      
-      const counts = {};
-      for (const program of rawPrograms) {
-        try {
-          const applies = await fetchProgramApplies(program.id);
-          counts[program.id] = applies?.length || 0;
-        } catch (error) {
-          console.error(`Error fetching applies for program ${program.id}:`, error);
-          counts[program.id] = 0;
-        }
-      }
-      return counts;
-    },
-    enabled: !!rawPrograms && rawPrograms.length > 0,
+  // 관리자 목록은 배치 집계 API 한 번으로 신청자 수를 가져온다.
+  const {
+    data: programApplyCounts,
+    isError: programApplyCountsIsError,
+    isFetching: programApplyCountsFetching,
+    refetch: refetchProgramApplyCounts,
+  } = useQuery({
+    queryKey: ['programApplyCounts', programIds],
+    queryFn: () => fetchProgramApplyCounts(programIds),
+    enabled: activeMenu === 'programs' && rawPrograms.length > 0,
+    retry: (failureCount, error) => (
+      ![400, 401, 403, 404].includes(error?.response?.status)
+      && failureCount < 2
+    ),
   });
 
   // 후원신청 목록 조회
@@ -205,11 +294,16 @@ export default function AdminDashboard() {
   });
 
   // 프로그램 삭제
-  const { mutate: removeProgram } = useMutation({
+  const {
+    mutate: removeProgram,
+    isPending: deletingProgram,
+    variables: deletingProgramId,
+  } = useMutation({
     mutationFn: deleteProgram,
     onSuccess: () => {
       alert('프로그램이 삭제되었습니다.');
       queryClient.invalidateQueries({ queryKey: ['programs'] });
+      queryClient.invalidateQueries({ queryKey: ['programApplyCounts'] });
     },
     onError: (error) => {
       alert('프로그램 삭제에 실패했습니다: ' + error.message);
@@ -248,14 +342,29 @@ export default function AdminDashboard() {
 
   // 신청 폼 생성/수정 열기
   const handleOpenFormBuilder = async (program) => {
-    setSelectedProgramForForm(program);
+    if (openingProgramFormId) return;
+
+    const requestId = programFormRequestRef.current + 1;
+    programFormRequestRef.current = requestId;
+    setOpeningProgramFormId(program.id);
+    setFormBuilderLoadError('');
     try {
       const form = await fetchProgramForm(program.id);
+      if (programFormRequestRef.current !== requestId) return;
+      setSelectedProgramForForm(program);
       setExistingForm(form);
-    } catch {
-      setExistingForm(null);
+      setShowFormBuilder(true);
+    } catch (error) {
+      if (programFormRequestRef.current !== requestId) return;
+      setFormBuilderLoadError(getRequestErrorMessage(
+        error,
+        '신청 폼을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.',
+      ));
+    } finally {
+      if (programFormRequestRef.current === requestId) {
+        setOpeningProgramFormId(null);
+      }
     }
-    setShowFormBuilder(true);
   };
 
   // 폼 빌더 닫기
@@ -440,95 +549,126 @@ export default function AdminDashboard() {
     }
   };
 
+  const selectedProgram = programs.find((program) => program.id === selectedProgramId);
+  const validProgramApplies = Array.isArray(programApplies) ? programApplies : [];
+  const hasInvalidProgramApplies = Boolean(programApplies) && !Array.isArray(programApplies);
+
+  const openProgramEdit = (programId) => {
+    navigate(`/programs/edit/${programId}`, {
+      state: { returnTo: '/admin?section=programs' },
+    });
+  };
+
+  const confirmProgramDelete = (program) => {
+    if (deletingProgram) return;
+    if (window.confirm(`'${program.title}' 프로그램을 정말 삭제하시겠습니까?`)) {
+      removeProgram(program.id);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gray-100 flex">
+    <div className="min-h-screen bg-gray-100 lg:flex">
       {/* 좌측 사이드바 */}
-      <div className="w-64 bg-white shadow-md">
+      <aside className="w-full bg-white shadow-md lg:w-64 lg:shrink-0">
         <div className="p-4">
           <h2 className="text-xl font-bold text-gray-800">관리자 메뉴</h2>
         </div>
-        <nav className="mt-4">
+        <nav className="grid grid-cols-2 gap-2 px-3 pb-4 sm:grid-cols-3 lg:mt-2 lg:block lg:space-y-1 lg:px-0">
           {hasMaxAccess && (
             <button
-              className={`w-full text-left px-4 py-2 ${
+              type="button"
+              aria-current={activeMenu === 'categories' ? 'page' : undefined}
+              className={`min-h-12 w-full rounded-lg px-4 py-3 text-left text-base font-semibold lg:rounded-none ${
                 activeMenu === 'categories'
                   ? 'bg-green-50 text-green-700 border-l-4 border-green-500'
                   : 'text-gray-600 hover:bg-gray-50'
               }`}
-              onClick={() => setActiveMenu('categories')}
+              onClick={() => selectAdminMenu('categories')}
             >
               카테고리 관리
             </button>
           )}
           <button
-            className={`w-full text-left px-4 py-2 ${
+            type="button"
+            aria-current={activeMenu === 'programs' ? 'page' : undefined}
+            className={`min-h-12 w-full rounded-lg px-4 py-3 text-left text-base font-semibold lg:rounded-none ${
               activeMenu === 'programs' 
                 ? 'bg-green-50 text-green-700 border-l-4 border-green-500' 
                 : 'text-gray-600 hover:bg-gray-50'
             }`}
-            onClick={() => setActiveMenu('programs')}
+            onClick={() => selectAdminMenu('programs')}
           >
             프로그램 관리
           </button>
           {hasMaxAccess && (
             <button
-              className={`w-full text-left px-4 py-2 ${
+              type="button"
+              aria-current={activeMenu === 'users' ? 'page' : undefined}
+              className={`min-h-12 w-full rounded-lg px-4 py-3 text-left text-base font-semibold lg:rounded-none ${
                 activeMenu === 'users'
                   ? 'bg-green-50 text-green-700 border-l-4 border-green-500'
                   : 'text-gray-600 hover:bg-gray-50'
               }`}
-              onClick={() => setActiveMenu('users')}
+              onClick={() => selectAdminMenu('users')}
             >
               사용자 관리
             </button>
           )}
           <button
-            className={`w-full text-left px-4 py-2 ${
+            type="button"
+            aria-current={activeMenu === 'intro' ? 'page' : undefined}
+            className={`min-h-12 w-full rounded-lg px-4 py-3 text-left text-base font-semibold lg:rounded-none ${
               activeMenu === 'intro'
                 ? 'bg-green-50 text-green-700 border-l-4 border-green-500'
                 : 'text-gray-600 hover:bg-gray-50'
             }`}
-            onClick={() => setActiveMenu('intro')}
+            onClick={() => selectAdminMenu('intro')}
           >
             소개글 관리
           </button>
           <button
-            className={`w-full text-left px-4 py-2 ${
+            type="button"
+            aria-current={activeMenu === 'homeBanner' ? 'page' : undefined}
+            className={`min-h-12 w-full rounded-lg px-4 py-3 text-left text-base font-semibold lg:rounded-none ${
               activeMenu === 'homeBanner'
                 ? 'bg-green-50 text-green-700 border-l-4 border-green-500'
                 : 'text-gray-600 hover:bg-gray-50'
             }`}
-            onClick={() => setActiveMenu('homeBanner')}
+            onClick={() => selectAdminMenu('homeBanner')}
           >
             홈배너 관리
           </button>
           <button
-            className={`w-full text-left px-4 py-2 ${
+            type="button"
+            aria-current={activeMenu === 'donations' ? 'page' : undefined}
+            className={`min-h-12 w-full rounded-lg px-4 py-3 text-left text-base font-semibold lg:rounded-none ${
               activeMenu === 'donations' 
                 ? 'bg-green-50 text-green-700 border-l-4 border-green-500' 
                 : 'text-gray-600 hover:bg-gray-50'
             }`}
-            onClick={() => setActiveMenu('donations')}
+            onClick={() => selectAdminMenu('donations')}
           >
             후원금 관리
           </button>
           <button
-            className={`w-full text-left px-4 py-2 ${
+            type="button"
+            aria-current={activeMenu === 'mail' ? 'page' : undefined}
+            className={`min-h-12 w-full rounded-lg px-4 py-3 text-left text-base font-semibold lg:rounded-none ${
               activeMenu === 'mail' 
                 ? 'bg-green-50 text-green-700 border-l-4 border-green-500' 
                 : 'text-gray-600 hover:bg-gray-50'
             }`}
-            onClick={() => setActiveMenu('mail')}
+            onClick={() => selectAdminMenu('mail')}
           >
             메일 발송
           </button>
         </nav>
-      </div>
+      </aside>
 
       {/* 메인 콘텐츠 */}
-      <div className="flex-1 p-8">
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">
+      <div className="min-w-0 flex-1 p-4 sm:p-6 lg:p-8">
+        <div className="mb-6 lg:mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">
             {activeMenu === 'categories' && '카테고리 관리'}
             {activeMenu === 'programs' && '프로그램 관리'}
             {activeMenu === 'users' && '사용자 관리'}
@@ -610,40 +750,79 @@ export default function AdminDashboard() {
 
         {/* 프로그램 관리 */}
         {activeMenu === 'programs' && (
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex justify-between items-center mb-6">
-              <div className="flex items-center space-x-4">
-                <h3 className="text-lg font-medium">프로그램 목록</h3>
+          <section className="rounded-2xl bg-white p-4 shadow sm:p-6" aria-labelledby="program-management-title">
+            <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+              <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-end">
+                <h3 id="program-management-title" className="text-2xl font-bold text-gray-900">
+                  프로그램 목록
+                </h3>
+                <label className="flex flex-col gap-1 text-base font-semibold text-gray-700">
+                  <span>카테고리</span>
                 <select
                   value={categoryFilter}
-                  onChange={(e) => setCategoryFilter(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                    onChange={(event) => {
+                      programFormRequestRef.current += 1;
+                      setOpeningProgramFormId(null);
+                      setCategoryFilter(event.target.value);
+                      setSelectedProgramId(null);
+                      setFormBuilderLoadError('');
+                    }}
+                    className="min-h-12 w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-base focus:outline-none focus:ring-2 focus:ring-green-600 sm:w-auto"
                 >
                   <option value="all">전체 카테고리</option>
                   <option value="participate">참여 프로그램</option>
                   <option value="guide">숲 해설가 양성교육</option>
                   <option value="volunteer">자원봉사활동</option>
                 </select>
+                </label>
               </div>
-              <button 
-                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
-                onClick={() => navigate('/programs/create')}
+              <button
+                type="button"
+                className="min-h-12 w-full rounded-lg bg-green-700 px-5 py-3 text-base font-bold text-white hover:bg-green-800 sm:w-auto"
+                onClick={() => navigate('/programs/create', {
+                  state: { returnTo: '/admin?section=programs' },
+                })}
               >
                 새 프로그램
               </button>
             </div>
 
-            {programsLoading ? (
-              <div className="text-center py-4">
-                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-green-500 mx-auto"></div>
+            {formBuilderLoadError && (
+              <div className="mb-5 flex flex-col gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-base text-red-800 sm:flex-row sm:items-center sm:justify-between" role="alert">
+                <p>{formBuilderLoadError}</p>
+                <button
+                  type="button"
+                  className="min-h-11 rounded-lg border border-red-300 px-4 font-semibold hover:bg-red-100"
+                  onClick={() => setFormBuilderLoadError('')}
+                >
+                  닫기
+                </button>
               </div>
+            )}
+
+            {programsLoading ? (
+              <AsyncState
+                status="loading"
+                title="프로그램 목록을 불러오고 있습니다"
+              />
+            ) : programsIsError || hasInvalidProgramPayload ? (
+              <AsyncState
+                status="error"
+                title="프로그램 목록을 불러오지 못했습니다"
+                description={hasInvalidProgramPayload
+                  ? '서버 응답 형식이 올바르지 않습니다. 다시 시도해 주세요.'
+                  : getRequestErrorMessage(programsError, '잠시 후 다시 시도해 주세요.')}
+                onRetry={refetchPrograms}
+                isRetrying={programsFetching}
+              />
             ) : selectedProgramId ? (
               // 프로그램 신청자 목록
-              <div>
-                <div className="flex items-center mb-4">
+              <div className="min-w-0">
+                <div className="mb-5">
                   <button
+                    type="button"
                     onClick={() => setSelectedProgramId(null)}
-                    className="flex items-center text-green-600 hover:text-green-700"
+                    className="inline-flex min-h-12 items-center rounded-lg px-3 text-base font-bold text-green-700 hover:bg-green-50"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
                       <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
@@ -652,149 +831,219 @@ export default function AdminDashboard() {
                   </button>
                 </div>
                 
-                <h4 className="text-lg font-medium mb-4">
-                  {programs?.find(p => p.id === selectedProgramId)?.title} - 신청자 목록
+                <h4 className="mb-5 break-words text-xl font-bold text-gray-900">
+                  {selectedProgram?.title || '선택한 프로그램'} - 신청자 목록
                 </h4>
                 
                 {appliesLoading ? (
-                  <div className="text-center py-4">
-                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-green-500 mx-auto"></div>
-                  </div>
-                ) : programApplies?.length > 0 ? (
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">신청자</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">사용자 ID</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">신청일</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">폼 응답</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">작업</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {programApplies.map((apply) => (
-                        <tr key={apply.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
-                            {apply.proposer}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono text-xs">
-                            {apply.userId}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {new Date(apply.createdAt).toLocaleDateString('ko-KR')}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {apply.formResponses && Object.keys(apply.formResponses).length > 0 ? (
-                              <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
-                                📋 {Object.keys(apply.formResponses).length}개 응답
-                              </span>
-                            ) : (
-                              <span className="px-2 py-1 bg-gray-100 text-gray-500 rounded-full text-xs">
-                                응답 없음
-                              </span>
-                            )}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            <button
-                              onClick={() => handleOpenApplyDetail(apply)}
-                              className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-medium transition-colors duration-200"
-                            >
-                              상세보기
-                            </button>
-                          </td>
-                        </tr>
+                  <AsyncState status="loading" title="신청자 목록을 불러오고 있습니다" />
+                ) : appliesIsError || hasInvalidProgramApplies ? (
+                  <AsyncState
+                    status="error"
+                    title="신청자 목록을 불러오지 못했습니다"
+                    description={hasInvalidProgramApplies
+                      ? '서버 응답 형식이 올바르지 않습니다. 다시 시도해 주세요.'
+                      : getRequestErrorMessage(appliesError, '잠시 후 다시 시도해 주세요.')}
+                    onRetry={refetchProgramApplies}
+                    isRetrying={appliesFetching}
+                  />
+                ) : validProgramApplies.length > 0 ? (
+                  <>
+                    <div className="space-y-4 xl:hidden">
+                      {validProgramApplies.map((apply) => (
+                        <article key={apply.id} className="rounded-xl border border-gray-200 p-4 shadow-sm">
+                          <dl className="space-y-3 text-base">
+                            <div>
+                              <dt className="font-semibold text-gray-600">신청자</dt>
+                              <dd className="mt-1 font-bold text-gray-900">{apply.proposer}</dd>
+                            </div>
+                            <div>
+                              <dt className="font-semibold text-gray-600">사용자 ID</dt>
+                              <dd className="mt-1 break-all text-gray-800">{apply.userId}</dd>
+                            </div>
+                            <div>
+                              <dt className="font-semibold text-gray-600">신청일</dt>
+                              <dd className="mt-1 text-gray-800">{new Date(apply.createdAt).toLocaleDateString('ko-KR')}</dd>
+                            </div>
+                          </dl>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenApplyDetail(apply)}
+                            className="mt-4 min-h-12 w-full rounded-lg bg-blue-700 px-4 py-3 text-base font-bold text-white hover:bg-blue-800"
+                          >
+                            상세보기
+                          </button>
+                        </article>
                       ))}
-                    </tbody>
-                  </table>
+                    </div>
+
+                    <div className="hidden overflow-x-auto rounded-xl border border-gray-200 xl:block">
+                      <table className="min-w-[900px] divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-5 py-4 text-left text-base font-bold text-gray-700">신청자</th>
+                            <th className="px-5 py-4 text-left text-base font-bold text-gray-700">사용자 ID</th>
+                            <th className="px-5 py-4 text-left text-base font-bold text-gray-700">신청일</th>
+                            <th className="px-5 py-4 text-left text-base font-bold text-gray-700">폼 응답</th>
+                            <th className="px-5 py-4 text-left text-base font-bold text-gray-700">작업</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200 bg-white">
+                          {validProgramApplies.map((apply) => (
+                            <tr key={apply.id} className="hover:bg-gray-50">
+                              <td className="whitespace-nowrap px-5 py-4 text-base font-semibold text-gray-900">{apply.proposer}</td>
+                              <td className="whitespace-nowrap px-5 py-4 text-base text-gray-600">{apply.userId}</td>
+                              <td className="whitespace-nowrap px-5 py-4 text-base text-gray-600">{new Date(apply.createdAt).toLocaleDateString('ko-KR')}</td>
+                              <td className="whitespace-nowrap px-5 py-4 text-base text-gray-600">
+                                {apply.formResponses && Object.keys(apply.formResponses).length > 0
+                                  ? `${Object.keys(apply.formResponses).length}개 응답`
+                                  : '응답 없음'}
+                              </td>
+                              <td className="whitespace-nowrap px-5 py-4">
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenApplyDetail(apply)}
+                                  className="min-h-11 rounded-lg bg-blue-700 px-4 py-2 text-base font-bold text-white hover:bg-blue-800"
+                                >
+                                  상세보기
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
                 ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    신청자가 없습니다.
-                  </div>
+                  <AsyncState
+                    status="empty"
+                    title="신청자가 없습니다"
+                    description="이 프로그램에 접수된 신청이 아직 없습니다."
+                  />
                 )}
               </div>
+            ) : programs.length === 0 ? (
+              <AsyncState
+                status="empty"
+                title="등록된 프로그램이 없습니다"
+                description="위의 ‘새 프로그램’ 버튼을 눌러 첫 프로그램을 등록할 수 있습니다."
+              />
             ) : (
               // 프로그램 목록
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">제목</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">카테고리</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">상태</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">신청기간</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">모집인원</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">신청자 수</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">신청 폼</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">작업</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {programs?.map((program) => (
-                    <tr key={program.id}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {program.title}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        {getCategoryBadge(program.category)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getProgramStatusInfo(program.status).className}`}>
-                          {getProgramStatusInfo(program.status).text}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {formatKoreanDateRange(program.applyStartDate, program.applyEndDate)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {program.maxParticipants}명
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        <span className="font-medium text-green-600">
-                          {programApplyCounts ? (programApplyCounts[program.id] ?? 0) : '...'}명
-                        </span>
-                        <span className="text-gray-400 ml-1">
-                          ({program.maxParticipants > 0 && programApplyCounts ? 
-                            Math.round((programApplyCounts[program.id] ?? 0) / program.maxParticipants * 100) : 
-                            programApplyCounts ? 0 : '...'}%)
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        <button
-                          onClick={() => handleOpenFormBuilder(program)}
-                          className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded text-xs font-medium transition-colors duration-200"
-                        >
-                          📝 폼 관리
-                        </button>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        <button 
-                          className="text-blue-600 hover:text-blue-900 mr-3"
-                          onClick={() => setSelectedProgramId(program.id)}
-                        >
-                          신청자 보기
-                        </button>
-                        <button 
-                          className="text-green-600 hover:text-green-900 mr-3"
-                          onClick={() => navigate(`/programs/edit/${program.id}`)}
-                        >
-                          수정
-                        </button>
-                        <button 
-                          className="text-red-600 hover:text-red-900"
-                          onClick={() => {
-                            if (window.confirm('정말 삭제하시겠습니까?')) {
-                              removeProgram(program.id);
-                            }
-                          }}
-                        >
-                          삭제
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <div className="min-w-0">
+                {programApplyCountsIsError && (
+                  <div className="mb-5 flex flex-col gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-base text-amber-900 sm:flex-row sm:items-center sm:justify-between" role="alert">
+                    <p>신청자 수를 불러오지 못했습니다. 프로그램 관리 기능은 계속 사용할 수 있습니다.</p>
+                    <button
+                      type="button"
+                      onClick={() => refetchProgramApplyCounts()}
+                      disabled={programApplyCountsFetching}
+                      className="min-h-11 rounded-lg border border-amber-400 px-4 font-bold hover:bg-amber-100 disabled:cursor-wait disabled:opacity-60"
+                    >
+                      {programApplyCountsFetching ? '다시 불러오는 중…' : '신청자 수 다시 불러오기'}
+                    </button>
+                  </div>
+                )}
+
+                <div className="space-y-4 2xl:hidden">
+                  {programs.map((program) => {
+                    const countLabel = getProgramApplyCountLabel({
+                      count: programApplyCounts?.[program.id],
+                      isError: programApplyCountsIsError,
+                      isFetching: programApplyCountsFetching,
+                      maxParticipants: program.maxParticipants,
+                    });
+                    return (
+                      <article key={program.id} className="rounded-xl border border-gray-200 p-4 shadow-sm">
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <h4 className="min-w-0 flex-1 break-words text-lg font-bold text-gray-900">{program.title}</h4>
+                          <span className={`rounded-full px-3 py-1 text-sm font-bold ${getProgramStatusInfo(program.status).className}`}>
+                            {getProgramStatusInfo(program.status).text}
+                          </span>
+                        </div>
+                        <div className="mt-3">{getCategoryBadge(program.category)}</div>
+                        <dl className="mt-4 grid gap-3 text-base sm:grid-cols-2">
+                          <div>
+                            <dt className="font-semibold text-gray-600">신청기간</dt>
+                            <dd className="mt-1 text-gray-900">{formatKoreanDateRange(program.applyStartDate, program.applyEndDate)}</dd>
+                          </div>
+                          <div>
+                            <dt className="font-semibold text-gray-600">모집 / 신청</dt>
+                            <dd className="mt-1 text-gray-900">
+                              {program.maxParticipants}명 / <span className="font-bold text-green-700">{countLabel.count}</span>
+                              {countLabel.percentage && <span className="ml-1 text-gray-500">({countLabel.percentage})</span>}
+                            </dd>
+                          </div>
+                        </dl>
+                        <div className="mt-5 grid gap-2 sm:grid-cols-2">
+                          <button type="button" onClick={() => setSelectedProgramId(program.id)} className="min-h-12 rounded-lg bg-blue-700 px-4 py-3 text-base font-bold text-white hover:bg-blue-800">신청자 보기</button>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenFormBuilder(program)}
+                            disabled={openingProgramFormId !== null}
+                            className="min-h-12 rounded-lg bg-purple-700 px-4 py-3 text-base font-bold text-white hover:bg-purple-800 disabled:cursor-wait disabled:bg-gray-500"
+                          >
+                            {openingProgramFormId === program.id ? '폼 불러오는 중…' : '신청 폼 관리'}
+                          </button>
+                          <button type="button" onClick={() => openProgramEdit(program.id)} className="min-h-12 rounded-lg border-2 border-green-700 px-4 py-3 text-base font-bold text-green-800 hover:bg-green-50">수정</button>
+                          <button type="button" disabled={deletingProgram} onClick={() => confirmProgramDelete(program)} className="min-h-12 rounded-lg border-2 border-red-600 px-4 py-3 text-base font-bold text-red-700 hover:bg-red-50 disabled:cursor-wait disabled:opacity-60">{deletingProgram && deletingProgramId === program.id ? '삭제 중…' : '삭제'}</button>
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+
+                <div className="hidden overflow-x-auto rounded-xl border border-gray-200 2xl:block">
+                  <table className="min-w-[1100px] divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        {['제목', '카테고리', '상태', '신청기간', '모집인원', '신청자 수', '신청 폼', '작업'].map((heading) => (
+                          <th key={heading} className="px-4 py-4 text-left text-base font-bold text-gray-700">{heading}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200 bg-white">
+                      {programs.map((program) => {
+                        const countLabel = getProgramApplyCountLabel({
+                          count: programApplyCounts?.[program.id],
+                          isError: programApplyCountsIsError,
+                          isFetching: programApplyCountsFetching,
+                          maxParticipants: program.maxParticipants,
+                        });
+                        return (
+                          <tr key={program.id} className="hover:bg-gray-50">
+                            <td className="max-w-xs px-4 py-4 text-base font-semibold text-gray-900"><span className="line-clamp-2">{program.title}</span></td>
+                            <td className="whitespace-nowrap px-4 py-4">{getCategoryBadge(program.category)}</td>
+                            <td className="whitespace-nowrap px-4 py-4"><span className={`rounded-full px-3 py-1 text-sm font-bold ${getProgramStatusInfo(program.status).className}`}>{getProgramStatusInfo(program.status).text}</span></td>
+                            <td className="whitespace-nowrap px-4 py-4 text-base text-gray-600">{formatKoreanDateRange(program.applyStartDate, program.applyEndDate)}</td>
+                            <td className="whitespace-nowrap px-4 py-4 text-base text-gray-600">{program.maxParticipants}명</td>
+                            <td className="whitespace-nowrap px-4 py-4 text-base"><span className="font-bold text-green-700">{countLabel.count}</span>{countLabel.percentage && <span className="ml-1 text-gray-500">({countLabel.percentage})</span>}</td>
+                            <td className="whitespace-nowrap px-4 py-4">
+                              <button
+                                type="button"
+                                onClick={() => handleOpenFormBuilder(program)}
+                                disabled={openingProgramFormId !== null}
+                                className="min-h-11 rounded-lg bg-purple-700 px-4 py-2 text-base font-bold text-white hover:bg-purple-800 disabled:cursor-wait disabled:bg-gray-500"
+                              >
+                                {openingProgramFormId === program.id ? '불러오는 중…' : '폼 관리'}
+                              </button>
+                            </td>
+                            <td className="whitespace-nowrap px-4 py-4">
+                              <div className="flex gap-2">
+                                <button type="button" onClick={() => setSelectedProgramId(program.id)} className="min-h-11 rounded-lg border border-blue-600 px-3 py-2 text-base font-bold text-blue-700 hover:bg-blue-50">신청자</button>
+                                <button type="button" onClick={() => openProgramEdit(program.id)} className="min-h-11 rounded-lg border border-green-700 px-3 py-2 text-base font-bold text-green-800 hover:bg-green-50">수정</button>
+                                <button type="button" disabled={deletingProgram} onClick={() => confirmProgramDelete(program)} className="min-h-11 rounded-lg border border-red-600 px-3 py-2 text-base font-bold text-red-700 hover:bg-red-50 disabled:cursor-wait disabled:opacity-60">{deletingProgram && deletingProgramId === program.id ? '삭제 중…' : '삭제'}</button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             )}
-          </div>
+          </section>
         )}
 
         {/* 소개글 관리 */}

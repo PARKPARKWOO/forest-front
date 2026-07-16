@@ -1,7 +1,11 @@
+import { useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchProgramForm } from '../../services/programService';
+import useFocusTrap from '../../hooks/useFocusTrap';
 
 export default function ProgramApplyDetailModal({ apply, programId, onClose }) {
+  const modalRef = useRef(null);
+  const closeButtonRef = useRef(null);
   // 해당 프로그램의 폼 정보 가져오기
   const { data: programForm } = useQuery({
     queryKey: ['programForm', programId],
@@ -80,23 +84,41 @@ export default function ProgramApplyDetailModal({ apply, programId, onClose }) {
     return <span className="text-gray-900">{String(value)}</span>;
   };
 
+  useFocusTrap({
+    containerRef: modalRef,
+    initialFocusRef: closeButtonRef,
+    isActive: true,
+    onEscape: onClose,
+    version: `${programId}-${apply?.id}`,
+  });
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center p-6 border-b bg-gradient-to-r from-green-50 to-green-100">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-2 sm:p-4">
+      <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="program-apply-detail-title"
+        tabIndex={-1}
+        className="max-h-[96vh] w-full max-w-3xl overflow-y-auto rounded-xl bg-white shadow-xl"
+      >
+        <div className="flex items-start justify-between gap-4 border-b bg-gradient-to-r from-green-50 to-green-100 p-4 sm:p-6">
           <div>
-            <h3 className="text-xl font-bold text-gray-800">프로그램 신청 상세</h3>
-            <p className="text-sm text-gray-600 mt-1">신청자: {apply.proposer}</p>
+            <h3 id="program-apply-detail-title" className="text-xl font-bold text-gray-800 sm:text-2xl">프로그램 신청 상세</h3>
+            <p className="mt-1 text-base text-gray-600">신청자: {apply.proposer}</p>
           </div>
           <button
+            ref={closeButtonRef}
+            type="button"
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 text-2xl"
+            aria-label="신청 상세 창 닫기"
+            className="min-h-12 min-w-12 rounded-lg text-2xl text-gray-600 hover:bg-white"
           >
             ✕
           </button>
         </div>
         
-        <div className="p-6 space-y-6">
+        <div className="space-y-6 p-4 sm:p-6">
           {/* 기본 정보 */}
           <div className="bg-gray-50 rounded-lg p-4">
             <h4 className="text-md font-semibold text-gray-800 mb-4 flex items-center">
@@ -107,7 +129,7 @@ export default function ProgramApplyDetailModal({ apply, programId, onClose }) {
               </svg>
               기본 정보
             </h4>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <label className="block text-sm font-medium text-gray-600 mb-1">신청자명</label>
                 <p className="text-gray-900 font-medium">{apply.proposer}</p>
@@ -116,7 +138,7 @@ export default function ProgramApplyDetailModal({ apply, programId, onClose }) {
                 <label className="block text-sm font-medium text-gray-600 mb-1">사용자 ID</label>
                 <p className="text-gray-900 font-mono text-sm">{apply.userId}</p>
               </div>
-              <div className="col-span-2">
+              <div className="sm:col-span-2">
                 <label className="block text-sm font-medium text-gray-600 mb-1">신청일시</label>
                 <p className="text-gray-900">
                   {new Date(apply.createdAt).toLocaleString('ko-KR', {
@@ -191,10 +213,11 @@ export default function ProgramApplyDetailModal({ apply, programId, onClose }) {
           )}
         </div>
         
-        <div className="flex justify-end gap-3 p-6 border-t bg-gray-50">
+        <div className="flex justify-end gap-3 border-t bg-gray-50 p-4 sm:p-6">
           <button
+            type="button"
             onClick={onClose}
-            className="px-6 py-2 bg-gray-300 hover:bg-gray-400 text-gray-700 rounded-md text-sm font-medium transition-colors duration-200"
+            className="min-h-12 w-full rounded-lg bg-gray-300 px-6 py-3 text-base font-bold text-gray-800 hover:bg-gray-400 sm:w-auto"
           >
             닫기
           </button>

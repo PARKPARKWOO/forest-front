@@ -112,6 +112,47 @@ export const fetchProgramApplies = async (programId) => {
   }
 };
 
+// 관리자 프로그램 목록용 신청자 수 일괄 조회
+export const fetchProgramApplyCounts = async (programIds = []) => {
+  if (!Array.isArray(programIds) || programIds.length === 0) {
+    return {};
+  }
+
+  const normalizedProgramIds = [...new Set(
+    programIds
+      .filter((programId) => programId !== null && programId !== undefined)
+      .map((programId) => String(programId).trim())
+      .filter(Boolean),
+  )];
+  if (normalizedProgramIds.length === 0) {
+    return {};
+  }
+
+  try {
+    const chunks = [];
+    for (let index = 0; index < normalizedProgramIds.length; index += 100) {
+      chunks.push(normalizedProgramIds.slice(index, index + 100));
+    }
+
+    const responses = await Promise.all(chunks.map(async (chunk) => {
+      const params = new URLSearchParams();
+      chunk.forEach((programId) => params.append('programIds', programId));
+      const response = await axiosInstance.get(`/program/apply/counts?${params}`);
+      const counts = response.data?.data;
+
+      if (!counts || typeof counts !== 'object' || Array.isArray(counts)) {
+        throw new Error('신청자 수 응답 형식이 올바르지 않습니다.');
+      }
+      return counts;
+    }));
+
+    return Object.assign({}, ...responses);
+  } catch (error) {
+    console.error('Error fetching program apply counts:', error);
+    throw error;
+  }
+};
+
 // 프로그램 신청 상세 조회
 export const fetchProgramApplyById = async (applyId) => {
   try {

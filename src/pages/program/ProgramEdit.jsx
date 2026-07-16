@@ -1,5 +1,5 @@
 import { useState, useRef, useMemo, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchProgramById, updateProgram } from '../../services/programService';
 import ReactQuill from 'react-quill';
@@ -10,6 +10,8 @@ import { normalizeListMarkup } from '../../utils/editorContent';
 export default function ProgramEdit() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const returnTo = location.state?.returnTo || '/admin?section=programs';
   const queryClient = useQueryClient();
   const fileInputRef = useRef(null);
   const quillRef = useRef(null);
@@ -247,7 +249,7 @@ export default function ProgramEdit() {
       alert('프로그램이 수정되었습니다.');
       queryClient.invalidateQueries({ queryKey: ['program', id] });
       queryClient.invalidateQueries({ queryKey: ['programs'] });
-      navigate('/admin');
+      navigate(returnTo);
     },
     onError: (error) => {
       alert('프로그램 수정에 실패했습니다: ' + error.message);
@@ -278,7 +280,7 @@ export default function ProgramEdit() {
           <h2 className="text-xl font-bold text-gray-800 mb-2">프로그램 정보를 불러올 수 없습니다</h2>
           <p className="text-gray-600 mb-4">오류: {error.message}</p>
           <button
-            onClick={() => navigate(-1)}
+            onClick={() => navigate(returnTo)}
             className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
           >
             돌아가기
@@ -293,8 +295,8 @@ export default function ProgramEdit() {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-900">프로그램 수정</h1>
         <button
-          onClick={() => navigate(-1)}
-          className="text-gray-600 hover:text-gray-900"
+          onClick={() => navigate(returnTo)}
+          className="min-h-12 rounded-lg px-3 text-base font-semibold text-gray-700 hover:bg-gray-100"
         >
           ← 돌아가기
         </button>
