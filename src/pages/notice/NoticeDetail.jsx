@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { getNoticeDetail } from '../../services/noticeService';
 import { useAuth } from '../../contexts/AuthContext';
 import ImageModal from '../../components/ImageModal';
-import { normalizeListMarkup } from '../../utils/editorContent';
+import { sanitizeRichText } from '../../utils/editorContent';
 import { extractImageUrlsFromHtml, mergeUniqueUrls } from '../../utils/contentUtils';
 
 export default function NoticeDetail() {
@@ -19,7 +19,7 @@ export default function NoticeDetail() {
   });
 
   const notice = noticeData?.data;
-  const noticeContent = useMemo(() => normalizeListMarkup(notice?.content || ''), [notice?.content]);
+  const noticeContent = useMemo(() => sanitizeRichText(notice?.content || ''), [notice?.content]);
   const galleryImages = useMemo(() => {
     const inlineImages = extractImageUrlsFromHtml(noticeContent);
     return mergeUniqueUrls(inlineImages, notice?.images || []);
@@ -107,8 +107,8 @@ export default function NoticeDetail() {
 
           {isAdmin && (
             <Link
-              to={`/news/notice/edit/${notice.id}`}
-              className="px-4 py-2 text-sm bg-green-600 text-white rounded-md hover:bg-green-700"
+              to={`/news/notice/edit/${noticeId}`}
+              className="flex min-h-12 items-center rounded-md bg-green-700 px-4 py-3 text-base font-semibold text-white hover:bg-green-800"
             >
               수정
             </Link>
@@ -122,12 +122,12 @@ export default function NoticeDetail() {
             <div className="flex items-center mb-4">
               <h1 className="text-3xl font-bold text-gray-900">{notice.title}</h1>
               {notice.dynamicFields?.important && (
-                <span className="ml-3 inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+                <span className="ml-3 inline-flex items-center rounded-full bg-red-100 px-3 py-2 text-base font-medium text-red-800">
                   [중요]
                 </span>
               )}
             </div>
-            <div className="flex items-center text-sm text-gray-500 space-x-6">
+            <div className="flex flex-wrap items-center gap-3 text-base text-gray-600 sm:gap-6">
               <span>작성자: {notice.authorName}</span>
               <span>작성일: {new Date(notice.updatedAt).toLocaleDateString('ko-KR', {
                 year: 'numeric',

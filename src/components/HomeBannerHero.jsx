@@ -10,7 +10,7 @@ const isExternalLink = (url = '') => /^https?:\/\//i.test(url);
 const isAbsoluteUrl = (url = '') => /^(https?:\/\/|data:|blob:)/i.test(url);
 const isProtocolRelativeUrl = (url = '') => /^\/\//.test(url);
 
-const getApiOrigin = () => (process.env.NODE_ENV === 'development'
+const getApiOrigin = () => (import.meta.env.DEV
   ? 'http://localhost:8080'
   : 'https://forest.platformholder.site');
 

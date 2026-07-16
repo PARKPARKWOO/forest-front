@@ -2,10 +2,16 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
 import { deleteProgram, fetchProgramById } from '../../services/programService';
 import { getProgramStatusInfo } from '../../utils/programStatus';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import ApplyProgramModal from '../../components/program/ApplyProgramModal';
-import { normalizeListMarkup } from '../../utils/editorContent';
+import AsyncState from '../../components/AsyncState';
+import { sanitizeRichText } from '../../utils/editorContent';
+import {
+  clearPendingNavigation,
+  readPendingNavigation,
+  savePendingNavigation,
+} from '../../utils/pendingNavigation';
 
 export default function ProgramDetail() {
   const { id } = useParams();
@@ -14,8 +20,16 @@ export default function ProgramDetail() {
   const { setShowLoginModal } = useOutletContext();
   const { isAuthenticated, isAdmin } = useAuth();
   const [showApplyModal, setShowApplyModal] = useState(false);
+  const [resumeMessage, setResumeMessage] = useState('');
 
-  const { data: program, isLoading, error } = useQuery({
+  const {
+    data: program,
+    isLoading,
+    isError,
+    error,
+    isFetching,
+    refetch,
+  } = useQuery({
     queryKey: ['program', id],
     queryFn: () => fetchProgramById(id),
     enabled: !!id, // id가 있을 때만 쿼리 실행
@@ -35,6 +49,20 @@ export default function ProgramDetail() {
 
   const canManage = Boolean(program && isAuthenticated && isAdmin);
 
+  useEffect(() => {
+    if (!isAuthenticated || !program) return;
+
+    const pendingNavigation = readPendingNavigation();
+    const shouldResumeApplication = pendingNavigation?.action === 'apply-program'
+      && String(pendingNavigation.programId) === String(id);
+
+    if (shouldResumeApplication) {
+      clearPendingNavigation();
+      setResumeMessage('로그인이 완료되어 신청서를 다시 열었습니다. 저장된 입력 내용이 있으면 복원됩니다.');
+      setShowApplyModal(true);
+    }
+  }, [id, isAuthenticated, program]);
+
   const handleDelete = () => {
     if (!window.confirm('정말 삭제하시겠습니까?')) {
       return;
@@ -42,13 +70,39 @@ export default function ProgramDetail() {
     removeProgram();
   };
 
-  // 로딩 중이거나 에러 발생 시 처리
-  if (isLoading) return <div className="text-center py-8">로딩 중...</div>;
-  if (error) return <div className="text-center py-8 text-red-600">에러가 발생했습니다: {error.message}</div>;
-  if (!program) return <div className="text-center py-8">프로그램을 찾을 수 없습니다.</div>;
+  if (isLoading) {
+    return <AsyncState status="loading" title="프로그램 정보를 불러오고 있습니다" />;
+  }
+  if (isError && error?.response?.status === 404) {
+    return (
+      <AsyncState
+        status="empty"
+        title="프로그램을 찾을 수 없습니다"
+        description="삭제되었거나 주소가 잘못된 프로그램입니다. 프로그램 목록에서 다시 확인해 주세요."
+      />
+    );
+  }
+  if (isError) {
+    return (
+      <AsyncState
+        status="error"
+        title="프로그램 정보를 불러오지 못했습니다"
+        onRetry={refetch}
+        isRetrying={isFetching}
+      />
+    );
+  }
+  if (!program) {
+    return <AsyncState status="empty" title="프로그램을 찾을 수 없습니다" />;
+  }
 
   const handleHomepageApplyClick = () => {
     if (!isAuthenticated) {
+      savePendingNavigation({
+        returnTo: `/programs/detail/${id}`,
+        action: 'apply-program',
+        programId: id,
+      });
       setShowLoginModal(true);
       return;
     }
@@ -73,7 +127,7 @@ export default function ProgramDetail() {
         hour: '2-digit',
         minute: '2-digit',
       });
-    } catch (e) {
+    } catch {
       return dateString;
     }
   };
@@ -87,7 +141,7 @@ export default function ProgramDetail() {
         month: 'long',
         day: 'numeric',
       });
-    } catch (e) {
+    } catch {
       return dateString;
     }
   };
@@ -98,7 +152,7 @@ export default function ProgramDetail() {
         <div className="flex justify-between items-start mb-6 gap-4">
           <h1 className="text-3xl font-bold text-gray-800">{program.title}</h1>
           <div className="flex items-center gap-2 flex-shrink-0">
-            <span className={`px-3 py-1 rounded-full text-sm font-medium ${getProgramStatusInfo(program.status).className}`}>
+            <span className={`rounded-full px-3 py-2 text-base font-medium ${getProgramStatusInfo(program.status).className}`}>
               {getProgramStatusInfo(program.status).text}
             </span>
             {canManage && (
@@ -106,7 +160,7 @@ export default function ProgramDetail() {
                 <button
                   type="button"
                   onClick={() => navigate(`/programs/edit/${id}`)}
-                  className="px-3 py-1.5 text-sm bg-green-600 text-white rounded-md hover:bg-green-700"
+                  className="min-h-12 rounded-md bg-green-700 px-4 py-3 text-base font-semibold text-white hover:bg-green-800"
                 >
                   수정
                 </button>
@@ -114,7 +168,7 @@ export default function ProgramDetail() {
                   type="button"
                   onClick={handleDelete}
                   disabled={isDeleting}
-                  className="px-3 py-1.5 text-sm bg-red-600 text-white rounded-md hover:bg-red-700 disabled:bg-gray-400"
+                  className="min-h-12 rounded-md bg-red-600 px-4 py-3 text-base font-semibold text-white hover:bg-red-700 disabled:bg-gray-400"
                 >
                   {isDeleting ? '삭제 중...' : '삭제'}
                 </button>
@@ -125,14 +179,14 @@ export default function ProgramDetail() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 bg-gray-50 p-4 rounded-lg">
           <div>
-            <h3 className="text-sm font-medium text-gray-500 mb-1">신청 기간</h3>
+            <h3 className="mb-1 text-base font-semibold text-gray-600">신청 기간</h3>
             <p className="text-gray-900">
               {formatDateTime(program.applyStartDate)}
               {program.applyEndDate && ` ~ ${formatDateTime(program.applyEndDate)}`}
             </p>
           </div>
           <div>
-            <h3 className="text-sm font-medium text-gray-500 mb-1">
+            <h3 className="mb-1 text-base font-semibold text-gray-600">
               {program.category === 'GUIDE' || program.category?.toLowerCase() === 'guide' ? '신청자 발표' : '행사 일시'}
             </h3>
             <p className="text-gray-900">
@@ -142,16 +196,16 @@ export default function ProgramDetail() {
             </p>
           </div>
           <div>
-            <h3 className="text-sm font-medium text-gray-500 mb-1">모집 인원</h3>
+            <h3 className="mb-1 text-base font-semibold text-gray-600">모집 인원</h3>
             <p className="text-gray-900">{program.maxParticipants}명</p>
           </div>
           <div>
-            <h3 className="text-sm font-medium text-gray-500 mb-1">카테고리</h3>
+            <h3 className="mb-1 text-base font-semibold text-gray-600">카테고리</h3>
             <p className="text-gray-900">{program.categoryName || '일반'}</p>
           </div>
           {program.programUrl && (
             <div className="md:col-span-2">
-              <h3 className="text-sm font-medium text-gray-500 mb-1">프로그램 링크</h3>
+              <h3 className="mb-1 text-base font-semibold text-gray-600">프로그램 링크</h3>
               <a
                 href={program.programUrl}
                 target="_blank"
@@ -165,7 +219,7 @@ export default function ProgramDetail() {
         </div>
 
         <div className="rich-content max-w-none mb-6">
-          <div dangerouslySetInnerHTML={{ __html: normalizeListMarkup(program.content || '') }} />
+          <div dangerouslySetInnerHTML={{ __html: sanitizeRichText(program.content || '') }} />
         </div>
 
         {program.files?.length > 0 && (
@@ -194,8 +248,17 @@ export default function ProgramDetail() {
         )}
 
         {program.status === 'IN_PROGRESS' && (
-          <div className="mt-8 flex justify-center">
-            <div className="w-full max-w-2xl grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="mt-8">
+            {resumeMessage && (
+              <p
+                className="mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-base text-green-900"
+                role="status"
+                aria-live="polite"
+              >
+                {resumeMessage}
+              </p>
+            )}
+            <div className="mx-auto w-full max-w-2xl grid grid-cols-1 md:grid-cols-2 gap-3">
               <button
                 type="button"
                 onClick={handleGoogleFormApplyClick}
@@ -221,7 +284,7 @@ export default function ProgramDetail() {
         )}
 
         {program.status === 'IN_PROGRESS' && !program.applyUrl && (
-          <p className="mt-3 text-center text-sm text-gray-500">
+          <p className="mt-3 text-center text-base text-gray-600">
             현재 구글폼 링크가 등록되지 않아 홈페이지 신청만 가능합니다.
           </p>
         )}

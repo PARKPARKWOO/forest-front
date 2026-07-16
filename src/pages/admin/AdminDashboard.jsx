@@ -17,6 +17,7 @@ import UserManagement from './UserManagement';
 import ProgramFormBuilder from '../../components/program/ProgramFormBuilder';
 import ProgramApplyDetailModal from '../../components/program/ProgramApplyDetailModal';
 import HomeBannerHero from '../../components/HomeBannerHero';
+import { useAuth } from '../../contexts/AuthContext';
 
 // 카테고리 뱃지 헬퍼 함수
 const getCategoryBadge = (category) => {
@@ -68,9 +69,10 @@ const HOME_BANNER_DEFAULT = {
 const HOME_BANNER_DEFAULT_SLIDE_SECONDS = 5;
 
 export default function AdminDashboard() {
+  const { hasMaxAccess } = useAuth();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const [activeMenu, setActiveMenu] = useState('categories');
+  const [activeMenu, setActiveMenu] = useState(hasMaxAccess ? 'categories' : 'programs');
   const [selectedProgramId, setSelectedProgramId] = useState(null);
   const [supportersPage, setSupportersPage] = useState(0);
   const [supportersSize] = useState(10);
@@ -92,6 +94,12 @@ export default function AdminDashboard() {
   const introQuillRef = useRef(null);
   const homeBannerForm = homeBanners[selectedHomeBannerIndex] || HOME_BANNER_DEFAULT;
 
+  useEffect(() => {
+    if (!hasMaxAccess && (activeMenu === 'categories' || activeMenu === 'users')) {
+      setActiveMenu('programs');
+    }
+  }, [activeMenu, hasMaxAccess]);
+
   // 카테고리 목록 조회
   const { data: categories, isLoading: categoriesLoading } = useQuery({
     queryKey: ['categories'],
@@ -105,7 +113,7 @@ export default function AdminDashboard() {
   });
 
   // 서버 응답 구조에서 programs 추출 (안전한 접근)
-  const rawPrograms = programsData?.data?.contents || [];
+  const rawPrograms = useMemo(() => programsData?.data?.contents || [], [programsData]);
   const programs = useMemo(() => sortProgramsByStatus(rawPrograms), [rawPrograms]);
   const programIdsKey = useMemo(
     () => rawPrograms.map((program) => program.id).join(','),
@@ -244,7 +252,7 @@ export default function AdminDashboard() {
     try {
       const form = await fetchProgramForm(program.id);
       setExistingForm(form);
-    } catch (error) {
+    } catch {
       setExistingForm(null);
     }
     setShowFormBuilder(true);
@@ -440,16 +448,18 @@ export default function AdminDashboard() {
           <h2 className="text-xl font-bold text-gray-800">관리자 메뉴</h2>
         </div>
         <nav className="mt-4">
-          <button
-            className={`w-full text-left px-4 py-2 ${
-              activeMenu === 'categories' 
-                ? 'bg-green-50 text-green-700 border-l-4 border-green-500' 
-                : 'text-gray-600 hover:bg-gray-50'
-            }`}
-            onClick={() => setActiveMenu('categories')}
-          >
-            카테고리 관리
-          </button>
+          {hasMaxAccess && (
+            <button
+              className={`w-full text-left px-4 py-2 ${
+                activeMenu === 'categories'
+                  ? 'bg-green-50 text-green-700 border-l-4 border-green-500'
+                  : 'text-gray-600 hover:bg-gray-50'
+              }`}
+              onClick={() => setActiveMenu('categories')}
+            >
+              카테고리 관리
+            </button>
+          )}
           <button
             className={`w-full text-left px-4 py-2 ${
               activeMenu === 'programs' 
@@ -460,16 +470,18 @@ export default function AdminDashboard() {
           >
             프로그램 관리
           </button>
-          <button
-            className={`w-full text-left px-4 py-2 ${
-              activeMenu === 'users' 
-                ? 'bg-green-50 text-green-700 border-l-4 border-green-500' 
-                : 'text-gray-600 hover:bg-gray-50'
-            }`}
-            onClick={() => setActiveMenu('users')}
-          >
-            사용자 관리
-          </button>
+          {hasMaxAccess && (
+            <button
+              className={`w-full text-left px-4 py-2 ${
+                activeMenu === 'users'
+                  ? 'bg-green-50 text-green-700 border-l-4 border-green-500'
+                  : 'text-gray-600 hover:bg-gray-50'
+              }`}
+              onClick={() => setActiveMenu('users')}
+            >
+              사용자 관리
+            </button>
+          )}
           <button
             className={`w-full text-left px-4 py-2 ${
               activeMenu === 'intro'

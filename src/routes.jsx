@@ -22,6 +22,7 @@ import NoticeDetail from './pages/notice/NoticeDetail';
 import NoticeWrite from './pages/notice/NoticeWrite';
 import NoticeEdit from './pages/notice/NoticeEdit';
 import ProtectedRoute from './components/ProtectedRoute';
+import AuthenticatedRoute from './components/AuthenticatedRoute';
 import UserManagement from './pages/admin/UserManagement';
 
 const router = createBrowserRouter([
@@ -34,8 +35,16 @@ const router = createBrowserRouter([
       { path: 'intro', element: <Intro /> },
       { path: 'intro/:subCategory', element: <Intro /> },
       { path: 'programs', element: <Programs /> },
-      { path: 'programs/create', element: <ProgramCreate /> },
-      { path: 'programs/edit/:id', element: <ProgramEdit /> },
+      { path: 'programs/create', element: (
+        <ProtectedRoute>
+          <ProgramCreate />
+        </ProtectedRoute>
+      ) },
+      { path: 'programs/edit/:id', element: (
+        <ProtectedRoute>
+          <ProgramEdit />
+        </ProtectedRoute>
+      ) },
       { path: 'programs/detail/:id', element: <ProgramDetail /> },
       { path: 'programs/:subCategory', element: <Programs /> },
       { path: 'news', element: <News /> },
@@ -66,18 +75,26 @@ const router = createBrowserRouter([
         </ProtectedRoute>
       ) },
       { path: 'admin/category/create', element: (
-        <ProtectedRoute>
+        <ProtectedRoute requireMaxAccess>
           <CategoryCreate />
         </ProtectedRoute>
       ) },
       { path: 'admin/users', element: (
-        <ProtectedRoute>
+        <ProtectedRoute requireMaxAccess>
           <UserManagement />
         </ProtectedRoute>
       ) },
       { path: 'category/:categoryId', element: <Category /> },
-      { path: 'category/:categoryId/write', element: <PostWrite /> },
-      { path: 'category/:categoryId/edit/:postId', element: <PostEdit /> },
+      { path: 'category/:categoryId/write', element: (
+        <AuthenticatedRoute>
+          <PostWrite />
+        </AuthenticatedRoute>
+      ) },
+      { path: 'category/:categoryId/edit/:postId', element: (
+        <AuthenticatedRoute>
+          <PostEdit />
+        </AuthenticatedRoute>
+      ) },
       { path: 'post/:categoryId/:postId', element: <PostDetail /> },
       { path: 'post/:postId', element: <PostDetail /> },
     ],

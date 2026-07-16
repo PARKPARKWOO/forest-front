@@ -2,10 +2,12 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { deletePost, fetchPostById } from '../../services/postService';
+import { fetchCategoryById } from '../../services/categoryService';
 import { useAuth } from '../../contexts/AuthContext';
 import ImageModal from '../../components/ImageModal';
-import { normalizeListMarkup } from '../../utils/editorContent';
+import { sanitizeRichText } from '../../utils/editorContent';
 import { extractImageUrlsFromHtml, mergeUniqueUrls } from '../../utils/contentUtils';
+import AsyncState from '../../components/AsyncState';
 
 export default function PostDetail() {
   const { categoryId, postId } = useParams();
@@ -18,15 +20,56 @@ export default function PostDetail() {
 
   // URL 파라미터에서 categoryId를 가져오거나, 기존 방식대로 location.state에서 가져오기
   const finalCategoryId = categoryId || location.state?.categoryId;
-  const postType = location.state?.postType;
+  const navigationPostType = location.state?.postType;
+  const isActivitiesCategory = String(finalCategoryId) === '0';
 
-  const { data: post, isLoading } = useQuery({
+  const {
+    data: category,
+    isLoading: isCategoryLoading,
+    isError: isCategoryError,
+    isFetching: isCategoryFetching,
+    refetch: refetchCategory,
+  } = useQuery({
+    queryKey: ['category', finalCategoryId],
+    queryFn: () => fetchCategoryById(finalCategoryId),
+    enabled: Boolean(finalCategoryId && !navigationPostType && !isActivitiesCategory),
+  });
+  const postType = navigationPostType || (isActivitiesCategory ? 'POST' : category?.type);
+
+  const {
+    data: post,
+    isLoading,
+    isError,
+    error: postQueryError,
+    isFetching,
+    refetch,
+  } = useQuery({
     queryKey: ['post', finalCategoryId, postId],
     queryFn: () => fetchPostById(finalCategoryId, postId),
     enabled: !!finalCategoryId && !!postId,
   });
+  const postErrorCode = postQueryError?.response?.data?.code;
+  const postNotFound = isError && (
+    postQueryError?.response?.status === 404 || postErrorCode === 'NOT_FOUND_POST'
+  );
+  const safeReturnPath = isActivitiesCategory
+    ? '/news/activities'
+    : finalCategoryId ? `/category/${finalCategoryId}` : '/';
+  const safeReturnLabel = finalCategoryId ? '게시글 목록으로 돌아가기' : '홈으로 돌아가기';
 
-  const postContent = useMemo(() => normalizeListMarkup(post?.content || ''), [post?.content]);
+  const renderSafeReturn = () => (
+    <div className="mt-6 text-center">
+      <button
+        type="button"
+        onClick={() => navigate(safeReturnPath)}
+        className="accessible-touch-target rounded-lg bg-green-700 px-6 py-3 font-semibold text-white hover:bg-green-800"
+      >
+        {safeReturnLabel}
+      </button>
+    </div>
+  );
+
+  const postContent = useMemo(() => sanitizeRichText(post?.content || ''), [post?.content]);
   const galleryImages = useMemo(() => {
     const inlineImages = extractImageUrlsFromHtml(postContent);
     return mergeUniqueUrls(inlineImages, post?.images || []);
@@ -44,7 +87,7 @@ export default function PostDetail() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['posts', finalCategoryId] });
       alert('게시글이 삭제되었습니다.');
-      navigate(`/category/${finalCategoryId}`);
+      navigate(safeReturnPath);
     },
     onError: (error) => {
       alert('게시글 삭제에 실패했습니다: ' + error.message);
@@ -87,27 +130,83 @@ export default function PostDetail() {
     };
   }, [handleOpenImage, postContent]);
 
-  if (!finalCategoryId) {
+  if (!finalCategoryId || !postId) {
     return (
-      <div className="text-center py-12">
-        <h2 className="text-2xl font-bold text-gray-700">잘못된 접근입니다</h2>
-        <p className="text-gray-500 mt-2">카테고리 정보가 필요합니다.</p>
+      <div className="mx-auto max-w-3xl px-4 py-12">
+        <AsyncState
+          status="empty"
+          title="게시글 주소를 확인할 수 없습니다"
+          description="게시글 목록에서 다시 선택해 주세요."
+        />
+        {renderSafeReturn()}
       </div>
     );
   }
 
-  if (isLoading) {
+  if (isLoading || (!navigationPostType && !isActivitiesCategory && isCategoryLoading)) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
+      <div className="flex min-h-[60vh] items-center justify-center px-4">
+        <AsyncState
+          status="loading"
+          title="게시글을 불러오고 있습니다"
+          className="w-full max-w-3xl"
+        />
+      </div>
+    );
+  }
+
+  if (postNotFound) {
+    return (
+      <div className="mx-auto max-w-3xl px-4 py-12">
+        <AsyncState
+          status="empty"
+          title="게시글을 찾을 수 없습니다"
+          description="삭제되었거나 주소가 바뀐 게시글입니다. 게시글 목록에서 다른 글을 확인해 주세요."
+        />
+        {renderSafeReturn()}
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center px-4">
+        <AsyncState
+          status="error"
+          title="게시글을 불러오지 못했습니다"
+          description="인터넷 연결을 확인한 뒤 다시 시도해 주세요."
+          onRetry={refetch}
+          isRetrying={isFetching}
+          className="w-full max-w-3xl border-red-100"
+        />
       </div>
     );
   }
 
   if (!post) {
     return (
-      <div className="text-center py-12">
-        <h2 className="text-2xl font-bold text-gray-700">게시글을 찾을 수 없습니다</h2>
+      <div className="mx-auto max-w-3xl px-4 py-12">
+        <AsyncState
+          status="empty"
+          title="게시글을 찾을 수 없습니다"
+          description="삭제되었거나 주소가 바뀐 게시글입니다. 게시글 목록에서 다른 글을 확인해 주세요."
+        />
+        {renderSafeReturn()}
+      </div>
+    );
+  }
+
+  if (!navigationPostType && !isActivitiesCategory && (isCategoryError || !postType)) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center px-4">
+        <AsyncState
+          status="error"
+          title="게시판 정보를 불러오지 못했습니다"
+          description="게시글 목록에서 다시 시도하거나 아래 버튼을 눌러 주세요."
+          onRetry={refetchCategory}
+          isRetrying={isCategoryFetching}
+          className="w-full max-w-3xl border-red-100"
+        />
       </div>
     );
   }
@@ -122,6 +221,19 @@ export default function PostDetail() {
   return (
     <div className="max-w-4xl mx-auto p-6">
       <div className="bg-white rounded-lg shadow-sm p-8">
+        {postType === 'INFORMATION' && canManage && (
+          <div className="mb-5 flex justify-end">
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="min-h-12 rounded-lg bg-red-600 px-5 py-3 text-base font-semibold text-white
+                hover:bg-red-700 disabled:cursor-wait disabled:bg-gray-400"
+            >
+              {isDeleting ? '삭제 중…' : '이미지 게시물 삭제'}
+            </button>
+          </div>
+        )}
         {postType === 'INFORMATION' ? (
           // INFORMATION 타입일 경우 이미지 그리드만 표시
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -149,7 +261,7 @@ export default function PostDetail() {
                   <button
                     type="button"
                     onClick={() => navigate(`/category/${finalCategoryId}/edit/${postId}`)}
-                    className="px-3 py-1.5 text-sm bg-green-600 text-white rounded-md hover:bg-green-700"
+                    className="min-h-12 rounded-md bg-green-700 px-4 py-3 text-base font-semibold text-white hover:bg-green-800"
                   >
                     수정
                   </button>
@@ -157,7 +269,7 @@ export default function PostDetail() {
                     type="button"
                     onClick={handleDelete}
                     disabled={isDeleting}
-                    className="px-3 py-1.5 text-sm bg-red-600 text-white rounded-md hover:bg-red-700 disabled:bg-gray-400"
+                    className="min-h-12 rounded-md bg-red-600 px-4 py-3 text-base font-semibold text-white hover:bg-red-700 disabled:bg-gray-400"
                   >
                     {isDeleting ? '삭제 중...' : '삭제'}
                   </button>

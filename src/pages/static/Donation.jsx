@@ -1,5 +1,5 @@
 import { useParams, Link } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import axiosInstance from '../../axiosInstance';
 
 // 개인후원 신청 폼 컴포넌트
@@ -50,7 +50,7 @@ function IndividualDonationForm() {
       };
 
       // API 호출
-      const response = await axiosInstance.post('/support', requestData);
+      await axiosInstance.post('/support', requestData);
 
       alert('후원 신청이 완료되었습니다. 감사합니다!');
       // 폼 초기화 또는 성공 페이지로 이동
@@ -503,4 +503,4 @@ export default function Donation() {
       </div>
     </div>
   );
-} 
+}

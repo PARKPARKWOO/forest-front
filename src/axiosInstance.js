@@ -1,57 +1,33 @@
 import axios from 'axios';
-import { reissueToken } from './services/userService';
-import { getCookie, setCookie, removeCookie } from './utils/cookieUtils';
+import {
+  getCurrentInternalPath,
+  readPendingNavigation,
+  savePendingNavigation,
+} from './utils/pendingNavigation';
 
 const axiosInstance = axios.create({
-  baseURL: process.env.NODE_ENV === 'development'
+  baseURL: import.meta.env.DEV
     ? 'http://localhost:8080/api/v1'
     : 'https://forest.platformholder.site/api/v1',
-  withCredentials: true
+  // 토큰 쿠키(httpOnly)는 브라우저가 자동 첨부. JS 가 토큰을 read/write 하지 않는다.
+  // 게이트웨이가 access 만료 시 자동 회전(rotationToken)하므로 프론트는 reissue 수동 호출 X.
+  withCredentials: true,
 });
 
-// 요청 인터셉터
-axiosInstance.interceptors.request.use(
-  (config) => {
-    const token = getCookie('accessToken');
-    
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
-
-// 응답 인터셉터
+// 일부 인증 경로의 401은 로그인 선택 화면으로 보낸다.
+// Forest의 세션 만료 403은 `/users`를 주기 확인하는 AuthContext에서 처리한다.
 axiosInstance.interceptors.response.use(
   (response) => response,
-  async (error) => {
-    const originalRequest = error.config;
-    if (
-      error.response?.status === 401 &&
-      !originalRequest._retry
-    ) {
-      originalRequest._retry = true;
-      const refreshToken = getCookie('refreshToken');
-      
-      if (refreshToken) {
-        try {
-          const newAccessToken = await reissueToken(refreshToken);
-          setCookie('accessToken', newAccessToken);
-          originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
-          return axiosInstance(originalRequest);
-        } catch (refreshError) {
-          removeCookie('accessToken');
-          removeCookie('refreshToken');
-          window.location.href = '/login';
-          return Promise.reject(refreshError);
-        }
-      } else {
-        window.location.href = '/login';
-      }
+  (error) => {
+    if (error.response?.status === 401 && window.location.pathname !== '/login') {
+      const pendingNavigation = readPendingNavigation();
+      savePendingNavigation(pendingNavigation?.action
+        ? pendingNavigation
+        : { returnTo: getCurrentInternalPath() });
+      window.location.href = '/login';
     }
     return Promise.reject(error);
-  }
+  },
 );
 
 export default axiosInstance;

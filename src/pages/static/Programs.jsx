@@ -4,6 +4,7 @@ import { fetchPrograms } from '../../services/programService';
 import { getProgramStatusInfo, sortProgramsByStatus } from '../../utils/programStatus';
 import { useMemo, useState } from 'react';
 import { formatKoreanDateRange } from '../../utils/dateFormat';
+import AsyncState from '../../components/AsyncState';
 
 const PROGRAM_STATUS_SECTIONS = [
   {
@@ -40,7 +41,13 @@ export default function Programs() {
   ];
 
   // 모든 카테고리에서 API 데이터를 가져옴
-  const { data: programsData, isLoading } = useQuery({
+  const {
+    data: programsData,
+    isLoading,
+    isError,
+    isFetching,
+    refetch,
+  } = useQuery({
     queryKey: ['programs', subCategory, currentPage],
     queryFn: () => fetchPrograms(currentPage, pageSize, subCategory),
     enabled: !!subCategory, // subCategory가 있을 때만 API 호출
@@ -85,10 +92,10 @@ export default function Programs() {
                   <Link
                     key={category.id}
                     to={category.path}
-                    className="bg-white p-6 rounded-lg shadow-sm text-center hover:shadow-md transition-shadow duration-200"
+                    className="accessible-touch-target bg-white p-6 rounded-lg shadow-sm text-center hover:shadow-md transition-shadow duration-200"
                   >
                     <h3 className="text-lg font-semibold text-gray-800 mb-2">{category.name}</h3>
-                    <p className="text-gray-600 text-sm">자세히 보기</p>
+                    <p className="text-gray-600 text-base">자세히 보기</p>
                   </Link>
                 ))}
               </div>
@@ -99,10 +106,18 @@ export default function Programs() {
   };
 
   const { title, description, type, content } = getContent();
-  const apiPrograms = programsData?.data?.contents || [];
+  const programContents = programsData?.data?.contents;
+  const hasValidProgramsResponse = Array.isArray(programContents);
   const totalCount = programsData?.data?.totalCount || 0;
   const totalPages = Math.ceil(totalCount / pageSize);
-  const sortedPrograms = useMemo(() => sortProgramsByStatus(apiPrograms), [apiPrograms]);
+  const serverReturnedCompleteList = hasValidProgramsResponse
+    && programsData?.data?.hasNextPage === false
+    && totalCount === programContents.length;
+  const effectiveTotalPages = serverReturnedCompleteList ? 1 : totalPages;
+  const sortedPrograms = useMemo(
+    () => sortProgramsByStatus(Array.isArray(programContents) ? programContents : []),
+    [programContents],
+  );
   const groupedPrograms = useMemo(() => {
     const grouped = Object.fromEntries(PROGRAM_STATUS_SECTIONS.map((section) => [section.status, []]));
 
@@ -127,9 +142,9 @@ export default function Programs() {
               <Link
                 key={category.id}
                 to={category.path}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ${
+                className={`accessible-touch-target inline-flex items-center px-4 py-2 rounded-lg text-base font-medium transition-colors duration-200 ${
                   subCategory === category.id
-                    ? 'bg-green-600 text-white'
+                    ? 'bg-green-700 text-white'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
@@ -161,9 +176,9 @@ export default function Programs() {
               <Link
                 key={category.id}
                 to={category.path}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ${
+                className={`accessible-touch-target inline-flex items-center px-4 py-2 rounded-lg text-base font-medium transition-colors duration-200 ${
                   subCategory === category.id
-                    ? 'bg-green-600 text-white'
+                    ? 'bg-green-700 text-white'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
@@ -172,13 +187,17 @@ export default function Programs() {
             ))}
           </div>
         </div>
-        <div className="text-center py-8">로딩 중...</div>
+        <AsyncState
+          status="loading"
+          title="프로그램을 불러오고 있습니다"
+          className="border-0 shadow-none"
+        />
       </div>
     );
   }
 
-  // 데이터가 없거나 예상과 다른 구조인 경우 처리
-  if (!programsData || !programsData.data) {
+  // 통신 실패와 정상 응답의 빈 목록을 구분해 안내
+  if (isError || !hasValidProgramsResponse) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="mb-8">
@@ -187,9 +206,9 @@ export default function Programs() {
               <Link
                 key={category.id}
                 to={category.path}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ${
+                className={`accessible-touch-target inline-flex items-center px-4 py-2 rounded-lg text-base font-medium transition-colors duration-200 ${
                   subCategory === category.id
-                    ? 'bg-green-600 text-white'
+                    ? 'bg-green-700 text-white'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
@@ -198,7 +217,14 @@ export default function Programs() {
             ))}
           </div>
         </div>
-        <div className="text-center py-8">데이터를 불러올 수 없습니다.</div>
+        <AsyncState
+          status="error"
+          title="프로그램을 불러오지 못했습니다"
+          description="인터넷 연결을 확인한 뒤 다시 시도해 주세요. 계속 문제가 생기면 잠시 후 이용해 주세요."
+          onRetry={refetch}
+          isRetrying={isFetching}
+          className="border-red-100"
+        />
       </div>
     );
   }
@@ -212,9 +238,9 @@ export default function Programs() {
             <Link
               key={category.id}
               to={category.path}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ${
+              className={`accessible-touch-target inline-flex items-center px-4 py-2 rounded-lg text-base font-medium transition-colors duration-200 ${
                 subCategory === category.id
-                  ? 'bg-green-600 text-white'
+                  ? 'bg-green-700 text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
@@ -227,16 +253,18 @@ export default function Programs() {
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">{title}</h1>
         <p className="text-gray-600">{description}</p>
-        <div className="text-gray-600 mt-2">
-          Total {totalCount}건 {currentPage}페이지
+        <div className="text-gray-600 mt-2" aria-live="polite">
+          전체 {totalCount}건 · {currentPage}페이지
         </div>
       </div>
 
       {/* 프로그램 목록 (상태별 분리) */}
       {!hasPrograms ? (
-        <div className="text-center py-12 bg-white rounded-xl border border-gray-100">
-          <p className="text-gray-600">등록된 프로그램이 없습니다.</p>
-        </div>
+        <AsyncState
+          status="empty"
+          title="등록된 프로그램이 없습니다"
+          description="새로운 프로그램이 등록되면 이곳에서 확인하실 수 있습니다."
+        />
       ) : (
         <div className="space-y-10">
           {PROGRAM_STATUS_SECTIONS.map((section) => {
@@ -250,9 +278,9 @@ export default function Programs() {
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-6">
                   <div>
                     <h2 className="text-2xl font-bold text-gray-900">{section.title}</h2>
-                    <p className="text-gray-600 text-sm mt-1">{section.description}</p>
+                    <p className="text-gray-600 text-base mt-1">{section.description}</p>
                   </div>
-                  <span className="inline-flex items-center self-start md:self-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-700">
+                  <span className="inline-flex items-center self-start md:self-center px-3 py-1 rounded-full text-base font-medium bg-gray-100 text-gray-700">
                     {sectionPrograms.length}건
                   </span>
                 </div>
@@ -277,7 +305,7 @@ export default function Programs() {
                             className="w-full h-full object-cover transform hover:scale-105 transition-transform duration-300"
                           />
                           <div className="absolute top-2 right-2">
-                            <span className={`px-3 py-1 text-sm rounded-full font-medium ${getProgramStatusInfo(program.status).className} shadow-sm`}>
+                            <span className={`px-3 py-1 text-base rounded-full font-medium ${getProgramStatusInfo(program.status).className} shadow-sm`}>
                               {getProgramStatusInfo(program.status).text}
                             </span>
                           </div>
@@ -287,7 +315,7 @@ export default function Programs() {
                         <h3 className="text-lg font-semibold text-gray-900 mb-3">
                           {program.title}
                         </h3>
-                        <div className="space-y-2 text-sm text-gray-600">
+                        <div className="space-y-2 text-base text-gray-600">
                           <p className="flex items-center">
                             <span className="w-20">신청기간</span>
                             <span>{formatKoreanDateRange(program.applyStartDate, program.applyEndDate)}</span>
@@ -308,22 +336,24 @@ export default function Programs() {
       )}
 
       {/* 페이지네이션 */}
-      {totalPages > 1 && (
+      {effectiveTotalPages > 1 && (
         <div className="flex justify-center mt-8 space-x-2">
           <button
             onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
             disabled={currentPage === 1}
-            className="px-4 py-2 border border-gray-300 rounded-md disabled:opacity-50"
+            className="accessible-touch-target px-4 py-2 border border-gray-300 rounded-md disabled:opacity-50"
           >
             이전
           </button>
-          {[...Array(totalPages)].map((_, i) => (
+          {[...Array(effectiveTotalPages)].map((_, i) => (
             <button
               key={i + 1}
               onClick={() => setCurrentPage(i + 1)}
-              className={`px-4 py-2 border rounded-md ${
+              aria-label={`${i + 1}페이지로 이동`}
+              aria-current={currentPage === i + 1 ? 'page' : undefined}
+              className={`accessible-touch-target px-4 py-2 border rounded-md ${
                 currentPage === i + 1
-                  ? 'bg-green-600 text-white border-green-600'
+                  ? 'bg-green-700 text-white border-green-700'
                   : 'border-gray-300 hover:bg-gray-50'
               }`}
             >
@@ -331,9 +361,9 @@ export default function Programs() {
             </button>
           ))}
           <button
-            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-            disabled={currentPage === totalPages}
-            className="px-4 py-2 border border-gray-300 rounded-md disabled:opacity-50"
+            onClick={() => setCurrentPage(prev => Math.min(prev + 1, effectiveTotalPages))}
+            disabled={currentPage === effectiveTotalPages}
+            className="accessible-touch-target px-4 py-2 border border-gray-300 rounded-md disabled:opacity-50"
           >
             다음
           </button>

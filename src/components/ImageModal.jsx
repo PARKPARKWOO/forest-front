@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
+import useFocusTrap from '../hooks/useFocusTrap';
 
 export default function ImageModal({
   imageUrl,
@@ -9,6 +10,8 @@ export default function ImageModal({
 }) {
   const onCloseRef = useRef(onClose);
   const onChangeIndexRef = useRef(onChangeIndex);
+  const dialogRef = useRef(null);
+  const closeButtonRef = useRef(null);
 
   useEffect(() => {
     onCloseRef.current = onClose;
@@ -41,22 +44,17 @@ export default function ImageModal({
   const currentImageUrl = safeIndex >= 0 ? galleryImages[safeIndex] : null;
   const canNavigate = galleryImages.length > 1;
 
-  const moveToIndex = (nextIndex) => {
+  const moveToIndex = useCallback((nextIndex) => {
     if (!canNavigate || !onChangeIndexRef.current) {
       return;
     }
 
     const normalizedIndex = (nextIndex + galleryImages.length) % galleryImages.length;
     onChangeIndexRef.current(normalizedIndex);
-  };
+  }, [canNavigate, galleryImages.length]);
 
   useEffect(() => {
     const handleEscape = (e) => {
-      if (e.key === 'Escape') {
-        onCloseRef.current();
-        return;
-      }
-
       if (e.key === 'ArrowLeft') {
         e.preventDefault();
         moveToIndex(safeIndex - 1);
@@ -69,14 +67,23 @@ export default function ImageModal({
       }
     };
 
+    const previousOverflow = document.body.style.overflow;
     document.addEventListener('keydown', handleEscape);
     document.body.style.overflow = 'hidden';
 
     return () => {
       document.removeEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = previousOverflow;
     };
-  }, [safeIndex, canNavigate, galleryImages.length]);
+  }, [moveToIndex, safeIndex]);
+
+  useFocusTrap({
+    containerRef: dialogRef,
+    initialFocusRef: closeButtonRef,
+    isActive: Boolean(currentImageUrl),
+    onEscape: onClose,
+    version: safeIndex,
+  });
 
   if (!currentImageUrl) {
     return null;
@@ -88,13 +95,19 @@ export default function ImageModal({
       onClick={onClose}
     >
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="확대 이미지 보기"
+        tabIndex={-1}
         className="relative flex w-full max-w-7xl flex-col items-center gap-4 px-4 py-6"
         onClick={(e) => e.stopPropagation()}
       >
         <button
+          ref={closeButtonRef}
           type="button"
           onClick={onClose}
-          className="absolute right-6 top-2 z-20 rounded-full bg-black/40 p-2 text-white transition-colors hover:bg-black/60 hover:text-gray-200"
+          className="absolute right-6 top-2 z-20 flex min-h-12 min-w-12 items-center justify-center rounded-full bg-black/40 p-2 text-white transition-colors hover:bg-black/60 hover:text-gray-200 focus-visible:ring-2 focus-visible:ring-white"
           aria-label="닫기"
         >
           <svg

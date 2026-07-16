@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createProgramForm, updateProgramForm } from '../../services/programService';
 
@@ -16,6 +16,12 @@ const FIELD_TYPES = [
   { value: 'DROPDOWN', label: '드롭다운' },
   { value: 'FILE_UPLOAD', label: '파일 업로드' },
 ];
+
+const parseOptionalNumber = (rawValue, parser) => {
+  if (rawValue === '') return null;
+  const parsedValue = parser(rawValue);
+  return Number.isNaN(parsedValue) ? null : parsedValue;
+};
 
 // 필드 편집 컴포넌트
 function FieldEditor({ field, onUpdate, onDelete, onMoveUp, onMoveDown, isFirst, isLast }) {
@@ -231,10 +237,13 @@ function FieldEditor({ field, onUpdate, onDelete, onMoveUp, onMoveDown, isFirst,
                 <label className="block text-xs text-gray-600 mb-1">최소 길이</label>
                 <input
                   type="number"
-                  value={field.validation?.minLength || ''}
+                  value={field.validation?.minLength ?? ''}
                   onChange={(e) => onUpdate(field.id, {
                     ...field,
-                    validation: { ...field.validation, minLength: parseInt(e.target.value) || null }
+                    validation: {
+                      ...field.validation,
+                      minLength: parseOptionalNumber(e.target.value, Number.parseInt),
+                    }
                   })}
                   className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
                 />
@@ -243,10 +252,13 @@ function FieldEditor({ field, onUpdate, onDelete, onMoveUp, onMoveDown, isFirst,
                 <label className="block text-xs text-gray-600 mb-1">최대 길이</label>
                 <input
                   type="number"
-                  value={field.validation?.maxLength || ''}
+                  value={field.validation?.maxLength ?? ''}
                   onChange={(e) => onUpdate(field.id, {
                     ...field,
-                    validation: { ...field.validation, maxLength: parseInt(e.target.value) || null }
+                    validation: {
+                      ...field.validation,
+                      maxLength: parseOptionalNumber(e.target.value, Number.parseInt),
+                    }
                   })}
                   className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
                 />
@@ -260,10 +272,13 @@ function FieldEditor({ field, onUpdate, onDelete, onMoveUp, onMoveDown, isFirst,
                 <label className="block text-xs text-gray-600 mb-1">최소값</label>
                 <input
                   type="number"
-                  value={field.validation?.minValue || ''}
+                  value={field.validation?.minValue ?? ''}
                   onChange={(e) => onUpdate(field.id, {
                     ...field,
-                    validation: { ...field.validation, minValue: parseFloat(e.target.value) || null }
+                    validation: {
+                      ...field.validation,
+                      minValue: parseOptionalNumber(e.target.value, Number.parseFloat),
+                    }
                   })}
                   className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
                 />
@@ -272,10 +287,13 @@ function FieldEditor({ field, onUpdate, onDelete, onMoveUp, onMoveDown, isFirst,
                 <label className="block text-xs text-gray-600 mb-1">최대값</label>
                 <input
                   type="number"
-                  value={field.validation?.maxValue || ''}
+                  value={field.validation?.maxValue ?? ''}
                   onChange={(e) => onUpdate(field.id, {
                     ...field,
-                    validation: { ...field.validation, maxValue: parseFloat(e.target.value) || null }
+                    validation: {
+                      ...field.validation,
+                      maxValue: parseOptionalNumber(e.target.value, Number.parseFloat),
+                    }
                   })}
                   className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
                 />

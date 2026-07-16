@@ -4,7 +4,7 @@ import { useParams, Link } from 'react-router-dom';
 import logo from '../../assets/logo.png';
 import { getStaticContent } from '../../services/staticContentService';
 import { hasMeaningfulHtmlContent } from '../../utils/contentUtils';
-import { normalizeListMarkup } from '../../utils/editorContent';
+import { sanitizeRichText } from '../../utils/editorContent';
 
 export default function Intro() {
   const { subCategory } = useParams();
@@ -28,7 +28,7 @@ export default function Intro() {
   });
 
   const dynamicIntroContent = useMemo(
-    () => normalizeListMarkup(introStaticContent?.content || ''),
+    () => sanitizeRichText(introStaticContent?.content || ''),
     [introStaticContent]
   );
   const hasDynamicIntroContent = useMemo(

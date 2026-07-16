@@ -53,11 +53,6 @@ export const fetchChildCategories = async (parentId) => {
 };
 
 export const deleteCategory = async (categoryId) => {
-  try {
-    const response = await axiosInstance.delete(`/categories/${categoryId}`);
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+  const response = await axiosInstance.delete(`/categories/${categoryId}`);
+  return response.data;
 };
-

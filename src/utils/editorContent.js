@@ -1,5 +1,13 @@
+import DOMPurify from 'dompurify';
+
 const BULLET_LIST_PATTERN = /^[-*•]\s+(.+)$/;
-const ORDERED_LIST_PATTERN = /^\d+[\.\)]\s+(.+)$/;
+const ORDERED_LIST_PATTERN = /^\d+[.)]\s+(.+)$/;
+
+const RICH_TEXT_SANITIZE_OPTIONS = Object.freeze({
+  USE_PROFILES: { html: true },
+  FORBID_TAGS: ['form', 'input', 'button', 'textarea', 'select', 'option', 'template'],
+  FORBID_ATTR: ['srcdoc'],
+});
 
 const parseListLine = (rawText) => {
   if (!rawText) {
@@ -151,4 +159,19 @@ export const normalizeListMarkup = (html = '') => {
   root.innerHTML = '';
   root.appendChild(fragment);
   return root.innerHTML;
+};
+
+/**
+ * Normalizes editor list markup and sanitizes the final HTML immediately before
+ * it is rendered. Sanitizing last also removes unsafe attributes copied while
+ * rebuilding list nodes.
+ */
+export const sanitizeRichText = (html = '') => {
+  const normalizedHtml = normalizeListMarkup(html);
+
+  if (typeof DOMPurify.sanitize !== 'function') {
+    return '';
+  }
+
+  return DOMPurify.sanitize(normalizedHtml, RICH_TEXT_SANITIZE_OPTIONS);
 };

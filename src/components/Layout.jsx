@@ -1,15 +1,20 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { fetchCategories } from '../services/categoryService';
-import kakaoLogo from '../assets/kakao.png';
-import naverLogo from '../assets/naver.png';
 import naverbandLogo from '../assets/naverband.svg';
 import instagramLogo from '../assets/instagram.png';
 import daumLogo from '../assets/daum.png';
 import facebookLogo from '../assets/facebook.png';
 import logo from '../assets/logo.png';
 import { useAuth } from '../contexts/AuthContext';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { clearPendingNavigation } from '../utils/pendingNavigation';
+import {
+  clearAllProgramApplicationDrafts,
+  clearExpiredProgramApplicationDrafts,
+} from '../utils/programApplicationDraft';
+import useFocusTrap from '../hooks/useFocusTrap';
+import LoginOptions from './LoginOptions';
 
 const STATIC_CATEGORIES = [
   {
@@ -70,6 +75,86 @@ const STATIC_CATEGORIES = [
   },
 ];
 
+const getCategoryPath = (category, categoryType) => (
+  categoryType === 'dynamic' ? `/category/${category.id}` : category.path
+);
+
+function MobileCategoryItem({
+  category,
+  categoryType,
+  pathname,
+  expandedCategories,
+  onToggle,
+  onNavigate,
+}) {
+  const categoryPath = getCategoryPath(category, categoryType);
+  const categoryKey = `${categoryType}-${category.id}`;
+  const panelId = `mobile-category-${categoryKey.replace(/[^a-zA-Z0-9_-]/g, '-')}`;
+  const hasChildren = category.children?.length > 0;
+  const isExpanded = Boolean(expandedCategories[categoryKey]);
+  const isCurrentPage = pathname === categoryPath;
+  const isActivePath = isCurrentPage || pathname.startsWith(`${categoryPath}/`);
+
+  return (
+    <li>
+      <div className={`flex items-stretch rounded-lg ${isActivePath ? 'bg-green-50' : ''}`}>
+        <Link
+          to={categoryPath}
+          aria-current={isCurrentPage ? 'page' : undefined}
+          className={`flex min-h-12 flex-1 items-center px-4 py-3 text-lg font-medium
+            transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2
+            focus-visible:ring-inset focus-visible:ring-green-700
+            ${isActivePath ? 'text-green-800' : 'text-gray-800 hover:bg-gray-50 hover:text-green-800'}`}
+          onClick={() => onNavigate(category.id)}
+        >
+          {category.name}
+        </Link>
+
+        {hasChildren && (
+          <button
+            type="button"
+            aria-label={`${category.name} 하위 메뉴 ${isExpanded ? '접기' : '펼치기'}`}
+            aria-expanded={isExpanded}
+            aria-controls={panelId}
+            className="flex min-h-12 min-w-12 items-center justify-center rounded-lg text-gray-600
+              hover:bg-green-100 hover:text-green-800 focus-visible:outline-none focus-visible:ring-2
+              focus-visible:ring-inset focus-visible:ring-green-700"
+            onClick={() => onToggle(categoryKey)}
+          >
+            <svg
+              aria-hidden="true"
+              className={`h-5 w-5 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
+              <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
+            </svg>
+          </button>
+        )}
+      </div>
+
+      {hasChildren && (
+        <ul
+          id={panelId}
+          className={`ml-4 border-l-2 border-green-100 pl-2 ${isExpanded ? 'block' : 'hidden'}`}
+        >
+          {category.children.map((subCategory) => (
+            <MobileCategoryItem
+              key={`${categoryType}-${subCategory.id}`}
+              category={subCategory}
+              categoryType={categoryType}
+              pathname={pathname}
+              expandedCategories={expandedCategories}
+              onToggle={onToggle}
+              onNavigate={onNavigate}
+            />
+          ))}
+        </ul>
+      )}
+    </li>
+  );
+}
+
 export default function Layout({ children, showLoginModal, setShowLoginModal }) {
   const { isAuthenticated, logout, isAdmin, user } = useAuth();
   const navigate = useNavigate();
@@ -77,26 +162,97 @@ export default function Layout({ children, showLoginModal, setShowLoginModal }) 
   const [hoveredCategory, setHoveredCategory] = useState(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState(null);
   const [hideTimeout, setHideTimeout] = useState(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [expandedMobileCategories, setExpandedMobileCategories] = useState({});
+  const mobileMenuButtonRef = useRef(null);
+  const mobileNavigationRef = useRef(null);
+  const mobileMenuCloseButtonRef = useRef(null);
+  const loginCloseButtonRef = useRef(null);
+  const loginDialogRef = useRef(null);
 
   const { data: categories, isLoading } = useQuery({
     queryKey: ['categories'],
     queryFn: fetchCategories,
   });
 
-  const kakaoLoginUrl = process.env.NODE_ENV === 'development' 
-    ? 'https://auth.platformholder.site/oauth2/authorization/5'
-    : 'https://auth.platformholder.site/oauth2/authorization/6';
-
-  const naverLoginUrl = process.env.NODE_ENV === 'development' 
-    ? 'https://auth.platformholder.site/oauth2/authorization/8'
-    : 'https://auth.platformholder.site/oauth2/authorization/9';
-
   const handleLogout = async () => {
-    console.log('🖱️ 로그아웃 버튼 클릭됨');
-    await logout();
-    console.log('🏠 홈으로 이동');
-    navigate('/');
+    try {
+      await logout();
+      clearAllProgramApplicationDrafts();
+      clearPendingNavigation();
+      navigate('/');
+    } catch {
+      window.alert('로그아웃하지 못했습니다. 인터넷 연결을 확인한 뒤 다시 시도해 주세요.');
+    }
   };
+
+  const closeMobileMenu = () => {
+    setIsMobileMenuOpen(false);
+    setExpandedMobileCategories({});
+  };
+
+  const closeLoginModal = () => {
+    clearPendingNavigation();
+    setShowLoginModal(false);
+  };
+
+  useFocusTrap({
+    containerRef: mobileNavigationRef,
+    initialFocusRef: mobileMenuCloseButtonRef,
+    isActive: isMobileMenuOpen,
+    onEscape: closeMobileMenu,
+  });
+  useFocusTrap({
+    containerRef: loginDialogRef,
+    initialFocusRef: loginCloseButtonRef,
+    isActive: Boolean(showLoginModal),
+    onEscape: closeLoginModal,
+  });
+
+  const handleMobileLogout = async () => {
+    closeMobileMenu();
+    await handleLogout();
+  };
+
+  const handleMobileNavigate = (categoryId) => {
+    setSelectedCategoryId(categoryId);
+    closeMobileMenu();
+  };
+
+  const toggleMobileCategory = (categoryKey) => {
+    setExpandedMobileCategories((current) => ({
+      ...current,
+      [categoryKey]: !current[categoryKey],
+    }));
+  };
+
+  useEffect(() => {
+    clearExpiredProgramApplicationDrafts();
+  }, []);
+
+  useEffect(() => {
+    if (!isMobileMenuOpen) {
+      return undefined;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    const desktopMediaQuery = window.matchMedia('(min-width: 1024px)');
+
+    const closeForDesktop = (event) => {
+      if (event.matches) {
+        setIsMobileMenuOpen(false);
+        setExpandedMobileCategories({});
+      }
+    };
+
+    document.body.style.overflow = 'hidden';
+    desktopMediaQuery.addEventListener('change', closeForDesktop);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      desktopMediaQuery.removeEventListener('change', closeForDesktop);
+    };
+  }, [isMobileMenuOpen]);
 
   const handleMouseEnter = (categoryId) => {
     if (hideTimeout) {
@@ -115,13 +271,13 @@ export default function Layout({ children, showLoginModal, setShowLoginModal }) 
 
   const isHomeRoute = location.pathname === '/';
   const mainClassName = isHomeRoute
-    ? 'w-full px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-20 py-10 mt-32'
-    : 'container mx-auto px-6 py-10 mt-32';
+    ? 'w-full px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-20 py-10 mt-20 lg:mt-32'
+    : 'container mx-auto px-6 py-10 mt-20 lg:mt-32';
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
       {/* 소셜 미디어 사이드 네비게이션 */}
-      <div className="fixed right-6 top-1/2 -translate-y-1/2 z-40 flex flex-col gap-3">
+      <div className="fixed right-6 top-1/2 z-40 hidden -translate-y-1/2 flex-col gap-3 lg:flex">
         <a 
           href="https://cafe.daum.net/isoup" 
           target="_blank" 
@@ -174,14 +330,20 @@ export default function Layout({ children, showLoginModal, setShowLoginModal }) 
 
       <header className="fixed w-full top-0 z-50 backdrop-blur-sm bg-white/80">
         <div className="bg-white shadow-md">
-          <div className="container mx-auto px-6 py-4">
-            <div className="flex justify-between items-center">
-              <Link to="/" className="flex items-center space-x-3">
+          <div className="container mx-auto h-[72px] px-4 sm:px-6">
+            <div className="flex h-full justify-between items-center">
+              <Link
+                to="/"
+                aria-current={isHomeRoute ? 'page' : undefined}
+                className="flex min-h-12 items-center space-x-3 rounded-md focus-visible:outline-none
+                  focus-visible:ring-2 focus-visible:ring-green-700"
+                onClick={closeMobileMenu}
+              >
                 <img src={logo} alt="전북생명의숲 로고" className="h-10 w-auto" />
                 <span className="text-green-700 text-xl font-bold">전북생명의숲</span>
               </Link>
               
-              <div className="flex items-center space-x-4">
+              <div className="hidden items-center space-x-4 lg:flex">
                 {isAuthenticated && user ? (
                   <>
                     <div className="flex items-center space-x-3">
@@ -190,7 +352,7 @@ export default function Layout({ children, showLoginModal, setShowLoginModal }) 
                       </span>
                       <button
                         onClick={handleLogout}
-                        className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-md text-sm font-medium transition-colors duration-200"
+                        className="min-h-12 rounded-md bg-red-600 px-4 py-3 text-base font-semibold text-white transition-colors duration-200 hover:bg-red-700"
                       >
                         로그아웃
                       </button>
@@ -199,7 +361,7 @@ export default function Layout({ children, showLoginModal, setShowLoginModal }) 
                     {isAdmin && (
                       <Link
                         to="/admin"
-                        className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-md text-sm font-medium transition-colors duration-200"
+                        className="flex min-h-12 items-center rounded-md bg-green-700 px-4 py-3 text-base font-semibold text-white transition-colors duration-200 hover:bg-green-800"
                       >
                         관리자
                       </Link>
@@ -208,18 +370,51 @@ export default function Layout({ children, showLoginModal, setShowLoginModal }) 
                 ) : (
                   <button
                     onClick={() => setShowLoginModal(true)}
-                    className="text-green-700 hover:text-green-500 transition-colors duration-200"
+                    className="min-h-12 rounded-lg px-4 py-3 text-base font-semibold text-green-800 transition-colors duration-200 hover:bg-green-50 hover:text-green-900"
                   >
                     로그인
                   </button>
                 )}
               </div>
+
+              <button
+                ref={mobileMenuButtonRef}
+                type="button"
+                aria-label={isMobileMenuOpen ? '전체 메뉴 닫기' : '전체 메뉴 열기'}
+                aria-expanded={isMobileMenuOpen}
+                aria-controls="mobile-navigation"
+                className="flex min-h-12 min-w-12 items-center justify-center rounded-lg text-green-800
+                  hover:bg-green-50 focus-visible:outline-none focus-visible:ring-2
+                  focus-visible:ring-green-700 lg:hidden"
+                onClick={() => {
+                  if (isMobileMenuOpen) {
+                    closeMobileMenu();
+                  } else {
+                    setIsMobileMenuOpen(true);
+                  }
+                }}
+              >
+                <svg
+                  aria-hidden="true"
+                  className="h-7 w-7"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  {isMobileMenuOpen ? (
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  ) : (
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                  )}
+                </svg>
+              </button>
             </div>
           </div>
         </div>
 
         {/* Category Navigation */}
-        <nav className="border-b border-gray-200/80 bg-white/70">
+        <nav aria-label="주요 메뉴" className="hidden border-b border-gray-200/80 bg-white/70 lg:block">
           <div className="container mx-auto px-6">
             <ul className="flex justify-center space-x-2">
               {/* 정적 카테고리 */}
@@ -229,9 +424,16 @@ export default function Layout({ children, showLoginModal, setShowLoginModal }) 
                   className="relative group"
                   onMouseEnter={() => handleMouseEnter(category.id)}
                   onMouseLeave={handleMouseLeave}
+                  onFocus={() => handleMouseEnter(category.id)}
+                  onBlur={(event) => {
+                    if (!event.currentTarget.contains(event.relatedTarget)) {
+                      setHoveredCategory(null);
+                    }
+                  }}
                 >
                   <Link
                     to={category.path}
+                    aria-current={location.pathname === category.path ? 'page' : undefined}
                     className={`block px-4 py-4 text-gray-600 hover:text-green-700 
                       hover:bg-green-50 transition-colors duration-200
                       ${category.children?.length > 0 ? 'pr-8' : ''}
@@ -261,7 +463,8 @@ export default function Layout({ children, showLoginModal, setShowLoginModal }) 
                       className="absolute left-1/2 -translate-x-1/2 top-full mt-0 
                         bg-white rounded-xl shadow-lg shadow-green-100/50 min-w-[220px] 
                         transform opacity-0 -translate-y-2 group-hover:translate-y-0 
-                        group-hover:opacity-100 transition-all duration-300 ease-out 
+                        group-hover:opacity-100 group-focus-within:translate-y-0
+                        group-focus-within:opacity-100 transition-all duration-300 ease-out
                         border border-gray-100/80 overflow-hidden z-50"
                       onMouseEnter={() => handleMouseEnter(category.id)}
                       onMouseLeave={handleMouseLeave}
@@ -271,6 +474,7 @@ export default function Layout({ children, showLoginModal, setShowLoginModal }) 
                           <li key={subCategory.id}>
                             <Link
                               to={subCategory.path}
+                              aria-current={location.pathname === subCategory.path ? 'page' : undefined}
                               className="block w-full text-left px-6 py-3 text-gray-600
                                 hover:text-green-700 hover:bg-green-50/50 text-sm
                                 transition-all duration-200 ease-out"
@@ -299,9 +503,16 @@ export default function Layout({ children, showLoginModal, setShowLoginModal }) 
                     className="relative group"
                     onMouseEnter={() => handleMouseEnter(category.id)}
                     onMouseLeave={handleMouseLeave}
+                    onFocus={() => handleMouseEnter(category.id)}
+                    onBlur={(event) => {
+                      if (!event.currentTarget.contains(event.relatedTarget)) {
+                        setHoveredCategory(null);
+                      }
+                    }}
                   >
                     <Link
                       to={`/category/${category.id}`}
+                      aria-current={location.pathname === `/category/${category.id}` ? 'page' : undefined}
                       className={`block px-6 py-4 text-base font-medium rounded-md
                         transition-all duration-300 ease-out group-hover:bg-gray-50
                         ${selectedCategoryId === category.id 
@@ -336,7 +547,8 @@ export default function Layout({ children, showLoginModal, setShowLoginModal }) 
                         className="absolute left-1/2 -translate-x-1/2 top-full mt-0 
                           bg-white rounded-xl shadow-lg shadow-green-100/50 min-w-[220px] 
                           transform opacity-0 -translate-y-2 group-hover:translate-y-0 
-                          group-hover:opacity-100 transition-all duration-300 ease-out 
+                          group-hover:opacity-100 group-focus-within:translate-y-0
+                          group-focus-within:opacity-100 transition-all duration-300 ease-out
                           border border-gray-100/80 overflow-hidden z-50"
                         onMouseEnter={() => handleMouseEnter(category.id)}
                         onMouseLeave={handleMouseLeave}
@@ -345,7 +557,8 @@ export default function Layout({ children, showLoginModal, setShowLoginModal }) 
                           {category.children.map((subCategory) => (
                             <li key={subCategory.id}>
                               <Link
-                                to={subCategory.path}
+                                to={`/category/${subCategory.id}`}
+                                aria-current={location.pathname === `/category/${subCategory.id}` ? 'page' : undefined}
                                 className="block w-full text-left px-6 py-3 text-gray-600
                                   hover:text-green-700 hover:bg-green-50/50 text-sm
                                   transition-all duration-200 ease-out"
@@ -364,7 +577,122 @@ export default function Layout({ children, showLoginModal, setShowLoginModal }) 
             </ul>
           </div>
         </nav>
+
       </header>
+
+      {isMobileMenuOpen && (
+          <div className="fixed inset-0 z-[60] lg:hidden">
+            <button
+              type="button"
+              tabIndex={-1}
+              aria-hidden="true"
+              className="absolute inset-0 z-0 h-full w-full cursor-default bg-black/40"
+              onClick={closeMobileMenu}
+            />
+
+            <nav
+              id="mobile-navigation"
+              ref={mobileNavigationRef}
+              tabIndex={-1}
+              aria-label="모바일 주요 메뉴"
+              className="absolute inset-y-0 right-0 z-10 w-full max-w-md overflow-y-auto
+                overscroll-contain bg-white shadow-2xl focus:outline-none"
+            >
+              <div className="flex items-center justify-between border-b border-gray-200 px-4 py-2">
+                <p className="text-lg font-bold text-green-900">전체 메뉴</p>
+                <button
+                  ref={mobileMenuCloseButtonRef}
+                  type="button"
+                  onClick={closeMobileMenu}
+                  aria-label="모바일 메뉴 닫기"
+                  className="flex min-h-12 min-w-12 items-center justify-center rounded-lg text-2xl text-gray-700 hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-green-700"
+                >
+                  <span aria-hidden="true">✕</span>
+                </button>
+              </div>
+              <div className="border-b border-gray-200 bg-green-50 p-4">
+                {isAuthenticated && user ? (
+                  <div className="space-y-3">
+                    <p className="text-lg font-semibold text-gray-900">{user.name}님</p>
+                    <div className={`grid gap-3 ${isAdmin ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                      <button
+                        type="button"
+                        className="min-h-12 rounded-lg bg-red-600 px-4 py-3 text-lg font-semibold
+                          text-white hover:bg-red-700 focus-visible:outline-none focus-visible:ring-2
+                          focus-visible:ring-red-700 focus-visible:ring-offset-2"
+                        onClick={handleMobileLogout}
+                      >
+                        로그아웃
+                      </button>
+
+                      {isAdmin && (
+                        <Link
+                          to="/admin"
+                          aria-current={location.pathname.startsWith('/admin') ? 'page' : undefined}
+                          className="flex min-h-12 items-center justify-center rounded-lg bg-green-700
+                            px-4 py-3 text-lg font-semibold text-white hover:bg-green-800
+                            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-700
+                            focus-visible:ring-offset-2"
+                          onClick={closeMobileMenu}
+                        >
+                          관리자
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    className="min-h-12 w-full rounded-lg bg-green-700 px-4 py-3 text-lg
+                      font-semibold text-white hover:bg-green-800 focus-visible:outline-none
+                      focus-visible:ring-2 focus-visible:ring-green-700 focus-visible:ring-offset-2"
+                    onClick={() => {
+                      closeMobileMenu();
+                      setShowLoginModal?.(true);
+                    }}
+                  >
+                    로그인
+                  </button>
+                )}
+              </div>
+
+              <h2 className="sr-only">전체 메뉴</h2>
+              <ul className="space-y-1 p-3">
+                {STATIC_CATEGORIES.map((category) => (
+                  <MobileCategoryItem
+                    key={`static-${category.id}`}
+                    category={category}
+                    categoryType="static"
+                    pathname={location.pathname}
+                    expandedCategories={expandedMobileCategories}
+                    onToggle={toggleMobileCategory}
+                    onNavigate={handleMobileNavigate}
+                  />
+                ))}
+
+                <li aria-hidden="true" className="my-3 border-t border-gray-200" />
+
+                {isLoading ? (
+                  <li className="flex min-h-12 items-center px-4 text-lg text-gray-600" aria-live="polite">
+                    카테고리를 불러오는 중입니다.
+                  </li>
+                ) : (
+                  categories?.map((category) => (
+                    <MobileCategoryItem
+                      key={`dynamic-${category.id}`}
+                      category={category}
+                      categoryType="dynamic"
+                      pathname={location.pathname}
+                      expandedCategories={expandedMobileCategories}
+                      onToggle={toggleMobileCategory}
+                      onNavigate={handleMobileNavigate}
+                    />
+                  ))
+                )}
+              </ul>
+            </nav>
+          </div>
+        )}
 
       <main className={mainClassName}>
         {children}
@@ -484,37 +812,32 @@ export default function Layout({ children, showLoginModal, setShowLoginModal }) 
       </footer>
 
       {showLoginModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-          <div className="bg-white rounded-lg p-8 max-w-sm w-full mx-4 relative">
-            <button 
-              onClick={() => setShowLoginModal(false)}
-              className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div
+            ref={loginDialogRef}
+            tabIndex={-1}
+            className="relative w-full max-w-sm rounded-xl bg-white p-8 shadow-2xl"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="login-modal-title"
+          >
+            <button
+              ref={loginCloseButtonRef}
+              type="button"
+              onClick={closeLoginModal}
+              aria-label="로그인 창 닫기"
+              className="absolute right-3 top-3 flex min-h-12 min-w-12 items-center justify-center rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus-visible:ring-2 focus-visible:ring-green-700"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg aria-hidden="true" className="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
 
-            <h2 className="text-2xl font-bold text-center mb-6">로그인</h2>
-            <div className="space-y-4">
-              <a 
-                href={kakaoLoginUrl}
-                className="flex items-center justify-center w-full bg-yellow-300 hover:bg-yellow-400 
-                  text-black py-3 rounded-lg transition-colors duration-200"
-              >
-                <img src={kakaoLogo} alt="카카오 로그인" className="h-5 w-auto mr-2" />
-                카카오로 시작하기
-              </a>
-              
-              <a 
-                href={naverLoginUrl}
-                className="flex items-center justify-center w-full bg-[#03C75A] hover:bg-[#02b351] 
-                  text-white py-3 rounded-lg transition-colors duration-200"
-              >
-                <img src={naverLogo} alt="네이버 로그인" className="h-5 w-auto mr-2" />
-                네이버로 시작하기
-              </a>
-            </div>
+            <h2 id="login-modal-title" className="mb-2 text-center text-2xl font-bold text-gray-900">로그인</h2>
+            <p className="mb-6 text-center text-base leading-relaxed text-gray-600">
+              사용하실 로그인 방법을 선택해 주세요.
+            </p>
+            <LoginOptions />
           </div>
         </div>
       )}

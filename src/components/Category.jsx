@@ -1,51 +1,80 @@
-import React, { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { fetchChildCategories, fetchCategoryById } from '../services/categoryService';
-import { fetchPostsByCategory } from '../services/postService';
-import { useQuery } from '@tanstack/react-query';
+import { deletePost, fetchPostsByCategory } from '../services/postService';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import AsyncState from './AsyncState';
+import { useAuth } from '../contexts/AuthContext';
+import ImageModal from './ImageModal';
 
 const Category = () => {
   const { categoryId } = useParams();
   const navigate = useNavigate();
-  const [childCategories, setChildCategories] = useState([]);
-  const [categoryName, setCategoryName] = useState('');
-  const [writeAuthority, setWriteAuthority] = useState(false);
-  const [parentCategory, setParentCategory] = useState(null);
-  const [postType, setPostType] = useState(null);
+  const queryClient = useQueryClient();
+  const { isAuthenticated, isAdmin } = useAuth();
   const [selectedImage, setSelectedImage] = useState(null);
   const [showModal, setShowModal] = useState(false);
 
+  const {
+    data: categoryData,
+    isLoading: categoryLoading,
+    isError: categoryError,
+    error: categoryQueryError,
+    isFetching: categoryFetching,
+    refetch: refetchCategory,
+  } = useQuery({
+    queryKey: ['category-page', categoryId],
+    queryFn: async () => {
+      const currentCategory = await fetchCategoryById(categoryId);
+      const parentId = currentCategory?.parentId;
+      const [parentCategory, children] = await Promise.all([
+        parentId && parentId !== 'null'
+          ? fetchCategoryById(parentId)
+          : Promise.resolve(null),
+        fetchChildCategories(categoryId),
+      ]);
+
+      if (!currentCategory || !Array.isArray(children)) {
+        throw new Error('INVALID_CATEGORY_RESPONSE');
+      }
+
+      return {
+        currentCategory,
+        parentCategory,
+        childCategories: [...children].sort((a, b) => a.order - b.order),
+      };
+    },
+    enabled: !!categoryId,
+  });
+
+  const currentCategory = categoryData?.currentCategory;
+  const childCategories = categoryData?.childCategories || [];
+  const parentCategory = categoryData?.parentCategory || null;
+  const categoryName = currentCategory?.name || '';
+  const canWrite = Boolean(
+    isAuthenticated
+      && (isAdmin || currentCategory?.writeAuthority),
+  );
+  const postType = currentCategory?.type || null;
+  const categoryErrorCode = categoryQueryError?.response?.data?.code;
+  const categoryNotFound = categoryError && (
+    categoryQueryError?.response?.status === 404 || categoryErrorCode === 'NOT_FOUND_REQUEST'
+  );
+
   // 게시글 목록 조회
-  const { data: posts, isLoading: postsLoading } = useQuery({
+  const {
+    data: posts,
+    isLoading: postsLoading,
+    isError: postsError,
+    error: postsQueryError,
+    isFetching: postsFetching,
+    refetch: refetchPosts,
+  } = useQuery({
     queryKey: ['posts', categoryId],
     queryFn: () => fetchPostsByCategory(categoryId),
     enabled: !!categoryId,
   });
-
-  useEffect(() => {
-    const loadCategoryData = async () => {
-      try {
-        const currentCategory = await fetchCategoryById(categoryId);
-        console.log('카테고리 데이터:', currentCategory);
-        setCategoryName(currentCategory.name);
-        setWriteAuthority(currentCategory.writeAuthority);
-        setPostType(currentCategory.type);
-
-        if (currentCategory.parentId && currentCategory.parentId !== "null") {
-          const parent = await fetchCategoryById(currentCategory.parentId);
-          setParentCategory(parent);
-        }
-
-        const children = await fetchChildCategories(categoryId);
-        const sortedChildren = children.sort((a, b) => a.order - b.order);
-        setChildCategories(sortedChildren);
-      } catch (error) {
-        console.error('카테고리 로드 실패:', error);
-      }
-    };
-
-    loadCategoryData();
-  }, [categoryId]);
+  const postsForbidden = postsQueryError?.response?.status === 403;
 
   const handleParentClick = () => {
     if (childCategories.length > 0 && parentCategory?.id) {
@@ -59,8 +88,75 @@ const Category = () => {
     setSelectedImage(null);
   };
 
-  if (!categoryName) {
-    return <div className="flex justify-center items-center min-h-screen">로딩 중...</div>;
+  const {
+    mutate: removeInformationPost,
+    isPending: isDeletingInformation,
+    variables: deletingInformationId,
+  } = useMutation({
+    mutationFn: (postId) => deletePost(categoryId, postId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['posts', categoryId] });
+      handleCloseModal();
+      alert('이미지 게시물이 삭제되었습니다.');
+    },
+    onError: (error) => {
+      const message = error?.response?.data?.message || error.message;
+      alert(`이미지 게시물을 삭제하지 못했습니다: ${message}`);
+    },
+  });
+
+  const handleInformationDelete = (postId) => {
+    if (window.confirm('이 이미지 게시물과 포함된 이미지를 모두 삭제하시겠습니까?')) {
+      removeInformationPost(postId);
+    }
+  };
+
+  if (categoryLoading) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center px-4">
+        <AsyncState
+          status="loading"
+          title="게시판을 불러오고 있습니다"
+          className="w-full max-w-3xl"
+        />
+      </div>
+    );
+  }
+
+  if (categoryNotFound || (!categoryError && !currentCategory)) {
+    return (
+      <div className="mx-auto max-w-3xl px-4 py-12">
+        <AsyncState
+          status="empty"
+          title="게시판을 찾을 수 없습니다"
+          description="주소가 바뀌었거나 삭제된 게시판입니다. 홈에서 다른 게시판을 이용해 주세요."
+        />
+        <div className="mt-6 text-center">
+          <button
+            type="button"
+            onClick={() => navigate('/')}
+            className="accessible-touch-target rounded-lg bg-green-700 px-6 py-3 font-semibold text-white hover:bg-green-800"
+          >
+            홈으로 돌아가기
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (categoryError) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center px-4">
+        <AsyncState
+          status="error"
+          title="게시판을 불러오지 못했습니다"
+          description="인터넷 연결을 확인한 뒤 다시 시도해 주세요."
+          onRetry={refetchCategory}
+          isRetrying={categoryFetching}
+          className="w-full max-w-3xl border-red-100"
+        />
+      </div>
+    );
   }
 
   return (
@@ -120,7 +216,7 @@ const Category = () => {
           <h2 className="text-xl font-semibold text-gray-800">
             {postType === 'INFORMATION' ? '이미지 목록' : '게시글 목록'}
           </h2>
-          {writeAuthority && (
+          {canWrite && (
             <button 
               onClick={() => {
                 console.log('글쓰기 타입:', postType);
@@ -137,10 +233,27 @@ const Category = () => {
         </div>
 
         {postsLoading ? (
-          <div className="text-center py-8">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500 mx-auto"></div>
-          </div>
-        ) : posts?.length > 0 ? (
+          <AsyncState
+            status="loading"
+            title={postType === 'INFORMATION' ? '이미지를 불러오고 있습니다' : '게시글을 불러오고 있습니다'}
+            className="border-0 shadow-none"
+          />
+        ) : postsError || !Array.isArray(posts) ? (
+          <AsyncState
+            status="error"
+            title={postsForbidden
+              ? '이 게시판은 로그인이 필요합니다'
+              : postType === 'INFORMATION'
+                ? '이미지를 불러오지 못했습니다'
+                : '게시글을 불러오지 못했습니다'}
+            description={postsForbidden
+              ? '로그인한 뒤 본인이 작성한 게시물 또는 관리 권한이 있는 게시물을 확인할 수 있습니다.'
+              : '인터넷 연결을 확인한 뒤 다시 시도해 주세요.'}
+            onRetry={postsForbidden ? undefined : refetchPosts}
+            isRetrying={postsFetching}
+            className="border-red-100 shadow-none"
+          />
+        ) : posts.length > 0 ? (
           <div className="space-y-4">
             {postType === 'INFORMATION' ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -149,10 +262,25 @@ const Category = () => {
                     key={post.id}
                     className="group relative"
                   >
+                    {isAdmin && (
+                      <button
+                        type="button"
+                        onClick={() => handleInformationDelete(post.id)}
+                        disabled={isDeletingInformation && deletingInformationId === post.id}
+                        className="mb-3 min-h-12 w-full rounded-lg border border-red-300 bg-red-50 px-4 py-3
+                          text-base font-semibold text-red-800 hover:bg-red-100 disabled:cursor-wait disabled:opacity-60"
+                      >
+                        {isDeletingInformation && deletingInformationId === post.id
+                          ? '삭제 중…'
+                          : '이 이미지 게시물 삭제'}
+                      </button>
+                    )}
                     {post.content && post.content.split(',').map((imageUrl, index) => (
-                      <div 
+                      <button
+                        type="button"
                         key={index} 
-                        className="aspect-square overflow-hidden rounded-lg shadow-md cursor-pointer"
+                        className="aspect-square w-full overflow-hidden rounded-lg shadow-md focus-visible:ring-2 focus-visible:ring-green-700 focus-visible:ring-offset-2"
+                        aria-label={`${index + 1}번 이미지 크게 보기`}
                         onClick={() => {
                           setSelectedImage(imageUrl.trim());
                           setShowModal(true);
@@ -163,9 +291,9 @@ const Category = () => {
                           alt={`이미지 ${index + 1}`}
                           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
                         />
-                      </div>
+                      </button>
                     ))}
-                    <div className="mt-2 text-sm text-gray-500 flex justify-between items-center">
+                    <div className="mt-2 flex items-center justify-between text-base text-gray-600">
                       <span>{post.authorName}</span>
                       <span>{new Date(post.updatedAt).toLocaleDateString()}</span>
                     </div>
@@ -175,11 +303,11 @@ const Category = () => {
             ) : (
               <div className="space-y-4">
                 {posts.map((post) => (
-                  <div 
+                  <button
+                    type="button"
                     key={post.id}
-                    className="border border-gray-200 rounded-lg p-4 hover:border-green-500 
-                      transition-all duration-200 cursor-pointer"
-                    onClick={() => navigate(`/post/${post.id}`, {
+                    className="w-full rounded-lg border border-gray-200 p-4 text-left transition-all duration-200 hover:border-green-500 focus-visible:ring-2 focus-visible:ring-green-700 focus-visible:ring-offset-2"
+                    onClick={() => navigate(`/post/${categoryId}/${post.id}`, {
                       state: { categoryId, postType }
                     })}
                   >
@@ -188,44 +316,31 @@ const Category = () => {
                         <h3 className="text-lg font-medium text-gray-800 mb-2">{post.title}</h3>
                       </div>
                     </div>
-                    <div className="flex items-center mt-4 text-sm text-gray-500">
+                    <div className="mt-4 flex items-center text-base text-gray-600">
                       <span>{post.authorName}</span>
                       <span className="mx-2">•</span>
                       <span>{new Date(post.updatedAt).toLocaleDateString()}</span>
                     </div>
-                  </div>
+                  </button>
                 ))}
               </div>
             )}
           </div>
         ) : (
-          <div className="text-center py-8 text-gray-500">
-            {postType === 'INFORMATION' ? '등록된 이미지가 없습니다.' : '등록된 게시글이 없습니다.'}
-          </div>
+          <AsyncState
+            status="empty"
+            title={postType === 'INFORMATION' ? '등록된 이미지가 없습니다' : '등록된 게시글이 없습니다'}
+            description={postType === 'INFORMATION'
+              ? '새로운 이미지가 등록되면 이곳에서 확인하실 수 있습니다.'
+              : '새로운 게시글이 등록되면 이곳에서 확인하실 수 있습니다.'}
+            className="border-0 shadow-none"
+          />
         )}
       </div>
 
       {/* 이미지 모달 */}
       {showModal && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-80 z-50 flex items-center justify-center"
-          onClick={handleCloseModal}
-        >
-          <div className="relative max-w-[90vw] max-h-[90vh]">
-            <button
-              className="absolute -top-10 right-0 text-white hover:text-gray-300 text-xl"
-              onClick={handleCloseModal}
-            >
-              닫기 ×
-            </button>
-            <img
-              src={selectedImage}
-              alt="확대된 이미지"
-              className="max-w-full max-h-[85vh] object-contain"
-              onClick={(e) => e.stopPropagation()}
-            />
-          </div>
-        </div>
+        <ImageModal imageUrl={selectedImage} onClose={handleCloseModal} />
       )}
     </div>
   );

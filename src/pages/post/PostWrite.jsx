@@ -1,7 +1,8 @@
 import { useState, useRef, useMemo } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { createPost, uploadImage } from '../../services/postService';
+import { fetchCategoryById } from '../../services/categoryService';
 import { normalizeListMarkup } from '../../utils/editorContent';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
@@ -10,7 +11,17 @@ export default function PostWrite() {
   const { categoryId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const postType = location.state?.postType;
+  const navigationPostType = location.state?.postType;
+  const isActivitiesCategory = String(categoryId) === '0';
+  const {
+    data: category,
+    isLoading: isCategoryLoading,
+  } = useQuery({
+    queryKey: ['category', categoryId],
+    queryFn: () => fetchCategoryById(categoryId),
+    enabled: Boolean(categoryId && !navigationPostType && !isActivitiesCategory),
+  });
+  const postType = navigationPostType || (isActivitiesCategory ? 'POST' : category?.type);
   
   console.log('PostWrite - postType:', postType); // postType 확인
   console.log('PostWrite - location.state:', location.state); // 전체 state 확인
@@ -27,7 +38,7 @@ export default function PostWrite() {
     },
     onSuccess: () => {
       alert('등록되었습니다.');
-      navigate(`/category/${categoryId}`);
+      navigate(isActivitiesCategory ? '/news/activities' : `/category/${categoryId}`);
     },
     onError: (error) => {
       alert('등록에 실패했습니다: ' + error.message);
@@ -122,6 +133,22 @@ export default function PostWrite() {
       alert('이미지 업로드에 실패했습니다.');
     }
   };
+
+  if (!postType && isCategoryLoading) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-t-2 border-green-600" />
+      </div>
+    );
+  }
+
+  if (!postType && !isCategoryLoading) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center text-lg text-gray-600">
+        게시판 정보를 불러오지 못했습니다.
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto p-6">

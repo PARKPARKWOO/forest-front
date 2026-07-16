@@ -88,7 +88,7 @@ export default function ProgramEdit() {
         eventDate: formatEventDateForInput(program.eventDate, category),
         applyUrl: program.applyUrl || '',
         programUrl: program.programUrl || '',
-        maxParticipants: program.maxParticipants || '',
+        maxParticipants: program.maxParticipants ?? '',
         status: program.status || 'UPCOMING',
         category: category,
         files: [],
@@ -154,12 +154,14 @@ export default function ProgramEdit() {
 
   const handleRemoveExistingFile = (index) => {
     const fileToDelete = existingFiles[index];
-    const parsedBucketId = Number(fileToDelete?.bucketId ?? fileToDelete?.id ?? fileToDelete);
-    if (Number.isNaN(parsedBucketId)) {
+    const rawBucketId = fileToDelete?.bucketId ?? fileToDelete?.id ?? fileToDelete;
+    const bucketId = rawBucketId == null ? '' : String(rawBucketId);
+    if (!/^\d+$/.test(bucketId)) {
       alert('삭제할 파일 식별자를 읽지 못했습니다.');
       return;
     }
-    setDeleteFiles(prev => [...prev, parsedBucketId]);
+    // Long/TSID는 JavaScript 안전 정수 범위를 넘을 수 있으므로 문자열 원문을 유지한다.
+    setDeleteFiles(prev => [...prev, bucketId]);
     setExistingFiles(prev => prev.filter((_, i) => i !== index));
   };
 

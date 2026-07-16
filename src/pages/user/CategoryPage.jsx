@@ -4,13 +4,11 @@ import Layout from '../../components/Layout';
 import { fetchCategoryById } from '../../services/categoryService';
 import { fetchPostsByCategory, deletePost } from '../../services/postService';
 import { useAuth } from '../../contexts/AuthContext';
-import { useState } from 'react';
 
 export default function CategoryPage() {
   const { categoryId } = useParams();
   const { user, isAdmin } = useAuth();
   const queryClient = useQueryClient();
-  const [selectedPost, setSelectedPost] = useState(null);
   
   const { data: category, isLoading, error } = useQuery({
     queryKey: ['category', categoryId],
@@ -33,7 +31,6 @@ export default function CategoryPage() {
     onSuccess: () => {
       alert('게시글이 삭제되었습니다.');
       queryClient.invalidateQueries({ queryKey: ['posts', categoryId] });
-      setSelectedPost(null);
     },
     onError: (error) => {
       alert('게시글 삭제에 실패했습니다: ' + error.message);

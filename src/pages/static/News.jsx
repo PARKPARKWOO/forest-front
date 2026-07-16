@@ -2,6 +2,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../contexts/AuthContext';
 import { deletePost, fetchPostsByCategory } from '../../services/postService';
+import AsyncState from '../../components/AsyncState';
 
 export default function News() {
   const { subCategory } = useParams();
@@ -14,11 +15,20 @@ export default function News() {
   ];
 
   // 활동보기 게시글 목록 조회 (categoryId = 0)
-  const { data: activitiesPosts, isLoading: activitiesLoading } = useQuery({
+  const {
+    data: activitiesPosts,
+    isLoading: activitiesLoading,
+    isError: activitiesError,
+    isFetching: activitiesFetching,
+    refetch: refetchActivities,
+  } = useQuery({
     queryKey: ['posts', '0'],
     queryFn: () => fetchPostsByCategory('0'),
     enabled: subCategory === 'activities',
   });
+  const activitiesUnavailable = activitiesError || (
+    !activitiesLoading && !Array.isArray(activitiesPosts)
+  );
 
   const { mutate: removePost, isPending: isDeletingPost } = useMutation({
     mutationFn: (postId) => deletePost('0', postId),
@@ -76,11 +86,21 @@ export default function News() {
                   <h3 className="text-xl font-semibold text-gray-800 mb-6">활동 게시글</h3>
                   
                   {activitiesLoading ? (
-                    <div className="text-center py-8">
-                      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-green-500 mx-auto"></div>
-                      <p className="mt-2 text-gray-600">게시글을 불러오는 중...</p>
-                    </div>
-                  ) : activitiesPosts && activitiesPosts.length > 0 ? (
+                    <AsyncState
+                      status="loading"
+                      title="활동 게시글을 불러오고 있습니다"
+                      className="border-0 shadow-none"
+                    />
+                  ) : activitiesUnavailable ? (
+                    <AsyncState
+                      status="error"
+                      title="활동 게시글을 불러오지 못했습니다"
+                      description="인터넷 연결을 확인한 뒤 다시 시도해 주세요."
+                      onRetry={refetchActivities}
+                      isRetrying={activitiesFetching}
+                      className="border-red-100 shadow-none"
+                    />
+                  ) : activitiesPosts.length > 0 ? (
                     <div className="space-y-4">
                       {activitiesPosts.map((post) => (
                         <div key={post.id} className="border-b border-gray-200 pb-4 last:border-b-0">
@@ -124,13 +144,14 @@ export default function News() {
                       ))}
                     </div>
                   ) : (
-                    <div className="text-center py-8 text-gray-500">
-                      <div className="text-4xl mb-4">📝</div>
-                      <p>아직 등록된 활동 게시글이 없습니다.</p>
-                      {isAdmin && (
-                        <p className="mt-2 text-sm">첫 번째 활동을 작성해보세요!</p>
-                      )}
-                    </div>
+                    <AsyncState
+                      status="empty"
+                      title="등록된 활동 게시글이 없습니다"
+                      description={isAdmin
+                        ? '첫 번째 활동 게시글을 작성해 주세요.'
+                        : '새로운 활동 소식이 등록되면 이곳에서 확인하실 수 있습니다.'}
+                      className="border-0 shadow-none"
+                    />
                   )}
                 </div>
               </div>

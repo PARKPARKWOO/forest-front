@@ -96,15 +96,24 @@ export default function ProgramCreate() {
   const { mutate: submitProgram, isPending } = useMutation({
     mutationFn: (data) => {
       const formDataToSend = new FormData();
-      Object.keys(data).forEach(key => {
-        if (key === 'files') {
-          data[key].forEach(file => {
-            formDataToSend.append('files', file);
-          });
-        } else {
+
+      formDataToSend.append('title', data.title);
+      formDataToSend.append('content', data.content);
+      formDataToSend.append('applyStartDate', data.applyStartDate);
+      formDataToSend.append('eventDate', data.eventDate);
+      formDataToSend.append('maxParticipants', data.maxParticipants);
+      formDataToSend.append('category', data.category);
+
+      ['applyEndDate', 'applyUrl', 'programUrl'].forEach((key) => {
+        if (data[key] !== null && data[key] !== undefined && data[key] !== '') {
           formDataToSend.append(key, data[key]);
         }
       });
+
+      data.files.forEach((file) => {
+        formDataToSend.append('files', file);
+      });
+
       return createProgram(formDataToSend);
     },
     onSuccess: () => {
