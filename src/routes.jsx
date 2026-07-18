@@ -1,4 +1,4 @@
-import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { createBrowserRouter } from 'react-router-dom';
 import App from './App';
 import UserHome from './pages/user/UserHome';
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -24,6 +24,7 @@ import NoticeEdit from './pages/notice/NoticeEdit';
 import ProtectedRoute from './components/ProtectedRoute';
 import AuthenticatedRoute from './components/AuthenticatedRoute';
 import UserManagement from './pages/admin/UserManagement';
+import NotFoundPage from './pages/NotFoundPage';
 
 const router = createBrowserRouter([
   {
@@ -97,11 +98,8 @@ const router = createBrowserRouter([
       ) },
       { path: 'post/:categoryId/:postId', element: <PostDetail /> },
       { path: 'post/:postId', element: <PostDetail /> },
+      { path: '*', element: <NotFoundPage /> },
     ],
-  },
-  {
-    path: '*',
-    element: <Navigate to="/" replace />,
   },
 ]);
 

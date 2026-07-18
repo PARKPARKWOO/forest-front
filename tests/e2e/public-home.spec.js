@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures/publicTest.js';
+import AxeBuilder from '@axe-core/playwright';
 import { publicHomeData } from './fixtures/publicHomeData.js';
 import { expectReadableText, waitForPublicHomeReady, waitForPublicShellReady } from './support/publicReady.js';
 
@@ -119,4 +120,106 @@ test('zero maximum participants is described as unlimited', async ({ page, fores
   });
   await page.goto('/');
   await expect(page.getByRole('article', { name: '전북 숲길 시민 프로그램' }).getByText('정원 제한 없음')).toBeVisible();
+});
+
+test('invalid route explains the error instead of silently redirecting', async ({ page, forestApi, pageQuality }) => {
+  expect(forestApi).toBeDefined();
+  expect(pageQuality).toBeDefined();
+  pageQuality.allowConsoleError(/^Failed to load resource: the server responded with a status of 403 \(Forbidden\)$/);
+  await page.goto('/does-not-exist');
+  await expect(page).toHaveURL(/does-not-exist/);
+  await expect(page.getByRole('heading', { name: '페이지를 찾을 수 없습니다' })).toBeVisible();
+  await expect(page.getByRole('link', { name: /전북생명의숲/ }).first()).toBeVisible();
+  await expect(page.getByText('로컬 초안', { exact: true })).toBeVisible();
+});
+
+test('home links arrive at the three approved existing destinations', async ({ page, forestApi, pageQuality }) => {
+  expect(forestApi).toBeDefined();
+  expect(pageQuality).toBeDefined();
+  pageQuality.allowConsoleError(/^Failed to load resource: the server responded with a status of 403 \(Forbidden\)$/);
+  await page.goto('/');
+  await waitForPublicHomeReady(page);
+  await page.getByRole('link', { name: '프로그램 참여' }).first().click();
+  await expect(page).toHaveURL(/\/programs\/participate$/);
+  await expect(page.getByRole('heading', { level: 1, name: '참여 프로그램' })).toBeVisible();
+  await expect(page.getByText('전북 숲길 시민 프로그램')).toBeVisible();
+  await page.goto('/');
+  await waitForPublicHomeReady(page);
+  await page.getByRole('link', { name: '공지 전체 보기' }).click();
+  await expect(page).toHaveURL(/\/news\/notice$/);
+  await expect(page.getByRole('heading', { level: 1, name: '공지사항' })).toBeVisible();
+  await expect(page.getByText('여름 숲 프로그램 참가 안내와 준비물 공지')).toBeVisible();
+  await page.goto('/');
+  await waitForPublicHomeReady(page);
+  await page.getByRole('link', { name: '활동 전체 보기' }).click();
+  await expect(page).toHaveURL(/\/news\/activities$/);
+  await expect(page.getByRole('heading', { level: 1, name: '전북생명의숲 활동보기' })).toBeVisible();
+  await expect(page.getByText('시민과 함께한 전북 숲 돌봄 활동')).toBeVisible();
+});
+
+test('home has no critical or serious axe findings', async ({ page, forestApi, pageQuality }) => {
+  expect(forestApi).toBeDefined();
+  expect(pageQuality).toBeDefined();
+  pageQuality.allowConsoleError(/^Failed to load resource: the server responded with a status of 403 \(Forbidden\)$/);
+  await page.goto('/');
+  await waitForPublicHomeReady(page);
+  const results = await new AxeBuilder({ page }).analyze();
+  expect(results.violations.filter(({ impact }) => ['critical', 'serious'].includes(impact))).toEqual([]);
+});
+
+test('desktop content reflows at the 720 CSS pixel equivalent of 200 percent zoom', async ({ page, forestApi, pageQuality }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', '1440 desktop at 200 percent is 720 CSS pixels');
+  expect(forestApi).toBeDefined();
+  expect(pageQuality).toBeDefined();
+  pageQuality.allowConsoleError(/^Failed to load resource: the server responded with a status of 403 \(Forbidden\)$/);
+  await page.setViewportSize({ width: 720, height: 900 });
+  await page.goto('/');
+  await waitForPublicHomeReady(page);
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1);
+  expect(overflow).toBe(false);
+});
+
+test('mobile drawer honors reduced motion', async ({ page, forestApi, pageQuality }, testInfo) => {
+  test.skip(testInfo.project.name !== 'mobile', 'mobile drawer only');
+  expect(forestApi).toBeDefined();
+  expect(pageQuality).toBeDefined();
+  pageQuality.allowConsoleError(/^Failed to load resource: the server responded with a status of 403 \(Forbidden\)$/);
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/');
+  await waitForPublicShellReady(page);
+  await page.getByRole('button', { name: '전체 메뉴 열기' }).click();
+  const panel = page.getByRole('dialog', { name: '전체 메뉴' });
+  const milliseconds = await panel.evaluate((element) => Number.parseFloat(getComputedStyle(element).transitionDuration) * 1000);
+  expect(milliseconds).toBeLessThanOrEqual(0.01);
+});
+
+test('draft status strip stays in document flow above narrow main content', async ({ page, forestApi, pageQuality }, testInfo) => {
+  test.skip(testInfo.project.name === 'desktop', 'tablet and mobile regression only');
+  expect(forestApi).toBeDefined();
+  expect(pageQuality).toBeDefined();
+  pageQuality.allowConsoleError(/^Failed to load resource: the server responded with a status of 403 \(Forbidden\)$/);
+  await page.goto('/');
+  await waitForPublicHomeReady(page);
+  const status = page.getByRole('status');
+  await expect(status).toHaveText('로컬 초안');
+  await expect(status).toHaveCSS('background-color', 'rgb(180, 83, 9)');
+  await expect(status).toHaveCSS('font-size', '18px');
+  const statusBox = await status.boundingBox();
+  const mainBox = await page.locator('#main-content').boundingBox();
+  expect(statusBox.y + statusBox.height).toBeLessThanOrEqual(mainBox.y);
+  expect(statusBox.x).toBeLessThanOrEqual(1);
+  expect(statusBox.width).toBeGreaterThanOrEqual(page.viewportSize().width - 2);
+  await page.evaluate(() => window.scrollTo(0, 600));
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(100);
+  const scrolledStatusBox = await status.boundingBox();
+  expect(scrolledStatusBox.y).toBeLessThan(statusBox.y - 100);
+});
+
+test('public draft matches the reviewed responsive baseline', async ({ page, forestApi, pageQuality }, testInfo) => {
+  expect(forestApi).toBeDefined();
+  expect(pageQuality).toBeDefined();
+  pageQuality.allowConsoleError(/^Failed to load resource: the server responded with a status of 403 \(Forbidden\)$/);
+  await page.goto('/');
+  await waitForPublicHomeReady(page);
+  await expect(page).toHaveScreenshot(`forest-public-home-${testInfo.project.name}.png`, { fullPage: true, animations: 'disabled' });
 });

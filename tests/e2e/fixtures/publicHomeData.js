@@ -1,4 +1,4 @@
-const image = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="1200" height="700"%3E%3Crect width="1200" height="700" fill="%23166534"/%3E%3C/svg%3E';
+const image = '/draft/forest-hero-placeholder.svg';
 
 export const publicHomeData = {
   userStatus: 403,
