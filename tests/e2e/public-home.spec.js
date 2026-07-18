@@ -1,6 +1,6 @@
 import { test, expect } from './fixtures/publicTest.js';
 import { publicHomeData } from './fixtures/publicHomeData.js';
-import { expectReadableText, waitForPublicShellReady } from './support/publicReady.js';
+import { expectReadableText, waitForPublicHomeReady, waitForPublicShellReady } from './support/publicReady.js';
 
 test('anonymous visitor sees the home without unexpected errors', async ({ page, forestApi, pageQuality }) => {
   expect(forestApi).toBeDefined();
@@ -90,4 +90,33 @@ test('skip link moves keyboard focus to main content', async ({ page, forestApi,
   await expect(skip).toBeFocused();
   await page.keyboard.press('Enter');
   await expect(page.locator('#main-content')).toBeFocused();
+});
+
+test('home presents the approved task order and only available program facts', async ({ page, forestApi, pageQuality }) => {
+  expect(forestApi).toBeDefined();
+  expect(pageQuality).toBeDefined();
+  pageQuality.allowConsoleError(/^Failed to load resource: the server responded with a status of 403 \(Forbidden\)$/);
+  await page.goto('/');
+  await waitForPublicHomeReady(page);
+  const headings = await page.locator('main h2').allTextContents();
+  expect(headings.slice(0, 4)).toEqual([
+    '진행 중인 프로그램',
+    '중요 공지',
+    '최근 활동과 소식',
+    '함께 참여하기',
+  ]);
+  const program = page.getByRole('article', { name: '전북 숲길 시민 프로그램' });
+  await expect(program.getByText('행사 일시')).toBeVisible();
+  await expect(program.getByText('최대 20명')).toBeVisible();
+  await expect(program.getByText(/장소|잔여/)).toHaveCount(0);
+});
+
+test('zero maximum participants is described as unlimited', async ({ page, forestApi, pageQuality }) => {
+  expect(pageQuality).toBeDefined();
+  pageQuality.allowConsoleError(/^Failed to load resource: the server responded with a status of 403 \(Forbidden\)$/);
+  forestApi.setData({
+    programs: [{ ...publicHomeData.programs[0], maxParticipants: 0 }],
+  });
+  await page.goto('/');
+  await expect(page.getByRole('article', { name: '전북 숲길 시민 프로그램' }).getByText('정원 제한 없음')).toBeVisible();
 });
