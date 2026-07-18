@@ -4,20 +4,30 @@ export function watchPageQuality(page) {
   const errors = [];
   const allowedConsoleErrors = [];
   page.on('console', (message) => {
-    if (message.type() === 'error') errors.push({ type: 'console', text: message.text() });
+    if (message.type() === 'error') {
+      errors.push({ type: 'console', text: message.text(), url: message.location().url });
+    }
   });
   page.on('pageerror', (error) => errors.push({ type: 'pageerror', text: error.message }));
   page.on('requestfailed', (request) => errors.push({ type: 'requestfailed', text: request.url() }));
   return {
-    allowConsoleError(pattern) {
-      if (!(pattern instanceof RegExp)) throw new TypeError('console allowlist entry must be a RegExp');
-      allowedConsoleErrors.push(pattern);
+    allowConsoleError(textPattern, urlPattern) {
+      if (!(textPattern instanceof RegExp)) throw new TypeError('console allowlist text must be a RegExp');
+      if (urlPattern !== undefined && !(urlPattern instanceof RegExp)) {
+        throw new TypeError('console allowlist URL must be a RegExp');
+      }
+      allowedConsoleErrors.push({ textPattern, urlPattern });
     },
     assertClean() {
-      const unexpected = errors.filter(({ type, text }) => (
-        type !== 'console' || !allowedConsoleErrors.some((pattern) => pattern.test(text))
+      const unexpected = errors.filter(({ type, text, url }) => (
+        type !== 'console' || !allowedConsoleErrors.some(({ textPattern, urlPattern }) => (
+          textPattern.test(text) && (urlPattern === undefined || urlPattern.test(url))
+        ))
       ));
-      expect(unexpected, unexpected.map(({ type, text }) => `${type}: ${text}`).join('\n')).toEqual([]);
+      expect(
+        unexpected,
+        unexpected.map(({ type, text, url }) => `${type}: ${text}${url ? ` (${url})` : ''}`).join('\n'),
+      ).toEqual([]);
     },
   };
 }

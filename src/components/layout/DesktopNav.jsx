@@ -24,25 +24,26 @@ function DesktopSubmenu({ items, pathname, depth = 0 }) {
 }
 
 export function DesktopNav({ items, pathname }) {
-  const [openId, setOpenId] = useState(null);
+  const [hoveredId, setHoveredId] = useState(null);
+  const [focusedId, setFocusedId] = useState(null);
 
   return (
     <nav aria-label="주요 메뉴" className="hidden border-b border-gray-200/80 bg-white/70 lg:block">
       <ul className="container mx-auto flex justify-center space-x-2 px-6">
         {items.map((item) => {
           const hasChildren = item.children?.length > 0;
-          const isOpen = openId === item.id;
+          const isOpen = hoveredId === item.id || focusedId === item.id;
 
           return (
             <li
               key={item.id}
               className="group relative"
-              onMouseEnter={() => setOpenId(item.id)}
-              onMouseLeave={() => setOpenId(null)}
-              onFocus={() => setOpenId(item.id)}
+              onMouseEnter={() => setHoveredId(item.id)}
+              onMouseLeave={() => setHoveredId(null)}
+              onFocus={() => setFocusedId(item.id)}
               onBlur={(event) => {
                 if (!event.currentTarget.contains(event.relatedTarget)) {
-                  setOpenId(null);
+                  setFocusedId(null);
                 }
               }}
             >

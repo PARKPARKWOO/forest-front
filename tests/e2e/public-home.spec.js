@@ -3,10 +3,13 @@ import AxeBuilder from '@axe-core/playwright';
 import { publicHomeData } from './fixtures/publicHomeData.js';
 import { expectReadableText, waitForPublicHomeReady, waitForPublicShellReady } from './support/publicReady.js';
 
+const ANONYMOUS_403 = /^Failed to load resource: the server responded with a status of 403 \(Forbidden\)$/;
+const USERS_API_URL = /\/api\/v1\/users(?:[?#].*)?$/;
+
 test('anonymous visitor sees the home without unexpected errors', async ({ page, forestApi, pageQuality }) => {
   expect(forestApi).toBeDefined();
   expect(pageQuality).toBeDefined();
-  pageQuality.allowConsoleError(/^Failed to load resource: the server responded with a status of 403 \(Forbidden\)$/);
+  pageQuality.allowConsoleError(ANONYMOUS_403, USERS_API_URL);
   await page.goto('/');
   await waitForPublicShellReady(page);
 });
@@ -14,7 +17,7 @@ test('anonymous visitor sees the home without unexpected errors', async ({ page,
 test('draft exposes its boundary and uses the approved primary color', async ({ page, forestApi, pageQuality }) => {
   expect(forestApi).toBeDefined();
   expect(pageQuality).toBeDefined();
-  pageQuality.allowConsoleError(/^Failed to load resource: the server responded with a status of 403 \(Forbidden\)$/);
+  pageQuality.allowConsoleError(ANONYMOUS_403, USERS_API_URL);
   await page.goto('/');
   await expect(page.getByText('로컬 초안', { exact: true })).toBeVisible();
   const cta = page.getByRole('link', { name: '프로그램 참여' }).first();
@@ -24,7 +27,7 @@ test('draft exposes its boundary and uses the approved primary color', async ({ 
 
 test('hero makes program participation primary and never auto-advances', async ({ page, forestApi, pageQuality }) => {
   expect(pageQuality).toBeDefined();
-  pageQuality.allowConsoleError(/^Failed to load resource: the server responded with a status of 403 \(Forbidden\)$/);
+  pageQuality.allowConsoleError(ANONYMOUS_403, USERS_API_URL);
   forestApi.setData({
     banner: { ...publicHomeData.banner, banners: [
       publicHomeData.banner.banners[0],
@@ -46,7 +49,7 @@ test('desktop navigation has five groups, keyboard submenu access, and active pa
   test.skip(testInfo.project.name !== 'desktop', 'desktop navigation only');
   expect(forestApi).toBeDefined();
   expect(pageQuality).toBeDefined();
-  pageQuality.allowConsoleError(/^Failed to load resource: the server responded with a status of 403 \(Forbidden\)$/);
+  pageQuality.allowConsoleError(ANONYMOUS_403, USERS_API_URL);
   await page.goto('/news/notice');
   const nav = page.getByRole('navigation', { name: '주요 메뉴' });
   await expect(nav.locator(':scope > ul > li > a')).toHaveCount(5);
@@ -58,11 +61,27 @@ test('desktop navigation has five groups, keyboard submenu access, and active pa
   expect((await nav.getByRole('link', { name: '공지사항' }).boundingBox()).height).toBeGreaterThanOrEqual(48);
 });
 
+test('desktop navigation keeps the focused submenu open after the pointer leaves', async ({ page, pageQuality }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'desktop navigation only');
+  pageQuality.allowConsoleError(ANONYMOUS_403, USERS_API_URL);
+  await page.goto('/news/notice');
+  const nav = page.getByRole('navigation', { name: '주요 메뉴' });
+  const news = nav.getByRole('link', { name: '소식', exact: true });
+  await news.hover();
+  await news.focus();
+  await page.keyboard.press('Tab');
+  const notice = nav.getByRole('link', { name: '공지사항' });
+  await expect(notice).toBeFocused();
+  await page.mouse.move(0, 0);
+  await expect(notice).toBeVisible();
+  await expect(notice).toBeFocused();
+});
+
 test('mobile keyboard menu preserves nested boards and restores focus', async ({ page, forestApi, pageQuality }, testInfo) => {
   test.skip(testInfo.project.name !== 'mobile', 'mobile drawer only');
   expect(forestApi).toBeDefined();
   expect(pageQuality).toBeDefined();
-  pageQuality.allowConsoleError(/^Failed to load resource: the server responded with a status of 403 \(Forbidden\)$/);
+  pageQuality.allowConsoleError(ANONYMOUS_403, USERS_API_URL);
   await page.goto('/');
   await waitForPublicShellReady(page);
   const trigger = page.getByRole('button', { name: '전체 메뉴 열기' });
@@ -83,7 +102,7 @@ test('mobile keyboard menu preserves nested boards and restores focus', async ({
 test('skip link moves keyboard focus to main content', async ({ page, forestApi, pageQuality }) => {
   expect(forestApi).toBeDefined();
   expect(pageQuality).toBeDefined();
-  pageQuality.allowConsoleError(/^Failed to load resource: the server responded with a status of 403 \(Forbidden\)$/);
+  pageQuality.allowConsoleError(ANONYMOUS_403, USERS_API_URL);
   await page.goto('/');
   await waitForPublicShellReady(page);
   await page.keyboard.press('Tab');
@@ -96,7 +115,7 @@ test('skip link moves keyboard focus to main content', async ({ page, forestApi,
 test('home presents the approved task order and only available program facts', async ({ page, forestApi, pageQuality }) => {
   expect(forestApi).toBeDefined();
   expect(pageQuality).toBeDefined();
-  pageQuality.allowConsoleError(/^Failed to load resource: the server responded with a status of 403 \(Forbidden\)$/);
+  pageQuality.allowConsoleError(ANONYMOUS_403, USERS_API_URL);
   await page.goto('/');
   await waitForPublicHomeReady(page);
   const headings = await page.locator('main h2').allTextContents();
@@ -114,7 +133,7 @@ test('home presents the approved task order and only available program facts', a
 
 test('zero maximum participants is described as unlimited', async ({ page, forestApi, pageQuality }) => {
   expect(pageQuality).toBeDefined();
-  pageQuality.allowConsoleError(/^Failed to load resource: the server responded with a status of 403 \(Forbidden\)$/);
+  pageQuality.allowConsoleError(ANONYMOUS_403, USERS_API_URL);
   forestApi.setData({
     programs: [{ ...publicHomeData.programs[0], maxParticipants: 0 }],
   });
@@ -125,7 +144,7 @@ test('zero maximum participants is described as unlimited', async ({ page, fores
 test('invalid route explains the error instead of silently redirecting', async ({ page, forestApi, pageQuality }) => {
   expect(forestApi).toBeDefined();
   expect(pageQuality).toBeDefined();
-  pageQuality.allowConsoleError(/^Failed to load resource: the server responded with a status of 403 \(Forbidden\)$/);
+  pageQuality.allowConsoleError(ANONYMOUS_403, USERS_API_URL);
   await page.goto('/does-not-exist');
   await expect(page).toHaveURL(/does-not-exist/);
   await expect(page.getByRole('heading', { name: '페이지를 찾을 수 없습니다' })).toBeVisible();
@@ -136,7 +155,7 @@ test('invalid route explains the error instead of silently redirecting', async (
 test('home links arrive at the three approved existing destinations', async ({ page, forestApi, pageQuality }) => {
   expect(forestApi).toBeDefined();
   expect(pageQuality).toBeDefined();
-  pageQuality.allowConsoleError(/^Failed to load resource: the server responded with a status of 403 \(Forbidden\)$/);
+  pageQuality.allowConsoleError(ANONYMOUS_403, USERS_API_URL);
   await page.goto('/');
   await waitForPublicHomeReady(page);
   await page.getByRole('link', { name: '프로그램 참여' }).first().click();
@@ -160,7 +179,7 @@ test('home links arrive at the three approved existing destinations', async ({ p
 test('home has no critical or serious axe findings', async ({ page, forestApi, pageQuality }) => {
   expect(forestApi).toBeDefined();
   expect(pageQuality).toBeDefined();
-  pageQuality.allowConsoleError(/^Failed to load resource: the server responded with a status of 403 \(Forbidden\)$/);
+  pageQuality.allowConsoleError(ANONYMOUS_403, USERS_API_URL);
   await page.goto('/');
   await waitForPublicHomeReady(page);
   const results = await new AxeBuilder({ page }).analyze();
@@ -171,7 +190,7 @@ test('desktop content reflows at the 720 CSS pixel equivalent of 200 percent zoo
   test.skip(testInfo.project.name !== 'desktop', '1440 desktop at 200 percent is 720 CSS pixels');
   expect(forestApi).toBeDefined();
   expect(pageQuality).toBeDefined();
-  pageQuality.allowConsoleError(/^Failed to load resource: the server responded with a status of 403 \(Forbidden\)$/);
+  pageQuality.allowConsoleError(ANONYMOUS_403, USERS_API_URL);
   await page.setViewportSize({ width: 720, height: 900 });
   await page.goto('/');
   await waitForPublicHomeReady(page);
@@ -183,7 +202,7 @@ test('mobile drawer honors reduced motion', async ({ page, forestApi, pageQualit
   test.skip(testInfo.project.name !== 'mobile', 'mobile drawer only');
   expect(forestApi).toBeDefined();
   expect(pageQuality).toBeDefined();
-  pageQuality.allowConsoleError(/^Failed to load resource: the server responded with a status of 403 \(Forbidden\)$/);
+  pageQuality.allowConsoleError(ANONYMOUS_403, USERS_API_URL);
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/');
   await waitForPublicShellReady(page);
@@ -197,7 +216,7 @@ test('draft status strip stays in document flow above narrow main content', asyn
   test.skip(testInfo.project.name === 'desktop', 'tablet and mobile regression only');
   expect(forestApi).toBeDefined();
   expect(pageQuality).toBeDefined();
-  pageQuality.allowConsoleError(/^Failed to load resource: the server responded with a status of 403 \(Forbidden\)$/);
+  pageQuality.allowConsoleError(ANONYMOUS_403, USERS_API_URL);
   await page.goto('/');
   await waitForPublicHomeReady(page);
   const status = page.getByRole('status');
@@ -218,7 +237,7 @@ test('draft status strip stays in document flow above narrow main content', asyn
 test('public draft matches the reviewed responsive baseline', async ({ page, forestApi, pageQuality }, testInfo) => {
   expect(forestApi).toBeDefined();
   expect(pageQuality).toBeDefined();
-  pageQuality.allowConsoleError(/^Failed to load resource: the server responded with a status of 403 \(Forbidden\)$/);
+  pageQuality.allowConsoleError(ANONYMOUS_403, USERS_API_URL);
   await page.goto('/');
   await waitForPublicHomeReady(page);
   await expect(page).toHaveScreenshot(`forest-public-home-${testInfo.project.name}.png`, { fullPage: true, animations: 'disabled' });

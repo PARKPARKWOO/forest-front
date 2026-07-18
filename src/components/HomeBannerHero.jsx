@@ -129,7 +129,7 @@ export default function HomeBannerHero({ banner, isPreview = false, className = 
               text={banner.secondaryButtonText}
               link={banner.secondaryButtonLink}
               isPreview={isPreview}
-              className="inline-flex min-h-12 items-center justify-center rounded-full bg-forest-primary px-8 py-3 text-lg font-semibold text-white transition-colors duration-300 hover:bg-forest-strong"
+              className="bg-emerald-700/90 text-white text-base md:text-lg px-8 py-3 rounded-full font-semibold hover:bg-emerald-800 transition-colors duration-300 border border-emerald-300/70"
             />
           </div>
         </div>

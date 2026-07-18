@@ -29,7 +29,7 @@ const DEFAULT_HOME_BANNER = {
   primaryButtonText: '소개 보기',
   primaryButtonLink: '/intro',
   secondaryButtonText: '프로그램 참여',
-  secondaryButtonLink: '/programs',
+  secondaryButtonLink: '/programs/participate',
   sideTitle: '이번 달 추천 프로그램',
   sideDescription: '숲해설가 양성교육 · 시민 자원봉사 모집 중',
 };
