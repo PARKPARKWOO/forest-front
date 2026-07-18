@@ -19,11 +19,21 @@ export function watchPageQuality(page) {
       allowedConsoleErrors.push({ textPattern, urlPattern });
     },
     assertClean() {
-      const unexpected = errors.filter(({ type, text, url }) => (
-        type !== 'console' || !allowedConsoleErrors.some(({ textPattern, urlPattern }) => (
-          textPattern.test(text) && (urlPattern === undefined || urlPattern.test(url))
-        ))
-      ));
+      const remainingAllowances = allowedConsoleErrors.map((allowance) => ({
+        ...allowance,
+        remaining: 1,
+      }));
+      const unexpected = errors.filter(({ type, text, url }) => {
+        if (type !== 'console') return true;
+        const allowance = remainingAllowances.find(({ textPattern, urlPattern, remaining }) => (
+          remaining > 0
+          && textPattern.test(text)
+          && (urlPattern === undefined || urlPattern.test(url))
+        ));
+        if (!allowance) return true;
+        allowance.remaining -= 1;
+        return false;
+      });
       expect(
         unexpected,
         unexpected.map(({ type, text, url }) => `${type}: ${text}${url ? ` (${url})` : ''}`).join('\n'),
