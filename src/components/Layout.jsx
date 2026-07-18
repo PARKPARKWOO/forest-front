@@ -7,7 +7,7 @@ import daumLogo from '../assets/daum.png';
 import facebookLogo from '../assets/facebook.png';
 import logo from '../assets/logo.png';
 import { useAuth } from '../contexts/AuthContext';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { clearPendingNavigation } from '../utils/pendingNavigation';
 import {
   clearAllProgramApplicationDrafts,
@@ -16,158 +16,16 @@ import {
 import useFocusTrap from '../hooks/useFocusTrap';
 import LoginOptions from './LoginOptions';
 import DraftModeBadge from './DraftModeBadge';
-
-const STATIC_CATEGORIES = [
-  {
-    id: 'intro',
-    name: '소개',
-    path: '/intro',
-    children: [
-      { id: 'intro-about', name: '전북생명의숲은!', path: '/intro/about' },
-      { id: 'intro-people', name: '함께하는이들', path: '/intro/people' },
-      { id: 'intro-activities', name: '주요활동', path: '/intro/activities' },
-      { id: 'intro-location', name: '오시는 길', path: '/intro/location' },
-    ],
-  },
-  {
-    id: 'programs',
-    name: '프로그램 신청',
-    path: '/programs',
-    children: [
-      { id: 'programs-participate', name: '참여 프로그램', path: '/programs/participate' },
-      { id: 'programs-guide', name: '숲 해설가 양성교육', path: '/programs/guide' },
-      { id: 'programs-volunteer', name: '자원봉사활동 신청', path: '/programs/volunteer' },
-    ],
-  },
-  {
-    id: 'news',
-    name: '소식',
-    path: '/news',
-    children: [
-      { id: 'news-notice', name: '공지사항', path: '/news/notice' },
-      { id: 'news-activities', name: '전북생명의숲 활동보기', path: '/news/activities' },
-    ],
-  },
-  {
-    id: 'resources',
-    name: '자료실',
-    path: '/resources',
-    children: [
-      { id: 'resources-documents', name: '문서자료실', path: '/resources/documents' },
-      { id: 'resources-jbforest', name: '전북생명의숲자료실', path: '/resources/jbforest' },
-    ],
-  },
-  {
-    id: 'donation',
-    name: '후원하기',
-    path: '/donation',
-    children: [
-      { id: 'donation-individual', name: '후원 신청', path: '/donation/individual' },
-    ],
-  },
-  {
-    id: 'esg',
-    name: '기업 사회 공헌활동',
-    path: '/esg',
-    children: [
-      { id: 'esg-activities', name: '기업 ESG 사회 공헌활동', path: '/esg/activities' },
-      { id: 'esg-report', name: '기업 ESH 보고서', path: '/esg/report' },
-    ],
-  },
-];
-
-const getCategoryPath = (category, categoryType) => (
-  categoryType === 'dynamic' ? `/category/${category.id}` : category.path
-);
-
-function MobileCategoryItem({
-  category,
-  categoryType,
-  pathname,
-  expandedCategories,
-  onToggle,
-  onNavigate,
-}) {
-  const categoryPath = getCategoryPath(category, categoryType);
-  const categoryKey = `${categoryType}-${category.id}`;
-  const panelId = `mobile-category-${categoryKey.replace(/[^a-zA-Z0-9_-]/g, '-')}`;
-  const hasChildren = category.children?.length > 0;
-  const isExpanded = Boolean(expandedCategories[categoryKey]);
-  const isCurrentPage = pathname === categoryPath;
-  const isActivePath = isCurrentPage || pathname.startsWith(`${categoryPath}/`);
-
-  return (
-    <li>
-      <div className={`flex items-stretch rounded-lg ${isActivePath ? 'bg-green-50' : ''}`}>
-        <Link
-          to={categoryPath}
-          aria-current={isCurrentPage ? 'page' : undefined}
-          className={`flex min-h-12 flex-1 items-center px-4 py-3 text-lg font-medium
-            transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2
-            focus-visible:ring-inset focus-visible:ring-green-700
-            ${isActivePath ? 'text-green-800' : 'text-gray-800 hover:bg-gray-50 hover:text-green-800'}`}
-          onClick={() => onNavigate(category.id)}
-        >
-          {category.name}
-        </Link>
-
-        {hasChildren && (
-          <button
-            type="button"
-            aria-label={`${category.name} 하위 메뉴 ${isExpanded ? '접기' : '펼치기'}`}
-            aria-expanded={isExpanded}
-            aria-controls={panelId}
-            className="flex min-h-12 min-w-12 items-center justify-center rounded-lg text-gray-600
-              hover:bg-green-100 hover:text-green-800 focus-visible:outline-none focus-visible:ring-2
-              focus-visible:ring-inset focus-visible:ring-green-700"
-            onClick={() => onToggle(categoryKey)}
-          >
-            <svg
-              aria-hidden="true"
-              className={`h-5 w-5 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
-              viewBox="0 0 20 20"
-              fill="currentColor"
-            >
-              <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
-            </svg>
-          </button>
-        )}
-      </div>
-
-      {hasChildren && (
-        <ul
-          id={panelId}
-          className={`ml-4 border-l-2 border-green-100 pl-2 ${isExpanded ? 'block' : 'hidden'}`}
-        >
-          {category.children.map((subCategory) => (
-            <MobileCategoryItem
-              key={`${categoryType}-${subCategory.id}`}
-              category={subCategory}
-              categoryType={categoryType}
-              pathname={pathname}
-              expandedCategories={expandedCategories}
-              onToggle={onToggle}
-              onNavigate={onNavigate}
-            />
-          ))}
-        </ul>
-      )}
-    </li>
-  );
-}
+import DesktopNav from './layout/DesktopNav';
+import MobileNav from './layout/MobileNav';
+import { buildPublicNavigation } from '../navigation/publicNavigation';
 
 export default function Layout({ children, showLoginModal, setShowLoginModal }) {
   const { isAuthenticated, logout, isAdmin, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [hoveredCategory, setHoveredCategory] = useState(null);
-  const [selectedCategoryId, setSelectedCategoryId] = useState(null);
-  const [hideTimeout, setHideTimeout] = useState(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [expandedMobileCategories, setExpandedMobileCategories] = useState({});
   const mobileMenuButtonRef = useRef(null);
-  const mobileNavigationRef = useRef(null);
-  const mobileMenuCloseButtonRef = useRef(null);
   const loginCloseButtonRef = useRef(null);
   const loginDialogRef = useRef(null);
 
@@ -175,6 +33,11 @@ export default function Layout({ children, showLoginModal, setShowLoginModal }) 
     queryKey: ['categories'],
     queryFn: fetchCategories,
   });
+
+  const navigationItems = useMemo(
+    () => buildPublicNavigation(Array.isArray(categories) ? categories : []),
+    [categories],
+  );
 
   const handleLogout = async () => {
     try {
@@ -189,7 +52,6 @@ export default function Layout({ children, showLoginModal, setShowLoginModal }) 
 
   const closeMobileMenu = () => {
     setIsMobileMenuOpen(false);
-    setExpandedMobileCategories({});
   };
 
   const closeLoginModal = () => {
@@ -197,12 +59,6 @@ export default function Layout({ children, showLoginModal, setShowLoginModal }) 
     setShowLoginModal(false);
   };
 
-  useFocusTrap({
-    containerRef: mobileNavigationRef,
-    initialFocusRef: mobileMenuCloseButtonRef,
-    isActive: isMobileMenuOpen,
-    onEscape: closeMobileMenu,
-  });
   useFocusTrap({
     containerRef: loginDialogRef,
     initialFocusRef: loginCloseButtonRef,
@@ -215,60 +71,9 @@ export default function Layout({ children, showLoginModal, setShowLoginModal }) 
     await handleLogout();
   };
 
-  const handleMobileNavigate = (categoryId) => {
-    setSelectedCategoryId(categoryId);
-    closeMobileMenu();
-  };
-
-  const toggleMobileCategory = (categoryKey) => {
-    setExpandedMobileCategories((current) => ({
-      ...current,
-      [categoryKey]: !current[categoryKey],
-    }));
-  };
-
   useEffect(() => {
     clearExpiredProgramApplicationDrafts();
   }, []);
-
-  useEffect(() => {
-    if (!isMobileMenuOpen) {
-      return undefined;
-    }
-
-    const previousOverflow = document.body.style.overflow;
-    const desktopMediaQuery = window.matchMedia('(min-width: 1024px)');
-
-    const closeForDesktop = (event) => {
-      if (event.matches) {
-        setIsMobileMenuOpen(false);
-        setExpandedMobileCategories({});
-      }
-    };
-
-    document.body.style.overflow = 'hidden';
-    desktopMediaQuery.addEventListener('change', closeForDesktop);
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      desktopMediaQuery.removeEventListener('change', closeForDesktop);
-    };
-  }, [isMobileMenuOpen]);
-
-  const handleMouseEnter = (categoryId) => {
-    if (hideTimeout) {
-      clearTimeout(hideTimeout);
-      setHideTimeout(null);
-    }
-    setHoveredCategory(categoryId);
-  };
-
-  const handleMouseLeave = () => {
-    const timeout = setTimeout(() => {
-      setHoveredCategory(null);
-    }, 150); // 150ms 지연
-    setHideTimeout(timeout);
-  };
 
   const isHomeRoute = location.pathname === '/';
   const mainClassName = isHomeRoute
@@ -277,6 +82,12 @@ export default function Layout({ children, showLoginModal, setShowLoginModal }) 
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
+      <div
+        aria-hidden={isMobileMenuOpen}
+        inert={isMobileMenuOpen ? '' : undefined}
+        className={isMobileMenuOpen ? 'relative z-0' : undefined}
+      >
+      <a href="#main-content" className="skip-link">본문으로 건너뛰기</a>
       <DraftModeBadge />
       {/* 소셜 미디어 사이드 네비게이션 */}
       <div className="fixed right-6 top-1/2 z-40 hidden -translate-y-1/2 flex-col gap-3 lg:flex">
@@ -415,288 +226,11 @@ export default function Layout({ children, showLoginModal, setShowLoginModal }) 
           </div>
         </div>
 
-        {/* Category Navigation */}
-        <nav aria-label="주요 메뉴" className="hidden border-b border-gray-200/80 bg-white/70 lg:block">
-          <div className="container mx-auto px-6">
-            <ul className="flex justify-center space-x-2">
-              {/* 정적 카테고리 */}
-              {STATIC_CATEGORIES.map((category) => (
-                <li 
-                  key={category.id}
-                  className="relative group"
-                  onMouseEnter={() => handleMouseEnter(category.id)}
-                  onMouseLeave={handleMouseLeave}
-                  onFocus={() => handleMouseEnter(category.id)}
-                  onBlur={(event) => {
-                    if (!event.currentTarget.contains(event.relatedTarget)) {
-                      setHoveredCategory(null);
-                    }
-                  }}
-                >
-                  <Link
-                    to={category.path}
-                    aria-current={location.pathname === category.path ? 'page' : undefined}
-                    className={`block px-4 py-4 text-gray-600 hover:text-green-700 
-                      hover:bg-green-50 transition-colors duration-200
-                      ${category.children?.length > 0 ? 'pr-8' : ''}
-                    `}
-                  >
-                    <span className="relative">
-                      {category.name}
-                      <span className="absolute -bottom-1 left-0 w-full h-0.5 bg-green-600 
-                        transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300" />
-                    </span>
-                    {category.children?.length > 0 && (
-                      <span className="absolute right-2 top-1/2 -translate-y-1/2 transform 
-                        group-hover:translate-y-0 group-hover:rotate-180 transition-all duration-300">
-                        <svg 
-                          className="w-4 h-4 fill-current text-gray-400 group-hover:text-green-600" 
-                          viewBox="0 0 20 20"
-                        >
-                          <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/>
-                        </svg>
-                      </span>
-                    )}
-                  </Link>
-                  
-                  {/* 하위 카테고리 드롭다운 */}
-                  {hoveredCategory === category.id && category.children?.length > 0 && (
-                    <div 
-                      className="absolute left-1/2 -translate-x-1/2 top-full mt-0 
-                        bg-white rounded-xl shadow-lg shadow-green-100/50 min-w-[220px] 
-                        transform opacity-0 -translate-y-2 group-hover:translate-y-0 
-                        group-hover:opacity-100 group-focus-within:translate-y-0
-                        group-focus-within:opacity-100 transition-all duration-300 ease-out
-                        border border-gray-100/80 overflow-hidden z-50"
-                      onMouseEnter={() => handleMouseEnter(category.id)}
-                      onMouseLeave={handleMouseLeave}
-                    >
-                      <ul className="py-2">
-                        {category.children.map((subCategory) => (
-                          <li key={subCategory.id}>
-                            <Link
-                              to={subCategory.path}
-                              aria-current={location.pathname === subCategory.path ? 'page' : undefined}
-                              className="block w-full text-left px-6 py-3 text-gray-600
-                                hover:text-green-700 hover:bg-green-50/50 text-sm
-                                transition-all duration-200 ease-out"
-                              onClick={() => setSelectedCategoryId(subCategory.id)}
-                            >
-                              {subCategory.name}
-                            </Link>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </li>
-              ))}
-
-              {/* 구분선 */}
-              <li className="border-l border-gray-200 mx-2"></li>
-
-              {/* 동적 카테고리 */}
-              {isLoading ? (
-                <li className="py-4 text-gray-600 animate-pulse">카테고리 로딩중...</li>
-              ) : (
-                categories?.map((category) => (
-                  <li 
-                    key={category.id}
-                    className="relative group"
-                    onMouseEnter={() => handleMouseEnter(category.id)}
-                    onMouseLeave={handleMouseLeave}
-                    onFocus={() => handleMouseEnter(category.id)}
-                    onBlur={(event) => {
-                      if (!event.currentTarget.contains(event.relatedTarget)) {
-                        setHoveredCategory(null);
-                      }
-                    }}
-                  >
-                    <Link
-                      to={`/category/${category.id}`}
-                      aria-current={location.pathname === `/category/${category.id}` ? 'page' : undefined}
-                      className={`block px-6 py-4 text-base font-medium rounded-md
-                        transition-all duration-300 ease-out group-hover:bg-gray-50
-                        ${selectedCategoryId === category.id 
-                          ? 'text-green-700 font-semibold' 
-                          : 'text-gray-700 hover:text-green-700'
-                        }
-                        ${category.children?.length > 0 ? 'pr-8' : ''}
-                      `}
-                      onClick={() => setSelectedCategoryId(category.id)}
-                    >
-                      <span className="relative">
-                        {category.name}
-                        <span className="absolute -bottom-1 left-0 w-full h-0.5 bg-green-600 
-                          transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300" />
-                      </span>
-                      {category.children?.length > 0 && (
-                        <span className="absolute right-2 top-1/2 -translate-y-1/2 transform 
-                          group-hover:translate-y-0 group-hover:rotate-180 transition-all duration-300">
-                          <svg 
-                            className="w-4 h-4 fill-current text-gray-400 group-hover:text-green-600" 
-                            viewBox="0 0 20 20"
-                          >
-                            <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/>
-                          </svg>
-                        </span>
-                      )}
-                    </Link>
-                    
-                    {/* 하위 카테고리 드롭다운 */}
-                    {hoveredCategory === category.id && category.children?.length > 0 && (
-                      <div 
-                        className="absolute left-1/2 -translate-x-1/2 top-full mt-0 
-                          bg-white rounded-xl shadow-lg shadow-green-100/50 min-w-[220px] 
-                          transform opacity-0 -translate-y-2 group-hover:translate-y-0 
-                          group-hover:opacity-100 group-focus-within:translate-y-0
-                          group-focus-within:opacity-100 transition-all duration-300 ease-out
-                          border border-gray-100/80 overflow-hidden z-50"
-                        onMouseEnter={() => handleMouseEnter(category.id)}
-                        onMouseLeave={handleMouseLeave}
-                      >
-                        <ul className="py-2">
-                          {category.children.map((subCategory) => (
-                            <li key={subCategory.id}>
-                              <Link
-                                to={`/category/${subCategory.id}`}
-                                aria-current={location.pathname === `/category/${subCategory.id}` ? 'page' : undefined}
-                                className="block w-full text-left px-6 py-3 text-gray-600
-                                  hover:text-green-700 hover:bg-green-50/50 text-sm
-                                  transition-all duration-200 ease-out"
-                                onClick={() => setSelectedCategoryId(subCategory.id)}
-                              >
-                                {subCategory.name}
-                              </Link>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </li>
-                ))
-              )}
-            </ul>
-          </div>
-        </nav>
+        <DesktopNav items={navigationItems} pathname={location.pathname} />
 
       </header>
 
-      {isMobileMenuOpen && (
-          <div className="fixed inset-0 z-[60] lg:hidden">
-            <button
-              type="button"
-              tabIndex={-1}
-              aria-hidden="true"
-              className="absolute inset-0 z-0 h-full w-full cursor-default bg-black/40"
-              onClick={closeMobileMenu}
-            />
-
-            <nav
-              id="mobile-navigation"
-              ref={mobileNavigationRef}
-              tabIndex={-1}
-              aria-label="모바일 주요 메뉴"
-              className="absolute inset-y-0 right-0 z-10 w-full max-w-md overflow-y-auto
-                overscroll-contain bg-white shadow-2xl focus:outline-none"
-            >
-              <div className="flex items-center justify-between border-b border-gray-200 px-4 py-2">
-                <p className="text-lg font-bold text-green-900">전체 메뉴</p>
-                <button
-                  ref={mobileMenuCloseButtonRef}
-                  type="button"
-                  onClick={closeMobileMenu}
-                  aria-label="모바일 메뉴 닫기"
-                  className="flex min-h-12 min-w-12 items-center justify-center rounded-lg text-2xl text-gray-700 hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-green-700"
-                >
-                  <span aria-hidden="true">✕</span>
-                </button>
-              </div>
-              <div className="border-b border-gray-200 bg-green-50 p-4">
-                {isAuthenticated && user ? (
-                  <div className="space-y-3">
-                    <p className="text-lg font-semibold text-gray-900">{user.name}님</p>
-                    <div className={`grid gap-3 ${isAdmin ? 'grid-cols-2' : 'grid-cols-1'}`}>
-                      <button
-                        type="button"
-                        className="min-h-12 rounded-lg bg-red-600 px-4 py-3 text-lg font-semibold
-                          text-white hover:bg-red-700 focus-visible:outline-none focus-visible:ring-2
-                          focus-visible:ring-red-700 focus-visible:ring-offset-2"
-                        onClick={handleMobileLogout}
-                      >
-                        로그아웃
-                      </button>
-
-                      {isAdmin && (
-                        <Link
-                          to="/admin"
-                          aria-current={location.pathname.startsWith('/admin') ? 'page' : undefined}
-                          className="flex min-h-12 items-center justify-center rounded-lg bg-green-700
-                            px-4 py-3 text-lg font-semibold text-white hover:bg-green-800
-                            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-700
-                            focus-visible:ring-offset-2"
-                          onClick={closeMobileMenu}
-                        >
-                          관리자
-                        </Link>
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    className="min-h-12 w-full rounded-lg bg-green-700 px-4 py-3 text-lg
-                      font-semibold text-white hover:bg-green-800 focus-visible:outline-none
-                      focus-visible:ring-2 focus-visible:ring-green-700 focus-visible:ring-offset-2"
-                    onClick={() => {
-                      closeMobileMenu();
-                      setShowLoginModal?.(true);
-                    }}
-                  >
-                    로그인
-                  </button>
-                )}
-              </div>
-
-              <h2 className="sr-only">전체 메뉴</h2>
-              <ul className="space-y-1 p-3">
-                {STATIC_CATEGORIES.map((category) => (
-                  <MobileCategoryItem
-                    key={`static-${category.id}`}
-                    category={category}
-                    categoryType="static"
-                    pathname={location.pathname}
-                    expandedCategories={expandedMobileCategories}
-                    onToggle={toggleMobileCategory}
-                    onNavigate={handleMobileNavigate}
-                  />
-                ))}
-
-                <li aria-hidden="true" className="my-3 border-t border-gray-200" />
-
-                {isLoading ? (
-                  <li className="flex min-h-12 items-center px-4 text-lg text-gray-600" aria-live="polite">
-                    카테고리를 불러오는 중입니다.
-                  </li>
-                ) : (
-                  categories?.map((category) => (
-                    <MobileCategoryItem
-                      key={`dynamic-${category.id}`}
-                      category={category}
-                      categoryType="dynamic"
-                      pathname={location.pathname}
-                      expandedCategories={expandedMobileCategories}
-                      onToggle={toggleMobileCategory}
-                      onNavigate={handleMobileNavigate}
-                    />
-                  ))
-                )}
-              </ul>
-            </nav>
-          </div>
-        )}
-
-      <main className={mainClassName}>
+      <main id="main-content" tabIndex="-1" className={mainClassName}>
         {children}
       </main>
 
@@ -843,6 +377,22 @@ export default function Layout({ children, showLoginModal, setShowLoginModal }) 
           </div>
         </div>
       )}
+      </div>
+
+      <MobileNav
+        isOpen={isMobileMenuOpen}
+        items={navigationItems}
+        pathname={location.pathname}
+        isLoading={isLoading}
+        auth={{ isAuthenticated, isAdmin, user }}
+        onClose={closeMobileMenu}
+        onLogin={() => {
+          closeMobileMenu();
+          setShowLoginModal?.(true);
+        }}
+        onLogout={handleMobileLogout}
+        triggerRef={mobileMenuButtonRef}
+      />
     </div>
   );
 }
