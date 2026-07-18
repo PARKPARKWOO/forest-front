@@ -2,6 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --color-brand-primary: #166534;
+  --color-brand-strong: #14532d;
+  --color-brand-surface: #f8faf5;
+  --color-accent: #b45309;
+  --color-border-subtle: #dbe5d8;
+  --color-focus-ring: #166534;
+}
+
 @layer base {
   html {
     scroll-behavior: smooth;
@@ -27,16 +36,41 @@
     font: inherit;
   }
 
-  :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
-    outline: 3px solid #15803d;
+  :focus-visible {
+    outline: 3px solid var(--color-focus-ring);
     outline-offset: 3px;
   }
 }
 
 @layer components {
+  .skip-link {
+    position: fixed;
+    left: 1rem;
+    top: 1rem;
+    z-index: 100;
+    transform: translateY(-200%);
+    border-radius: 0.5rem;
+    background: var(--color-brand-strong);
+    color: #fff;
+    padding: 0.75rem 1rem;
+  }
+
+  .skip-link:focus {
+    transform: translateY(0);
+  }
+
   .accessible-touch-target {
     min-width: 3rem;
     min-height: 3rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
 /* 

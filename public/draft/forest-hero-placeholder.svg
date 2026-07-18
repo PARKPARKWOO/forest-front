@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">전북 숲 활동 사진 자리</title>
+  <desc id="desc">승인된 지역 활동 사진으로 교체할 로컬 초안용 배경</desc>
+  <rect width="1600" height="900" fill="#14532d"/>
+  <path d="M0 650 280 390 520 610 790 300 1080 620 1320 420 1600 690V900H0Z" fill="#166534"/>
+  <circle cx="1280" cy="190" r="90" fill="#f8faf5" opacity=".78"/>
+</svg>

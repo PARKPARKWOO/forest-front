@@ -15,6 +15,7 @@ import {
 } from '../utils/programApplicationDraft';
 import useFocusTrap from '../hooks/useFocusTrap';
 import LoginOptions from './LoginOptions';
+import DraftModeBadge from './DraftModeBadge';
 
 const STATIC_CATEGORIES = [
   {
@@ -276,6 +277,7 @@ export default function Layout({ children, showLoginModal, setShowLoginModal }) 
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
+      <DraftModeBadge />
       {/* 소셜 미디어 사이드 네비게이션 */}
       <div className="fixed right-6 top-1/2 z-40 hidden -translate-y-1/2 flex-col gap-3 lg:flex">
         <a 

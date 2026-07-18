@@ -7,6 +7,12 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        forest: {
+          primary: '#166534',
+          strong: '#14532d',
+          surface: '#f8faf5',
+          accent: '#b45309',
+        },
         green: {
           50: '#f0fdf4',
           100: '#dcfce7',
