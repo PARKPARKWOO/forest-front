@@ -1,5 +1,6 @@
 import { test, expect } from './fixtures/publicTest.js';
-import { waitForPublicShellReady } from './support/publicReady.js';
+import { publicHomeData } from './fixtures/publicHomeData.js';
+import { expectReadableText, waitForPublicShellReady } from './support/publicReady.js';
 
 test('anonymous visitor sees the home without unexpected errors', async ({ page, forestApi, pageQuality }) => {
   expect(forestApi).toBeDefined();
@@ -18,6 +19,26 @@ test('draft exposes its boundary and uses the approved primary color', async ({ 
   const cta = page.getByRole('link', { name: '프로그램 참여' }).first();
   await expect(cta).toHaveCSS('background-color', 'rgb(22, 101, 52)');
   expect((await cta.boundingBox()).height).toBeGreaterThanOrEqual(48);
+});
+
+test('hero makes program participation primary and never auto-advances', async ({ page, forestApi, pageQuality }) => {
+  expect(pageQuality).toBeDefined();
+  pageQuality.allowConsoleError(/^Failed to load resource: the server responded with a status of 403 \(Forbidden\)$/);
+  forestApi.setData({
+    banner: { ...publicHomeData.banner, banners: [
+      publicHomeData.banner.banners[0],
+      { ...publicHomeData.banner.banners[0], title: '두 번째 배너' },
+    ] },
+  });
+  await page.goto('/');
+  const heading = page.getByRole('heading', { level: 1 });
+  await expect(heading).toHaveText(/숲을 지키는/);
+  await expectReadableText(page.getByText('전북생명의숲의 활동과 시민 참여 프로그램을 만나보세요.'));
+  await page.waitForTimeout(5500);
+  await expect(heading).toHaveText(/숲을 지키는/);
+  await expect(page.getByRole('link', { name: '프로그램 참여' }).first()).toHaveAttribute('href', '/programs/participate');
+  await page.getByRole('button', { name: '다음 배너' }).click();
+  await expect(heading).toHaveText('두 번째 배너');
 });
 
 test('desktop navigation has five groups, keyboard submenu access, and active parent', async ({ page, forestApi, pageQuality }, testInfo) => {

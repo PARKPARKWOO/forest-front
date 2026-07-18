@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { fetchCategories } from '../../services/categoryService';
 import { fetchPrograms } from '../../services/programService';
@@ -8,7 +8,7 @@ import { fetchPostsByCategory } from '../../services/postService';
 import { getNoticeList } from '../../services/noticeService';
 import { formatKoreanDateRange } from '../../utils/dateFormat';
 import { getHomeBanner } from '../../services/homeBannerService';
-import HomeBannerHero from '../../components/HomeBannerHero';
+import PublicHomeHero from '../../components/home/PublicHomeHero';
 import AsyncState from '../../components/AsyncState';
 
 const DEFAULT_HOME_BANNER = {
@@ -27,9 +27,6 @@ const DEFAULT_HOME_BANNER = {
   sideTitle: '이번 달 추천 프로그램',
   sideDescription: '숲해설가 양성교육 · 시민 자원봉사 모집 중',
 };
-
-const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
-const prefersReducedMotion = () => window.matchMedia?.(REDUCED_MOTION_QUERY).matches || false;
 
 export default function UserHome() {
   // 카테고리 조회
@@ -159,89 +156,11 @@ export default function UserHome() {
     return [DEFAULT_HOME_BANNER];
   }, [homeBannerData]);
 
-  const autoSlideSeconds = Math.min(
-    30,
-    Math.max(2, Number(homeBannerData?.autoSlideSeconds) || 5),
-  );
-  const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
-  const [isBannerVisible, setIsBannerVisible] = useState(true);
-
-  const moveToBanner = useCallback((nextIndex) => {
-    if (nextIndex === currentBannerIndex) {
-      return;
-    }
-    if (prefersReducedMotion()) {
-      setCurrentBannerIndex(nextIndex);
-      setIsBannerVisible(true);
-      return;
-    }
-    setIsBannerVisible(false);
-    window.setTimeout(() => {
-      setCurrentBannerIndex(nextIndex);
-      setIsBannerVisible(true);
-    }, 180);
-  }, [currentBannerIndex]);
-
-  useEffect(() => {
-    setCurrentBannerIndex(0);
-  }, [homeBanners.length]);
-
-  useEffect(() => {
-    if (homeBanners.length <= 1 || prefersReducedMotion()) {
-      return undefined;
-    }
-    const intervalId = window.setInterval(() => {
-      const nextIndex = (currentBannerIndex + 1) % homeBanners.length;
-      moveToBanner(nextIndex);
-    }, autoSlideSeconds * 1000);
-    return () => window.clearInterval(intervalId);
-  }, [homeBanners.length, autoSlideSeconds, currentBannerIndex, moveToBanner]);
-
-  const currentBanner = homeBanners[currentBannerIndex] || DEFAULT_HOME_BANNER;
-
   return (
     <div className="w-full py-2 md:py-4">
       {/* 메인 배너 */}
-      <div className="relative mb-14">
-        <div className={`transition-opacity duration-500 ${isBannerVisible ? 'opacity-100' : 'opacity-0'}`}>
-          <HomeBannerHero banner={currentBanner} />
-        </div>
-        {homeBanners.length > 1 && (
-          <>
-            <button
-              onClick={() => moveToBanner((currentBannerIndex - 1 + homeBanners.length) % homeBanners.length)}
-              className="accessible-touch-target absolute left-3 top-1/2 -translate-y-1/2 z-10 bg-white/85 hover:bg-white text-3xl text-gray-700 rounded-full w-12 h-12 shadow flex items-center justify-center"
-              aria-label="이전 배너"
-            >
-              ‹
-            </button>
-            <button
-              onClick={() => moveToBanner((currentBannerIndex + 1) % homeBanners.length)}
-              className="accessible-touch-target absolute right-3 top-1/2 -translate-y-1/2 z-10 bg-white/85 hover:bg-white text-3xl text-gray-700 rounded-full w-12 h-12 shadow flex items-center justify-center"
-              aria-label="다음 배너"
-            >
-              ›
-            </button>
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 flex items-center bg-black/25 px-1 rounded-full">
-              {homeBanners.map((_, index) => (
-                <button
-                  key={`banner-dot-${index}`}
-                  onClick={() => moveToBanner(index)}
-                  className="accessible-touch-target flex items-center justify-center rounded-full"
-                  aria-label={`${index + 1}번 배너 보기`}
-                  aria-current={currentBannerIndex === index ? 'true' : undefined}
-                >
-                  <span
-                    className={`h-2.5 rounded-full transition-all ${
-                      currentBannerIndex === index ? 'w-6 bg-white' : 'w-2.5 bg-white/60'
-                    }`}
-                    aria-hidden="true"
-                  />
-                </button>
-              ))}
-            </div>
-          </>
-        )}
+      <div className="mb-12">
+        <PublicHomeHero banners={homeBanners} />
       </div>
 
       {/* 공지사항 섹션 */}
