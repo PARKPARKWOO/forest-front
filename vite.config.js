@@ -1,25 +1,16 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import { draftApiPlugin } from './tests/draft/draftApiPlugin.js';
 
-// https://vite.dev/config/
-export default defineConfig({
-  plugins: [react()],
+export default defineConfig(({ mode }) => ({
+  plugins: [react(), ...(mode === 'draft' ? [draftApiPlugin()] : [])],
   server: {
     port: 3000,
-    proxy: {
-      '/api': {
-        target: 'http://localhost:8080',
-        changeOrigin: true,
-        secure: false,
-      }
-    }
-  },
-  define: {
-    global: 'globalThis',
-  },
-  resolve: {
-    alias: {
-      crypto: 'crypto-browserify',
+    strictPort: true,
+    proxy: mode === 'draft' ? undefined : {
+      '/api': { target: 'http://localhost:8080', changeOrigin: true, secure: false },
     },
   },
-})
+  define: { global: 'globalThis' },
+  resolve: { alias: { crypto: 'crypto-browserify' } },
+}));

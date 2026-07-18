@@ -8,7 +8,10 @@
     "build": "vite build",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
-    "tailwind:init": "tailwindcss init -p"
+    "tailwind:init": "tailwindcss init -p",
+    "draft": "vite --host 127.0.0.1 --mode draft",
+    "test:e2e:public": "playwright test tests/e2e/public-home.spec.js tests/e2e/public-home-states.spec.js",
+    "test:e2e:public:update": "playwright test tests/e2e/public-home.spec.js --update-snapshots"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.71.10",
@@ -22,7 +25,9 @@
     "zustand": "^5.0.3"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.12.1",
     "@eslint/js": "^9.21.0",
+    "@playwright/test": "^1.61.1",
     "@tailwindcss/postcss": "^4.1.2",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",

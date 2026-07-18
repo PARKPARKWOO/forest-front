@@ -26,13 +26,8 @@ export const getUserList = async (page = 1, size = 10) => {
 };
 
 export const getCurrentUser = async () => {
-  try {
-    const response = await axiosInstance.get('/users');
-    return response.data.data;
-  } catch (error) {
-    console.error('사용자 정보 조회 중 오류:', error);
-    throw error;
-  }
+  const response = await axiosInstance.get('/users');
+  return response.data.data;
 };
 
 export const getAuthorities = async () => {
@@ -72,4 +67,4 @@ export const revokeToken = async () => {
     throw new Error(`revoke failed: ${response.status}`);
   }
   return response.json();
-}; 
+};

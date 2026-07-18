@@ -43,7 +43,9 @@ export function AuthProvider({ children }) {
         hadAuthenticatedSessionRef.current = false;
         window.location.assign('/login');
       }
-      console.error('사용자 정보 로드 실패:', error);
+      if (!isSessionExpired) {
+        console.error('사용자 정보 로드 실패:', error);
+      }
       setIsAuthenticated(false);
       setUser(null);
       setIsAdmin(false);
