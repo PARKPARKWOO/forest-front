@@ -6,6 +6,9 @@ export function resolvePublicDraftResponse(method, rawUrl, overrides = {}) {
   const path = url.pathname.replace(/^\/api\/v1/, '');
   if (method !== 'GET') return { status: 405, body: { message: `draft blocks ${method} ${path}` } };
   if (path === '/users') return { status: data.userStatus, body: { message: 'anonymous' } };
+  if (path === '/organization') return { status: 200, body: { data: data.organization } };
+  const staticKey = path.match(/^\/static-content\/([^/]+)$/)?.[1];
+  if (staticKey) return { status: 200, body: { data: data.staticContents?.[staticKey] ?? null } };
   if (path === '/categories') return { status: 200, body: { data: data.categories } };
   if (path === '/home-banner') return { status: 200, body: { data: data.banner } };
   if (path === '/program/information') {

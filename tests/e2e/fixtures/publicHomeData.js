@@ -1,7 +1,13 @@
+import { organizationFixture } from './organizationDirectoryData.js';
+
 const image = '/draft/forest-hero-placeholder.svg';
 
 export const publicHomeData = {
   userStatus: 403,
+  organization: organizationFixture,
+  staticContents: {
+    'intro-people': null,
+  },
   categories: [
     { id: '101', name: '숲 이야기', children: [
       { id: '111', name: '지역 숲 기록', children: [] },
