@@ -54,6 +54,43 @@ test('draft validation reports deterministic field paths', () => {
   );
 });
 
+test('draft validation reports a missing parent group at the child field', () => {
+  const missingParentId = '99999999-9999-4999-8999-999999999999';
+  const invalid = {
+    ...baseDraft,
+    groups: baseDraft.groups.map((group) => (
+      group.id === G3 ? { ...group, parentGroupId: missingParentId } : group
+    )),
+  };
+
+  assert.deepEqual(validateOrganizationDraft(invalid).map(({ path }) => path), ['groups.2.parentGroupId']);
+});
+
+test('draft validation allows eight hierarchy levels and rejects the ninth node', () => {
+  const ids = Array.from({ length: 9 }, (_, index) => (
+    `${String(index + 1).padStart(8, '0')}-0000-4000-8000-${String(index + 1).padStart(12, '0')}`
+  ));
+  const groups = ids.map((id, index) => ({
+    id,
+    name: `계층 ${index + 1}`,
+    description: '',
+    parentGroupId: ids[index - 1] ?? null,
+    displayOrder: 10,
+    enabled: true,
+  }));
+  const draft = (selectedGroups) => ({ schemaVersion: 1, groups: selectedGroups, people: [], memberships: [] });
+
+  assert.deepEqual(validateOrganizationDraft(draft(groups.slice(0, 8))), []);
+  assert.deepEqual(validateOrganizationDraft(draft(groups)).map(({ path }) => path), ['groups.8.parentGroupId']);
+});
+
+test('draft validation treats a missing affiliation override as inheritance', () => {
+  const membership = { ...baseDraft.memberships[0] };
+  delete membership.affiliationOverride;
+
+  assert.deepEqual(validateOrganizationDraft({ ...baseDraft, memberships: [membership] }), []);
+});
+
 test('moving a group changes only siblings and normalizes orders by tens', () => {
   const moved = moveGroup(baseDraft, G2, 'up');
   assert.deepEqual(moved.groups.filter(({ parentGroupId }) => parentGroupId === null).map(({ id, displayOrder }) => [id, displayOrder]), [[G2, 10], [G1, 20]]);
@@ -85,4 +122,15 @@ test('parent candidates exclude self and every descendant', () => {
 
 test('UUID creation returns version four IDs', () => {
   assert.match(createUuid(), /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+});
+
+test('UUID creation fails safely when cryptographic APIs are unavailable', () => {
+  const cryptoDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'crypto');
+  Object.defineProperty(globalThis, 'crypto', { configurable: true, value: undefined });
+  try {
+    assert.throws(() => createUuid(), /안전한 UUID/);
+  } finally {
+    if (cryptoDescriptor) Object.defineProperty(globalThis, 'crypto', cryptoDescriptor);
+    else delete globalThis.crypto;
+  }
 });

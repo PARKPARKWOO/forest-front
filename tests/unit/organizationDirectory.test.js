@@ -66,6 +66,27 @@ test('source resolver implements configured drift legacy 404 and 500 rules', () 
   assert.equal(choosePeopleSource({ organizationStatus: 'error', organizationErrorStatus: 500, legacyStatus: 'success', hasLegacy: false }), 'error');
 });
 
+test('organization errors resolve the complete legacy and fallback matrix', () => {
+  const cases = [
+    { organizationErrorStatus: 404, legacyStatus: 'loading', hasLegacy: false, expected: 'loading' },
+    { organizationErrorStatus: 404, legacyStatus: 'success', hasLegacy: true, expected: 'legacy' },
+    { organizationErrorStatus: 404, legacyStatus: 'success', hasLegacy: false, expected: 'hardcoded' },
+    { organizationErrorStatus: 404, legacyStatus: 'error', hasLegacy: false, expected: 'hardcoded' },
+    { organizationErrorStatus: 500, legacyStatus: 'loading', hasLegacy: false, expected: 'loading' },
+    { organizationErrorStatus: 500, legacyStatus: 'success', hasLegacy: true, expected: 'legacy' },
+    { organizationErrorStatus: 500, legacyStatus: 'success', hasLegacy: false, expected: 'error' },
+    { organizationErrorStatus: 500, legacyStatus: 'error', hasLegacy: false, expected: 'error' },
+    { organizationErrorStatus: undefined, legacyStatus: 'loading', hasLegacy: false, expected: 'loading' },
+    { organizationErrorStatus: undefined, legacyStatus: 'success', hasLegacy: true, expected: 'legacy' },
+    { organizationErrorStatus: undefined, legacyStatus: 'success', hasLegacy: false, expected: 'error' },
+    { organizationErrorStatus: undefined, legacyStatus: 'error', hasLegacy: false, expected: 'error' },
+  ];
+
+  cases.forEach(({ expected, ...input }) => {
+    assert.equal(choosePeopleSource({ organizationStatus: 'error', ...input }), expected);
+  });
+});
+
 test('configured data does not wait for or fail with an irrelevant legacy request', () => {
   assert.equal(choosePeopleSource({ organization: configured(true, false), organizationStatus: 'success', legacyStatus: 'error', hasLegacy: false }), 'organization');
 });

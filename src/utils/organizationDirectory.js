@@ -15,7 +15,11 @@ export function choosePeopleSource({
   hasLegacy,
 }) {
   if (organizationStatus === 'loading') return 'loading';
-  if (organizationStatus === 'error') return organizationErrorStatus === 404 ? 'hardcoded' : 'error';
+  if (organizationStatus === 'error') {
+    if (legacyStatus === 'loading') return 'loading';
+    if (legacyStatus === 'success' && hasLegacy) return 'legacy';
+    return organizationErrorStatus === 404 ? 'hardcoded' : 'error';
+  }
   if (organizationStatus !== 'success' || !organization) return 'loading';
   if (organization.configured && !organization.legacyContentDrift) return 'organization';
   if (legacyStatus === 'loading') return 'loading';

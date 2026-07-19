@@ -62,21 +62,35 @@ export function validateOrganizationDraft(snapshot) {
   });
 
   const groupsById = new Map(groups.filter(Boolean).map((group) => [group.id, group]));
+  const hierarchyErrorIndexes = new Set();
+  const reportedCycles = new Set();
   groups.forEach((group, index) => {
-    if (!group || !group.parentGroupId || !groupsById.has(group.parentGroupId)) return;
-    const visited = [];
+    if (!group || !group.parentGroupId) return;
+    if (!groupsById.has(group.parentGroupId)) {
+      if (isUuidV4(group.parentGroupId)) hierarchyErrorIndexes.add(index);
+      return;
+    }
+    const pathIndexes = new Map();
+    const pathIds = [];
     let current = group;
     while (current) {
-      const priorIndex = visited.indexOf(current.id);
-      if (priorIndex >= 0 || visited.length >= LIMITS.hierarchyDepth) {
-        const cycleIds = priorIndex >= 0 ? visited.slice(priorIndex) : visited;
-        const earliestCycleIndex = Math.min(...cycleIds.map((id) => groups.findIndex((candidate) => candidate?.id === id)));
-        if (index === earliestCycleIndex) addError(errors, `groups.${index}.parentGroupId`, '그룹 계층이 올바르지 않습니다.');
+      if (pathIndexes.has(current.id)) {
+        const cycleIds = pathIds.slice(pathIndexes.get(current.id));
+        const cycleKey = [...cycleIds].sort().join(':');
+        if (!reportedCycles.has(cycleKey)) {
+          reportedCycles.add(cycleKey);
+          hierarchyErrorIndexes.add(Math.min(...cycleIds.map((id) => groups.findIndex((candidate) => candidate?.id === id))));
+        }
         return;
       }
-      visited.push(current.id);
+      pathIndexes.set(current.id, pathIds.length);
+      pathIds.push(current.id);
       current = current.parentGroupId ? groupsById.get(current.parentGroupId) : null;
     }
+    if (pathIds.length > LIMITS.hierarchyDepth) hierarchyErrorIndexes.add(index);
+  });
+  [...hierarchyErrorIndexes].sort((left, right) => left - right).forEach((index) => {
+    addError(errors, `groups.${index}.parentGroupId`, '그룹 계층이 올바르지 않습니다.');
   });
 
   const peopleIds = new Set();
@@ -105,7 +119,12 @@ export function validateOrganizationDraft(snapshot) {
     if (!groupIds.has(membership.groupId)) addError(errors, `${path}.groupId`, '그룹 참조가 올바르지 않습니다.');
     if (!peopleIds.has(membership.personId)) addError(errors, `${path}.personId`, '인물 참조가 올바르지 않습니다.');
     if (!isPlainText(membership.roleLabel, { maximumLength: LIMITS.roleLabel })) addError(errors, `${path}.roleLabel`, '직책이 올바르지 않습니다.');
-    if (!(membership.affiliationOverride === null || membership.affiliationOverride === '' || isPlainText(membership.affiliationOverride, { required: true, maximumLength: LIMITS.affiliation }))) addError(errors, `${path}.affiliationOverride`, '소속 표시가 올바르지 않습니다.');
+    if (!(
+      membership.affiliationOverride === null
+      || typeof membership.affiliationOverride === 'undefined'
+      || membership.affiliationOverride === ''
+      || isPlainText(membership.affiliationOverride, { required: true, maximumLength: LIMITS.affiliation })
+    )) addError(errors, `${path}.affiliationOverride`, '소속 표시가 올바르지 않습니다.');
     if (!isInteger(membership.displayOrder)) addError(errors, `${path}.displayOrder`, '표시 순서가 올바르지 않습니다.');
   });
 
@@ -184,8 +203,11 @@ export function getParentCandidates(groups, groupId) {
 
 export function createUuid() {
   if (typeof globalThis.crypto?.randomUUID === 'function') return globalThis.crypto.randomUUID();
+  if (typeof globalThis.crypto?.getRandomValues !== 'function') {
+    throw new Error('안전한 UUID를 생성할 수 없습니다.');
+  }
   const bytes = new Uint8Array(16);
-  globalThis.crypto?.getRandomValues?.(bytes);
+  globalThis.crypto.getRandomValues(bytes);
   bytes[6] = (bytes[6] & 0x0f) | 0x40;
   bytes[8] = (bytes[8] & 0x3f) | 0x80;
   return [...bytes].map((byte, index) => `${byte.toString(16).padStart(2, '0')}${[3, 5, 7, 9].includes(index) ? '-' : ''}`).join('');
