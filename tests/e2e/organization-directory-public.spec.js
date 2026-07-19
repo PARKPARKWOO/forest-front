@@ -183,6 +183,36 @@ test('member rows resolve affiliation tri-state and the visible count from publi
   await expect(customAffiliation.getByText('별도 소속 문구')).toBeVisible();
 });
 
+test('member rows omit whitespace-only labels and trim displayed labels', async ({ page, organizationApi }) => {
+  const organization = copyOrganization({
+    people: organizationFixture.people.map((person) => (
+      person.id === '33333333-3333-4333-8333-333333333333'
+        ? { ...person, affiliation: ' \t ' }
+        : person
+    )),
+    memberships: organizationFixture.memberships.map((membership) => {
+      if (membership.id === '55555555-5555-4555-8555-555555555555') {
+        return { ...membership, roleLabel: '   ' };
+      }
+      if (membership.id === '77777777-7777-4777-8777-777777777777') {
+        return { ...membership, roleLabel: '  분과위원  ', affiliationOverride: '  별도 소속 문구  ' };
+      }
+      return membership;
+    }),
+  });
+  await openPeople(page, organizationApi, { organization });
+
+  const rootMember = page.locator('section[aria-labelledby^="organization-group-"]').getByRole('listitem');
+  await expect(rootMember.getByRole('heading', { name: '김테스트' })).toBeVisible();
+  await expect(rootMember.locator('p')).toHaveCount(0);
+
+  await page.getByRole('button', { name: '숲교육분과 이름이 길어도 줄바꿈됩니다' }).click();
+  const customMember = page.locator('section[aria-labelledby^="organization-group-"]')
+    .getByRole('listitem')
+    .filter({ hasText: '이테스트이름이길어도줄바꿈됩니다' });
+  expect(await customMember.locator('p').allTextContents()).toEqual(['분과위원', '별도 소속 문구']);
+});
+
 test('empty member and empty group collections have distinct visible states', async ({ page, organizationApi, pageQuality }) => {
   const emptyGroup = {
     id: organizationGroupIds.empty,
