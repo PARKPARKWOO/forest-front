@@ -15,6 +15,8 @@ export async function installOrganizationApiMocks(page) {
   let deferredManageGetGate = null;
   let nextPutGate = null;
   let deferredPutGate = null;
+  let nextPutResponseGate = null;
+  let deferredPutResponseGate = null;
   let nextLegacyGate = null;
   let deferredLegacyGate = null;
   const failures = new Map();
@@ -140,10 +142,17 @@ export async function installOrganizationApiMocks(page) {
         updatedAt: '2026-07-19T12:10:00+09:00',
       };
       setPublicOrganization(organization);
+      const committedResponse = { ...organization, legacyContentFingerprint: managedFingerprint };
+      if (nextPutResponseGate) {
+        const gate = nextPutResponseGate;
+        nextPutResponseGate = null;
+        gate.markCommitted();
+        await gate.promise;
+      }
       return route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ data: { ...organization, legacyContentFingerprint: managedFingerprint } }),
+        body: JSON.stringify({ data: committedResponse }),
       });
     }
     unhandled.push(`${method} /organization/manage`);
@@ -204,6 +213,21 @@ export async function installOrganizationApiMocks(page) {
       if (!deferredPutGate) throw new Error('no deferred organization PUT');
       deferredPutGate.release();
       deferredPutGate = null;
+    },
+    deferNextPutResponse() {
+      if (nextPutResponseGate) throw new Error('an organization PUT response is already deferred');
+      let release;
+      let markCommitted;
+      const promise = new Promise((resolve) => { release = resolve; });
+      const committed = new Promise((resolve) => { markCommitted = resolve; });
+      nextPutResponseGate = { promise, release, committed, markCommitted };
+      deferredPutResponseGate = nextPutResponseGate;
+      return committed;
+    },
+    releaseDeferredPutResponse() {
+      if (!deferredPutResponseGate) throw new Error('no deferred organization PUT response');
+      deferredPutResponseGate.release();
+      deferredPutResponseGate = null;
     },
     deferNextLegacyGet() {
       if (nextLegacyGate) throw new Error('an intro-people GET is already deferred');

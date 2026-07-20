@@ -59,6 +59,14 @@ async function confirmLegacySave(page) {
   await dialog.getByRole('button', { name: '확인하고 저장' }).click();
 }
 
+async function refetchManageOnVisibilityChange(page) {
+  const completedResponse = page.waitForResponse((response) => (
+    response.request().method() === 'GET' && MANAGE_API_URL.test(response.url())
+  ));
+  await page.evaluate(() => window.dispatchEvent(new Event('visibilitychange')));
+  expect((await completedResponse).status()).toBe(200);
+}
+
 test('client validation focuses the first field-path error and sends no PUT', async ({
   page,
   organizationApi,
@@ -813,4 +821,130 @@ test('successful save invalidates a fresh public cache within the same SPA', asy
     .filter((request) => request === 'GET /static-content/intro-people').length)
     .toBeGreaterThan(primedLegacyGets);
   await expect(page.getByRole('button', { name: 'SPA invalidation으로 공개될 이름' })).toBeVisible();
+});
+
+test('a delayed PUT response cannot erase newer same-revision cutover evidence', async ({
+  page,
+  organizationApi,
+}) => {
+  organizationApi.setLegacyHtml('<p>fingerprint B 최신 기존 내용</p>');
+  const putCommitted = organizationApi.deferNextPutResponse();
+  organizationApi.expectPutCount(2);
+  await openOrganizationEditor(page, organizationApi);
+  await changeRootName(page, '지연된 revision 3 PUT 이름');
+  await saveButton(page).click();
+  await putCommitted;
+
+  organizationApi.setOrganization(copyOrganization({
+    revision: 3,
+    legacyContentDrift: true,
+    groups: organizationFixture.groups.map((group) => (
+      group.id === organizationGroupIds.root
+        ? { ...group, name: '동일 revision 최신 서버 이름' }
+        : { ...group }
+    )),
+  }));
+  organizationApi.setManagedFingerprint(fingerprintB);
+  await refetchManageOnVisibilityChange(page);
+  const latestConflict = page.getByRole('alert').filter({
+    hasText: '다른 관리자가 먼저 저장했습니다.',
+  });
+  await expect(latestConflict).toBeVisible();
+
+  let putResponseReleased = false;
+  try {
+    organizationApi.releaseDeferredPutResponse();
+    putResponseReleased = true;
+    await expect(latestConflict).toBeVisible();
+
+    page.once('dialog', (dialog) => dialog.accept());
+    await page.getByRole('button', { name: '최신 내용 불러오기' }).click();
+    await expect(page.getByLabel('그룹 이름')).toHaveValue('동일 revision 최신 서버 이름');
+    await changeRootName(page, 'fingerprint B 기반 후속 저장');
+    await expect(saveButton(page)).toBeEnabled();
+    await saveButton(page).click();
+    const confirmation = page.getByRole('dialog', { name: '기존 함께하는이들 내용 전환 확인' });
+    await expect(confirmation).toContainText('fingerprint B 최신 기존 내용');
+    await confirmation.getByRole('button', { name: '확인하고 저장' }).click();
+
+    await expect(page.getByRole('status').filter({ hasText: '조직도를 저장했습니다. revision 4' }))
+      .toBeVisible();
+    expect(organizationApi.getPutRequests()[1]).toMatchObject({
+      revision: 3,
+      legacyContentFingerprint: fingerprintB,
+    });
+  } finally {
+    if (!putResponseReleased) organizationApi.releaseDeferredPutResponse();
+  }
+});
+
+test('a superseded successful PUT still invalidates fresh public caches', async ({
+  page,
+  organizationApi,
+}) => {
+  await page.addInitScript(() => {
+    const realNow = Date.now.bind(Date);
+    window.__restoreOrganizationTestNow = () => { Date.now = realNow; };
+    Date.now = () => realNow() + 60 * 60 * 1000;
+  });
+  organizationApi.setUser(ADMIN_USER_RESPONSE);
+  let publicOrganizationGets = 0;
+  page.on('request', (request) => {
+    const url = new URL(request.url());
+    if (request.method() === 'GET' && /\/api\/v1\/organization\/?$/.test(url.pathname)) {
+      publicOrganizationGets += 1;
+    }
+  });
+  await page.goto('/intro/people');
+  await expect(page.getByRole('navigation', { name: '조직 선택' })).toBeVisible();
+  await expect.poll(() => publicOrganizationGets).toBe(1);
+  await page.evaluate(() => window.__restoreOrganizationTestNow());
+
+  const peopleRow = await openOrganizationEditorFromPublicSpa(page);
+  await peopleRow.getByRole('button', { name: '조직도 관리' }).click();
+  await expect(page.getByRole('heading', { name: '함께하는이들 조직도 관리' })).toBeVisible();
+  const putCommitted = organizationApi.deferNextPutResponse();
+  organizationApi.expectPutCount(1);
+  await changeRootName(page, 'superseded revision 3 이름');
+  await saveButton(page).click();
+  await putCommitted;
+
+  organizationApi.setOrganization(copyOrganization({
+    revision: 4,
+    groups: organizationFixture.groups.map((group) => (
+      group.id === organizationGroupIds.root
+        ? { ...group, name: 'revision 4 최신 공개 이름' }
+        : { ...group }
+    )),
+  }));
+  organizationApi.setManagedFingerprint(fingerprintB);
+  await refetchManageOnVisibilityChange(page);
+  await expect(page.getByRole('alert').filter({
+    hasText: '다른 관리자가 먼저 저장했습니다.',
+  })).toBeVisible();
+
+  let putResponseReleased = false;
+  try {
+    const staticGetsBeforePutResponse = organizationApi.getRequests()
+      .filter((request) => request === 'GET /static-content/intro-people').length;
+    organizationApi.releaseDeferredPutResponse();
+    putResponseReleased = true;
+    await expect(page.getByRole('alert').filter({
+      hasText: '더 최신인 서버 응답이 있어 저장 결과를 적용하지 않았습니다.',
+    })).toBeVisible();
+    expect(publicOrganizationGets).toBe(1);
+
+    await page.evaluate(() => {
+      window.history.pushState({}, '', '/intro/people');
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    });
+    await expect(page.getByRole('navigation', { name: '조직 선택' })).toBeVisible();
+    await expect.poll(() => publicOrganizationGets).toBe(2);
+    await expect.poll(() => organizationApi.getRequests()
+      .filter((request) => request === 'GET /static-content/intro-people').length)
+      .toBeGreaterThan(staticGetsBeforePutResponse);
+    await expect(page.getByRole('button', { name: 'revision 4 최신 공개 이름' })).toBeVisible();
+  } finally {
+    if (!putResponseReleased) organizationApi.releaseDeferredPutResponse();
+  }
 });

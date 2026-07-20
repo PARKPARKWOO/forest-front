@@ -44,6 +44,11 @@ const stableSerialize = (value) => {
   return JSON.stringify(value);
 };
 
+const hasDifferentCutoverEvidence = (left, right) => (
+  left.legacyContentFingerprint !== right.legacyContentFingerprint
+  || left.legacyContentDrift !== right.legacyContentDrift
+);
+
 const validateOrganizationEditorDraft = (draft, pendingCustomMembershipIds) => {
   const canonicalErrors = validateOrganizationDraft(draft);
   const canonicalPaths = new Set(canonicalErrors.map(({ path }) => path));
@@ -302,17 +307,25 @@ export default function OrganizationDirectoryEditor({ onBack }) {
   const protectAuthoritativeManageSnapshot = async (
     snapshot,
     operation,
-    { writeCache = true } = {},
+    { writeCache = true, source = 'manage' } = {},
   ) => {
     await queryClient.cancelQueries({
       queryKey: ['organizationDirectory', 'manage'],
       exact: true,
     });
     if (operation !== authoritativeManageOperationRef.current) return false;
-    const acceptedRevision = acceptedServerSnapshotRef.current?.revision ?? -1;
-    const cachedRevision = queryClient
-      .getQueryData(['organizationDirectory', 'manage'])?.revision ?? -1;
+    const acceptedSnapshot = acceptedServerSnapshotRef.current;
+    const cachedSnapshot = queryClient.getQueryData(['organizationDirectory', 'manage']);
+    const acceptedRevision = acceptedSnapshot?.revision ?? -1;
+    const cachedRevision = cachedSnapshot?.revision ?? -1;
     if (snapshot.revision < Math.max(acceptedRevision, cachedRevision)) return false;
+    if (
+      source === 'put'
+      && [acceptedSnapshot, cachedSnapshot].some((knownSnapshot) => (
+        knownSnapshot?.revision === snapshot.revision
+        && hasDifferentCutoverEvidence(knownSnapshot, snapshot)
+      ))
+    ) return false;
     if (writeCache) {
       queryClient.setQueryData(['organizationDirectory', 'manage'], snapshot);
     }
@@ -445,13 +458,13 @@ export default function OrganizationDirectoryEditor({ onBack }) {
       });
       if (operation !== authoritativeManageOperationRef.current) return;
       const saved = await saveMutation.mutateAsync(request);
-      const accepted = await protectAuthoritativeManageSnapshot(saved, operation);
+      queryClient.invalidateQueries({ queryKey: ['organizationDirectory', 'public'] });
+      queryClient.invalidateQueries({ queryKey: ['staticContent', 'intro-people'] });
+      const accepted = await protectAuthoritativeManageSnapshot(saved, operation, { source: 'put' });
       if (!accepted) {
         showSaveFeedback('error', '더 최신인 서버 응답이 있어 저장 결과를 적용하지 않았습니다.', { focus: true });
         return;
       }
-      queryClient.invalidateQueries({ queryKey: ['organizationDirectory', 'public'] });
-      queryClient.invalidateQueries({ queryKey: ['staticContent', 'intro-people'] });
       const latestDraft = draftRef.current;
       const changedWhilePending = (
         latestDraft
