@@ -700,7 +700,7 @@ test('custom affiliation toggles restore the last real value without persisting 
 test('an empty custom-affiliation choice remains a guarded unsaved change', async ({
   page,
   organizationApi,
-}) => {
+}, testInfo) => {
   organizationApi.setOrganization(copyOrganization({
     memberships: organizationFixture.memberships.map((membership) => (
       membership.id === '77777777-7777-4777-8777-777777777777'
@@ -727,7 +727,12 @@ test('an empty custom-affiliation choice remains a guarded unsaved change', asyn
   await expect(connection).toContainText('다른 소속을 입력해 주세요');
   await expect(page.getByRole('status').filter({ hasText: '저장하지 않은 변경사항 있음' }))
     .toBeVisible();
-  await expect(page.getByRole('button', { name: '변경사항 저장' })).toBeEnabled();
+  if (testInfo.config.metadata.organizationPreviewMode) {
+    await expect(page.getByRole('button', { name: '미리보기에서는 저장할 수 없습니다' }))
+      .toBeDisabled();
+  } else {
+    await expect(page.getByRole('button', { name: '변경사항 저장' })).toBeEnabled();
+  }
 
   const beforeUnloadWasPrevented = await page.evaluate(() => {
     const event = new Event('beforeunload', { cancelable: true });
