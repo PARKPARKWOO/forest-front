@@ -3,6 +3,7 @@ import { expect } from '@playwright/test';
 export function watchPageQuality(page) {
   const errors = [];
   const allowedConsoleErrors = [];
+  const allowedRequestFailures = [];
   page.on('console', (message) => {
     if (message.type() === 'error') {
       errors.push({ type: 'console', text: message.text(), url: message.location().url });
@@ -18,12 +19,28 @@ export function watchPageQuality(page) {
       }
       allowedConsoleErrors.push({ textPattern, urlPattern });
     },
+    allowRequestFailure(urlPattern) {
+      if (!(urlPattern instanceof RegExp)) throw new TypeError('request failure allowlist URL must be a RegExp');
+      allowedRequestFailures.push({ urlPattern });
+    },
     assertClean() {
       const remainingAllowances = allowedConsoleErrors.map((allowance) => ({
         ...allowance,
         remaining: 1,
       }));
+      const remainingRequestFailureAllowances = allowedRequestFailures.map((allowance) => ({
+        ...allowance,
+        remaining: 1,
+      }));
       const unexpected = errors.filter(({ type, text, url }) => {
+        if (type === 'requestfailed') {
+          const allowance = remainingRequestFailureAllowances.find(({ urlPattern, remaining }) => (
+            remaining > 0 && urlPattern.test(text)
+          ));
+          if (!allowance) return true;
+          allowance.remaining -= 1;
+          return false;
+        }
         if (type !== 'console') return true;
         const allowance = remainingAllowances.find(({ textPattern, urlPattern, remaining }) => (
           remaining > 0

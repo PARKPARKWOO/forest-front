@@ -7,8 +7,8 @@ export async function getPublicOrganizationDirectory() {
   return parseOrganizationSnapshot(response.data?.data, { managed: false });
 }
 
-export async function getManagedOrganizationDirectory() {
-  const response = await axiosInstance.get('/organization/manage');
+export async function getManagedOrganizationDirectory({ signal } = {}) {
+  const response = await axiosInstance.get('/organization/manage', { signal });
   return parseOrganizationSnapshot(response.data?.data, { managed: true });
 }
 

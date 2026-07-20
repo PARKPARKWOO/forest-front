@@ -44,6 +44,18 @@ const stableSerialize = (value) => {
   return JSON.stringify(value);
 };
 
+const validateOrganizationEditorDraft = (draft, pendingCustomMembershipIds) => {
+  const canonicalErrors = validateOrganizationDraft(draft);
+  const canonicalPaths = new Set(canonicalErrors.map(({ path }) => path));
+  const transientErrors = draft.memberships.flatMap((membership, index) => {
+    const path = `memberships.${index}.affiliationOverride`;
+    return pendingCustomMembershipIds.has(membership.id) && !canonicalPaths.has(path)
+      ? [{ path, message: '다른 소속을 입력해 주세요.' }]
+      : [];
+  });
+  return [...canonicalErrors, ...transientErrors];
+};
+
 const nextSiblingOrder = (groups, parentGroupId) => {
   const siblingOrders = groups
     .filter((group) => group.parentGroupId === parentGroupId)
@@ -60,21 +72,16 @@ const nextMembershipOrder = (memberships, groupId) => {
 
 export default function OrganizationDirectoryEditor({ onBack }) {
   const queryClient = useQueryClient();
+  const [acceptedServerSnapshot, setAcceptedServerSnapshot] = useState(null);
+  const acceptedServerSnapshotRef = useRef(null);
+  acceptedServerSnapshotRef.current = acceptedServerSnapshot;
   const organizationQuery = useQuery({
     queryKey: ['organizationDirectory', 'manage'],
-    queryFn: getManagedOrganizationDirectory,
+    queryFn: ({ signal }) => getManagedOrganizationDirectory({
+      signal: acceptedServerSnapshotRef.current ? signal : undefined,
+    }),
     retry: false,
   });
-  const legacyQuery = useQuery({
-    queryKey: ['staticContent', 'intro-people'],
-    queryFn: () => getStaticContent('intro-people'),
-    retry: false,
-  });
-  const saveMutation = useMutation({
-    mutationFn: updateManagedOrganizationDirectory,
-    retry: false,
-  });
-  const [acceptedServerSnapshot, setAcceptedServerSnapshot] = useState(null);
   const [draft, setDraft] = useState(null);
   const [selectedGroupId, setSelectedGroupId] = useState(null);
   const [panel, setPanel] = useState('groups');
@@ -84,12 +91,43 @@ export default function OrganizationDirectoryEditor({ onBack }) {
   const [revisionConflict, setRevisionConflict] = useState(null);
   const [pendingCutover, setPendingCutover] = useState(null);
   const [legacyConflictRefresh, setLegacyConflictRefresh] = useState(null);
+  const [pendingCustomMembershipIds, setPendingCustomMembershipIds] = useState(new Set());
+  const legacyDecisionRequired = Boolean(
+    acceptedServerSnapshot
+    && (!acceptedServerSnapshot.configured || acceptedServerSnapshot.legacyContentDrift),
+  );
+  const legacyDecisionGeneration = acceptedServerSnapshot
+    ? [
+      acceptedServerSnapshot.revision,
+      acceptedServerSnapshot.legacyContentFingerprint,
+      acceptedServerSnapshot.configured,
+      acceptedServerSnapshot.legacyContentDrift,
+    ]
+    : ['unaccepted'];
+  const legacyQuery = useQuery({
+    queryKey: [
+      'staticContent',
+      'intro-people',
+      'organization-editor',
+      ...legacyDecisionGeneration,
+    ],
+    queryFn: () => getStaticContent('intro-people'),
+    enabled: legacyDecisionRequired,
+    retry: false,
+  });
+  const saveMutation = useMutation({
+    mutationFn: updateManagedOrganizationDirectory,
+    retry: false,
+  });
   const editorRef = useRef(null);
   const saveFeedbackRef = useRef(null);
   const saveRequestInFlightRef = useRef(false);
   const feedbackSequenceRef = useRef(0);
   const draftRef = useRef(null);
+  const authoritativeManageOperationRef = useRef(0);
+  const pendingCustomMembershipIdsRef = useRef(new Set());
   draftRef.current = draft;
+  pendingCustomMembershipIdsRef.current = pendingCustomMembershipIds;
 
   const acceptServerSnapshot = (snapshot) => {
     const nextDraft = cloneEditableSnapshot(snapshot);
@@ -98,6 +136,7 @@ export default function OrganizationDirectoryEditor({ onBack }) {
     setSelectedGroupId((current) => resolveSelectedGroupId(nextDraft.groups, current));
     setRevisionConflict(null);
     setPendingCutover(null);
+    setPendingCustomMembershipIds(new Set());
   };
 
   const showSaveFeedback = (type, message, { focus = false } = {}) => {
@@ -128,11 +167,12 @@ export default function OrganizationDirectoryEditor({ onBack }) {
   const revisionChanged = Boolean(
     latestServerSnapshot
     && acceptedServerSnapshot
-    && latestServerSnapshot.revision !== acceptedServerSnapshot.revision,
+    && latestServerSnapshot.revision > acceptedServerSnapshot.revision,
   );
   const cutoverStateChanged = Boolean(
     latestServerSnapshot
     && acceptedServerSnapshot
+    && latestServerSnapshot.revision === acceptedServerSnapshot.revision
     && (
       latestServerSnapshot.legacyContentFingerprint !== acceptedServerSnapshot.legacyContentFingerprint
       || latestServerSnapshot.legacyContentDrift !== acceptedServerSnapshot.legacyContentDrift
@@ -143,11 +183,10 @@ export default function OrganizationDirectoryEditor({ onBack }) {
     [legacyQuery.data],
   );
   const effectiveLegacyHtml = pendingCutover?.sanitizedLegacyHtml ?? sanitizedLegacyHtml;
-  const legacyDecisionRequired = Boolean(
-    acceptedServerSnapshot
-    && (!acceptedServerSnapshot.configured || acceptedServerSnapshot.legacyContentDrift),
+  const legacyQueryReady = Boolean(
+    pendingCutover
+    || (legacyQuery.isSuccess && legacyQuery.fetchStatus === 'idle'),
   );
-  const legacyQueryReady = Boolean(pendingCutover || legacyQuery.isSuccess);
   const legacySaveBlocked = (
     (legacyDecisionRequired && !legacyQueryReady)
     || Boolean(legacyConflictRefresh)
@@ -180,7 +219,7 @@ export default function OrganizationDirectoryEditor({ onBack }) {
 
   const selectedGroup = draft.groups.find(({ id }) => id === selectedGroupId) ?? null;
   const selectedIndex = draft.groups.findIndex(({ id }) => id === selectedGroupId);
-  const validationErrors = validateOrganizationDraft(draft);
+  const validationErrors = validateOrganizationEditorDraft(draft, pendingCustomMembershipIds);
   const selectedErrors = selectedIndex < 0
     ? []
     : validationErrors.filter(({ path }) => path.startsWith(`groups.${selectedIndex}.`));
@@ -255,31 +294,72 @@ export default function OrganizationDirectoryEditor({ onBack }) {
     }));
   };
 
+  const beginAuthoritativeManageOperation = () => {
+    authoritativeManageOperationRef.current += 1;
+    return authoritativeManageOperationRef.current;
+  };
+
+  const protectAuthoritativeManageSnapshot = async (
+    snapshot,
+    operation,
+    { writeCache = true } = {},
+  ) => {
+    await queryClient.cancelQueries({
+      queryKey: ['organizationDirectory', 'manage'],
+      exact: true,
+    });
+    if (operation !== authoritativeManageOperationRef.current) return false;
+    const acceptedRevision = acceptedServerSnapshotRef.current?.revision ?? -1;
+    const cachedRevision = queryClient
+      .getQueryData(['organizationDirectory', 'manage'])?.revision ?? -1;
+    if (snapshot.revision < Math.max(acceptedRevision, cachedRevision)) return false;
+    if (writeCache) {
+      queryClient.setQueryData(['organizationDirectory', 'manage'], snapshot);
+    }
+    return true;
+  };
+
   const fetchLatestForRevisionConflict = async () => {
+    const operation = beginAuthoritativeManageOperation();
     setRevisionConflict({ status: 'loading', snapshot: null });
     try {
       const latest = await getManagedOrganizationDirectory();
+      const accepted = await protectAuthoritativeManageSnapshot(latest, operation);
+      if (!accepted) {
+        if (operation === authoritativeManageOperationRef.current) {
+          setRevisionConflict({ status: 'error', snapshot: null });
+        }
+        return;
+      }
       setRevisionConflict({ status: 'ready', snapshot: latest });
-      queryClient.setQueryData(['organizationDirectory', 'manage'], latest);
     } catch {
+      if (operation !== authoritativeManageOperationRef.current) return;
       setRevisionConflict({ status: 'error', snapshot: null });
       showSaveFeedback('error', '최신 조직도 내용을 불러오지 못했습니다. 다시 확인해 주세요.', { focus: true });
     }
   };
 
   const refreshLegacyConflictState = async () => {
+    const operation = beginAuthoritativeManageOperation();
     setLegacyConflictRefresh({ status: 'loading' });
     const [latestResult, legacyResult] = await Promise.allSettled([
       getManagedOrganizationDirectory(),
       getStaticContent('intro-people'),
     ]);
+    if (operation !== authoritativeManageOperationRef.current) return;
     if (
       latestResult.status === 'fulfilled'
       && latestResult.value.revision !== acceptedServerSnapshot.revision
     ) {
       const latest = latestResult.value;
+      const accepted = await protectAuthoritativeManageSnapshot(latest, operation);
+      if (!accepted) {
+        if (operation === authoritativeManageOperationRef.current) {
+          setLegacyConflictRefresh({ status: 'error' });
+        }
+        return;
+      }
       setRevisionConflict({ status: 'ready', snapshot: latest });
-      queryClient.setQueryData(['organizationDirectory', 'manage'], latest);
       setPendingCutover(null);
       setLegacyConflictRefresh({ status: 'error' });
       showSaveFeedback('error', '저장 충돌이 발생했습니다. 최신 내용을 확인해 주세요.');
@@ -292,6 +372,14 @@ export default function OrganizationDirectoryEditor({ onBack }) {
       return;
     }
     const latest = latestResult.value;
+    const accepted = await protectAuthoritativeManageSnapshot(latest, operation, { writeCache: false });
+    if (!accepted) {
+      if (operation === authoritativeManageOperationRef.current) {
+        setPendingCutover(null);
+        setLegacyConflictRefresh({ status: 'error' });
+      }
+      return;
+    }
     const refreshedLegacyHtml = sanitizeRichText(legacyResult.value?.content || '');
     setPendingCutover({
       legacyContentFingerprint: latest.legacyContentFingerprint,
@@ -328,20 +416,40 @@ export default function OrganizationDirectoryEditor({ onBack }) {
 
   const performSave = async () => {
     if (saveRequestInFlightRef.current || !dirty || revisionConflictActive || legacySaveBlocked) return;
+    const currentDraft = draftRef.current;
+    const defensiveErrors = validateOrganizationEditorDraft(
+      currentDraft,
+      pendingCustomMembershipIdsRef.current,
+    );
+    if (defensiveErrors.length > 0) {
+      showSaveFeedback('error', '저장할 수 없는 항목이 있습니다. 첫 번째 오류를 확인해 주세요.');
+      focusValidationPath(defensiveErrors[0].path);
+      return;
+    }
     saveRequestInFlightRef.current = true;
+    const operation = beginAuthoritativeManageOperation();
     const request = {
-      schemaVersion: draft.schemaVersion,
+      schemaVersion: currentDraft.schemaVersion,
       revision: acceptedServerSnapshot.revision,
       legacyContentFingerprint: pendingCutover?.legacyContentFingerprint
         ?? acceptedServerSnapshot.legacyContentFingerprint,
-      groups: draft.groups,
-      people: draft.people,
-      memberships: draft.memberships,
+      groups: currentDraft.groups,
+      people: currentDraft.people,
+      memberships: currentDraft.memberships,
     };
-    const submittedDraft = draft;
+    const submittedDraft = currentDraft;
     try {
+      await queryClient.cancelQueries({
+        queryKey: ['organizationDirectory', 'manage'],
+        exact: true,
+      });
+      if (operation !== authoritativeManageOperationRef.current) return;
       const saved = await saveMutation.mutateAsync(request);
-      queryClient.setQueryData(['organizationDirectory', 'manage'], saved);
+      const accepted = await protectAuthoritativeManageSnapshot(saved, operation);
+      if (!accepted) {
+        showSaveFeedback('error', '더 최신인 서버 응답이 있어 저장 결과를 적용하지 않았습니다.', { focus: true });
+        return;
+      }
       queryClient.invalidateQueries({ queryKey: ['organizationDirectory', 'public'] });
       queryClient.invalidateQueries({ queryKey: ['staticContent', 'intro-people'] });
       const latestDraft = draftRef.current;
@@ -368,7 +476,7 @@ export default function OrganizationDirectoryEditor({ onBack }) {
 
   const requestSave = () => {
     if (saveRequestInFlightRef.current || saveMutation.isPending) return;
-    const currentErrors = validateOrganizationDraft(draft);
+    const currentErrors = validationErrors;
     if (currentErrors.length > 0) {
       showSaveFeedback('error', '저장할 수 없는 항목이 있습니다. 첫 번째 오류를 확인해 주세요.');
       focusValidationPath(currentErrors[0].path);
@@ -440,10 +548,17 @@ export default function OrganizationDirectoryEditor({ onBack }) {
     ));
   };
 
-  const loadLatestServerSnapshot = () => {
+  const loadLatestServerSnapshot = async () => {
     const snapshot = revisionConflict?.snapshot ?? latestServerSnapshot;
     if (!snapshot) return;
     if (dirty && !window.confirm('저장하지 않은 변경사항을 버리고 최신 내용을 불러오시겠습니까?')) return;
+    const operation = beginAuthoritativeManageOperation();
+    const accepted = await protectAuthoritativeManageSnapshot(snapshot, operation);
+    if (!accepted) {
+      setRevisionConflict({ status: 'error', snapshot: null });
+      showSaveFeedback('error', '최신 조직도 기준을 다시 확인해 주세요.', { focus: true });
+      return;
+    }
     acceptServerSnapshot(snapshot);
     setSaveFeedback(null);
   };
@@ -529,6 +644,23 @@ export default function OrganizationDirectoryEditor({ onBack }) {
     }));
   };
 
+  const changePendingCustomMembership = (membershipId, pending) => {
+    setPendingCustomMembershipIds((current) => {
+      const next = new Set(current);
+      if (pending) next.add(membershipId);
+      else next.delete(membershipId);
+      return next;
+    });
+  };
+
+  const removeMembership = (membershipId) => {
+    changePendingCustomMembership(membershipId, false);
+    setDraft((current) => ({
+      ...current,
+      memberships: current.memberships.filter(({ id }) => id !== membershipId),
+    }));
+  };
+
   return (
     <div ref={editorRef} className="min-w-0 space-y-6">
       <header className="rounded-2xl bg-white p-5 shadow-sm sm:p-6">
@@ -558,7 +690,7 @@ export default function OrganizationDirectoryEditor({ onBack }) {
             <button
               type="button"
               onClick={() => organizationQuery.refetch()}
-              disabled={organizationQuery.isFetching}
+              disabled={organizationQuery.isFetching || saveMutation.isPending || saveRequestInFlightRef.current}
               className="min-h-12 w-full rounded-lg border border-gray-300 px-4 font-bold text-gray-800 disabled:cursor-wait disabled:opacity-60"
             >
               {organizationQuery.isFetching ? '서버 확인 중…' : '서버 변경 확인'}
@@ -592,12 +724,15 @@ export default function OrganizationDirectoryEditor({ onBack }) {
         </div>
       )}
 
-      {!acceptedServerSnapshot.configured && (
+      {!acceptedServerSnapshot.configured
+        && legacyQueryReady
+        && hasMeaningfulLegacyPeopleHtml(effectiveLegacyHtml)
+        && (
         <div role="alert" className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-950">
-          <strong>기존 함께하는이들 내용이 공개 중입니다.</strong>
+          <strong>현재 공개 화면은 기존 소개글을 사용 중입니다.</strong>
           <p className="mt-1">첫 저장 전에 현재 기존 내용을 별도로 확인합니다.</p>
         </div>
-      )}
+        )}
       {acceptedServerSnapshot.configured && acceptedServerSnapshot.legacyContentDrift && (
         <div role="alert" className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-950">
           <strong>저장된 조직도와 기존 내용이 달라졌습니다.</strong>
@@ -640,7 +775,7 @@ export default function OrganizationDirectoryEditor({ onBack }) {
         </div>
       )}
 
-      {dirty && revisionConflictActive && (
+      {revisionConflictActive && (
         <div role="alert" className="rounded-xl border border-red-300 bg-red-50 p-4 text-red-900">
           <strong>다른 관리자가 먼저 저장했습니다.</strong>
           <p className="mt-1">현재 초안은 유지됩니다. 비교 후 최신 내용을 직접 불러와 주세요.</p>
@@ -717,16 +852,15 @@ export default function OrganizationDirectoryEditor({ onBack }) {
           memberships={selectedMemberships}
           people={peopleWithLinks}
           errors={membershipErrors}
+          pendingCustomMembershipIds={pendingCustomMembershipIds}
+          onPendingCustomChange={changePendingCustomMembership}
           onAddExisting={addExistingMembership}
           onCreateAndAdd={createAndAddMembership}
           onChange={changeMembership}
           onMove={(membershipId, direction) => setDraft((current) => (
             moveMembership(current, selectedGroup.id, membershipId, direction)
           ))}
-          onRemove={(membershipId) => setDraft((current) => ({
-            ...current,
-            memberships: current.memberships.filter(({ id }) => id !== membershipId),
-          }))}
+          onRemove={removeMembership}
         />
       </div>
 

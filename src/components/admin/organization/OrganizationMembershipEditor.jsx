@@ -30,6 +30,8 @@ export default function OrganizationMembershipEditor({
   memberships,
   people,
   errors,
+  pendingCustomMembershipIds,
+  onPendingCustomChange,
   onAddExisting,
   onCreateAndAdd,
   onChange,
@@ -40,7 +42,6 @@ export default function OrganizationMembershipEditor({
   const [newName, setNewName] = useState('');
   const [newAffiliation, setNewAffiliation] = useState('');
   const [lastCustomValuesByMembershipId, setLastCustomValuesByMembershipId] = useState({});
-  const [pendingCustomMembershipIds, setPendingCustomMembershipIds] = useState(new Set());
   const connectedPersonIds = useMemo(
     () => new Set(memberships.map(({ personId }) => personId)),
     [memberships],
@@ -50,7 +51,6 @@ export default function OrganizationMembershipEditor({
     setExistingPersonId('');
     setNewName('');
     setNewAffiliation('');
-    setPendingCustomMembershipIds(new Set());
   }, [group?.id]);
 
   useEffect(() => {
@@ -170,12 +170,7 @@ export default function OrganizationMembershipEditor({
             const affiliationErrorId = `organization-membership-affiliation-error-${membership.id}`;
             const personContext = `${person.name} · ${person.affiliation.trim() || '소속 없음'}`;
             const setCustomPending = (pending) => {
-              setPendingCustomMembershipIds((current) => {
-                const next = new Set(current);
-                if (pending) next.add(membership.id);
-                else next.delete(membership.id);
-                return next;
-              });
+              onPendingCustomChange(membership.id, pending);
             };
             const changeAffiliationMode = (nextMode) => {
               if (persistedMode === 'custom' && membership.affiliationOverride.trim()) {

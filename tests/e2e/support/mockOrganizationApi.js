@@ -11,6 +11,8 @@ export async function installOrganizationApiMocks(page) {
   let expectedPutCount = 0;
   let nextPutFailure = null;
   let nextManageGetFailure = null;
+  let nextManageGetGate = null;
+  let deferredManageGetGate = null;
   let nextPutGate = null;
   let deferredPutGate = null;
   let nextLegacyGate = null;
@@ -86,6 +88,12 @@ export async function installOrganizationApiMocks(page) {
       });
     }
     if (method === 'GET') {
+      const capturedSnapshot = { ...organization, legacyContentFingerprint: managedFingerprint };
+      if (nextManageGetGate) {
+        const gate = nextManageGetGate;
+        nextManageGetGate = null;
+        await gate.promise;
+      }
       if (nextManageGetFailure) {
         const status = nextManageGetFailure;
         nextManageGetFailure = null;
@@ -98,7 +106,7 @@ export async function installOrganizationApiMocks(page) {
       return route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ data: { ...organization, legacyContentFingerprint: managedFingerprint } }),
+        body: JSON.stringify({ data: capturedSnapshot }),
       });
     }
     if (method === 'PUT') {
@@ -172,6 +180,18 @@ export async function installOrganizationApiMocks(page) {
     },
     failNextManageGet(status = 500) {
       nextManageGetFailure = status;
+    },
+    deferNextManageGet() {
+      if (nextManageGetGate) throw new Error('an organization GET is already deferred');
+      let release;
+      const promise = new Promise((resolve) => { release = resolve; });
+      nextManageGetGate = { promise, release };
+      deferredManageGetGate = nextManageGetGate;
+    },
+    releaseDeferredManageGet() {
+      if (!deferredManageGetGate) throw new Error('no deferred organization GET');
+      deferredManageGetGate.release();
+      deferredManageGetGate = null;
     },
     deferNextPut() {
       if (nextPutGate) throw new Error('an organization PUT is already deferred');
