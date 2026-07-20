@@ -111,6 +111,33 @@ test('moving a membership changes only the selected group and normalizes orders 
   assert.deepEqual(moved.memberships.filter(({ groupId }) => groupId === G2).map(({ id, displayOrder }) => [id, displayOrder]), [[M3, 10]]);
 });
 
+test('same-named people stay distinct by UUID and only an exact group-person pair is duplicate', () => {
+  const sameNamedDraft = {
+    ...baseDraft,
+    people: [
+      { id: P1, name: '동명이인', affiliation: '첫 번째 소속', enabled: true },
+      { id: P2, name: '동명이인', affiliation: '두 번째 소속', enabled: true },
+    ],
+    memberships: [
+      { id: M1, groupId: G1, personId: P1, roleLabel: '', affiliationOverride: null, displayOrder: 10 },
+      { id: M2, groupId: G1, personId: P2, roleLabel: '', affiliationOverride: null, displayOrder: 20 },
+      { id: M3, groupId: G2, personId: P1, roleLabel: '', affiliationOverride: null, displayOrder: 10 },
+    ],
+  };
+
+  assert.deepEqual(validateOrganizationDraft(sameNamedDraft), []);
+  assert.deepEqual(
+    validateOrganizationDraft({
+      ...sameNamedDraft,
+      memberships: [
+        ...sameNamedDraft.memberships,
+        { id: '99999999-9999-4999-8999-999999999999', groupId: G1, personId: P1, roleLabel: '', affiliationOverride: null, displayOrder: 30 },
+      ],
+    }).map(({ path }) => path),
+    ['memberships.3.groupId'],
+  );
+});
+
 test('deletion guards return exact blocking references', () => {
   assert.deepEqual(canDeleteGroup(baseDraft, G1), { allowed: false, childGroupIds: [G3], membershipIds: [M1] });
   assert.deepEqual(canDeletePerson(baseDraft, P1), { allowed: false, membershipIds: [M1] });

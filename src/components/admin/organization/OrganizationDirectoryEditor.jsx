@@ -3,16 +3,21 @@ import { useQuery } from '@tanstack/react-query';
 import AsyncState from '../../AsyncState';
 import useUnsavedChanges from '../../../hooks/useUnsavedChanges';
 import { getManagedOrganizationDirectory } from '../../../services/organizationDirectoryService';
-import { flattenOrganizationGroups, resolveSelectedGroupId } from '../../../utils/organizationDirectory';
+import { resolveSelectedGroupId } from '../../../utils/organizationDirectory';
 import {
+  canDeletePerson,
   canDeleteGroup,
   createUuid,
   getParentCandidates,
   moveGroup,
+  moveMembership,
   validateOrganizationDraft,
 } from '../../../utils/organizationDirectoryDraft';
+import OrganizationDirectoryPreview from './OrganizationDirectoryPreview';
 import OrganizationGroupForm from './OrganizationGroupForm';
 import OrganizationGroupTree from './OrganizationGroupTree';
+import OrganizationMembershipEditor from './OrganizationMembershipEditor';
+import OrganizationPeopleDirectory from './OrganizationPeopleDirectory';
 
 const cloneEditableSnapshot = (snapshot) => ({
   schemaVersion: snapshot.schemaVersion,
@@ -36,34 +41,12 @@ const nextSiblingOrder = (groups, parentGroupId) => {
   return siblingOrders.length === 0 ? 10 : Math.max(...siblingOrders) + 10;
 };
 
-function DraftGroupPreview({ draft }) {
-  const groups = flattenOrganizationGroups(draft.groups);
-  return (
-    <section className="min-w-0 rounded-2xl border border-green-200 bg-green-50 p-5 shadow-sm" role="region" aria-label="저장 전 조직도 미리보기">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-xl font-bold text-green-950">저장 전 미리보기</h3>
-        <span className="rounded-full bg-white px-3 py-1 text-sm font-bold text-green-800">서버 미반영</span>
-      </div>
-      {groups.length === 0 ? (
-        <p className="mt-4 text-gray-700">등록된 조직이 없습니다.</p>
-      ) : (
-        <ul className="mt-4 space-y-3">
-          {groups.map((group) => (
-            <li key={group.id} className="min-w-0 rounded-xl border border-green-100 bg-white p-4" style={{ marginInlineStart: `${Math.min(group.depth, 6) * 0.75}rem` }}>
-              <div className="flex flex-wrap items-center gap-2">
-                <strong className="break-words text-gray-950">{group.name || '이름 없는 조직'}</strong>
-                <span className={`rounded-full px-2 py-1 text-xs font-bold ${group.enabled ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-700'}`}>
-                  {group.enabled ? '공개' : '비공개'}
-                </span>
-              </div>
-              {group.description && <p className="mt-2 break-words text-gray-700">{group.description}</p>}
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
-  );
-}
+const nextMembershipOrder = (memberships, groupId) => {
+  const groupOrders = memberships
+    .filter((membership) => membership.groupId === groupId)
+    .map(({ displayOrder }) => displayOrder);
+  return groupOrders.length === 0 ? 10 : Math.max(...groupOrders) + 10;
+};
 
 export default function OrganizationDirectoryEditor({ onBack }) {
   const organizationQuery = useQuery({
@@ -74,6 +57,8 @@ export default function OrganizationDirectoryEditor({ onBack }) {
   const [acceptedServerSnapshot, setAcceptedServerSnapshot] = useState(null);
   const [draft, setDraft] = useState(null);
   const [selectedGroupId, setSelectedGroupId] = useState(null);
+  const [panel, setPanel] = useState('groups');
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   const acceptServerSnapshot = (snapshot) => {
     const nextDraft = cloneEditableSnapshot(snapshot);
@@ -132,6 +117,32 @@ export default function OrganizationDirectoryEditor({ onBack }) {
     ? []
     : validationErrors.filter(({ path }) => path.startsWith(`groups.${selectedIndex}.`));
   const parentOptions = selectedGroup ? getParentCandidates(draft.groups, selectedGroup.id) : [];
+  const selectedMemberships = selectedGroup
+    ? draft.memberships.filter(({ groupId }) => groupId === selectedGroup.id)
+    : [];
+  const selectedMembershipIds = new Set(selectedMemberships.map(({ id }) => id));
+  const membershipErrors = validationErrors.flatMap((error) => {
+    const match = error.path.match(/^memberships\.(\d+)\./);
+    const membershipId = match ? draft.memberships[Number(match[1])]?.id : null;
+    return membershipId && selectedMembershipIds.has(membershipId) ? [{ ...error, membershipId }] : [];
+  });
+  const peopleErrors = validationErrors.flatMap((error) => {
+    const match = error.path.match(/^people\.(\d+)\./);
+    const personId = match ? draft.people[Number(match[1])]?.id : null;
+    return personId ? [{ ...error, personId }] : [];
+  });
+  const groupNamesById = new Map(draft.groups.map((group) => [group.id, group.name]));
+  const peopleWithLinks = draft.people.map((person) => ({
+    ...person,
+    linkedGroupNames: [...new Set(draft.memberships
+      .filter(({ personId }) => personId === person.id)
+      .map(({ groupId }) => groupNamesById.get(groupId))
+      .filter(Boolean))],
+  }));
+  const membershipsWithGroupNames = draft.memberships.map((membership) => ({
+    ...membership,
+    groupName: groupNamesById.get(membership.groupId) ?? '',
+  }));
 
   const addGroup = (parentGroupId) => {
     const newGroup = {
@@ -187,6 +198,87 @@ export default function OrganizationDirectoryEditor({ onBack }) {
     acceptServerSnapshot(latestServerSnapshot);
   };
 
+  const addPerson = ({ name, affiliation }) => {
+    const person = { id: createUuid(), name, affiliation, enabled: true };
+    setDraft((current) => ({ ...current, people: [...current.people, person] }));
+    return person;
+  };
+
+  const changePerson = (personId, field, value) => {
+    setDraft((current) => ({
+      ...current,
+      people: current.people.map((person) => (
+        person.id === personId ? { ...person, [field]: value } : person
+      )),
+    }));
+  };
+
+  const deletePerson = (personId) => {
+    const guard = canDeletePerson(draft, personId);
+    if (!guard.allowed) {
+      const linkedGroupNames = [...new Set(draft.memberships
+        .filter(({ personId: linkedPersonId }) => linkedPersonId === personId)
+        .map(({ groupId }) => groupNamesById.get(groupId))
+        .filter(Boolean))];
+      window.alert(`연결된 그룹을 먼저 제거해 주세요: ${linkedGroupNames.join(', ')}`);
+      return;
+    }
+    const person = draft.people.find(({ id }) => id === personId);
+    if (!person || !window.confirm(`'${person.name}' 인물을 삭제하시겠습니까?`)) return;
+    setDraft((current) => ({
+      ...current,
+      people: current.people.filter(({ id }) => id !== personId),
+    }));
+  };
+
+  const addExistingMembership = (personId) => {
+    if (!selectedGroup || !personId) return;
+    setDraft((current) => {
+      if (current.memberships.some((membership) => (
+        membership.groupId === selectedGroup.id && membership.personId === personId
+      ))) return current;
+      return {
+        ...current,
+        memberships: [...current.memberships, {
+          id: createUuid(),
+          groupId: selectedGroup.id,
+          personId,
+          roleLabel: '',
+          affiliationOverride: null,
+          displayOrder: nextMembershipOrder(current.memberships, selectedGroup.id),
+        }],
+      };
+    });
+  };
+
+  const createAndAddMembership = ({ name, affiliation }) => {
+    if (!selectedGroup) return;
+    setDraft((current) => {
+      const person = { id: createUuid(), name, affiliation, enabled: true };
+      return {
+        ...current,
+        people: [...current.people, person],
+        memberships: [...current.memberships, {
+          id: createUuid(),
+          groupId: selectedGroup.id,
+          personId: person.id,
+          roleLabel: '',
+          affiliationOverride: null,
+          displayOrder: nextMembershipOrder(current.memberships, selectedGroup.id),
+        }],
+      };
+    });
+  };
+
+  const changeMembership = (membershipId, field, value) => {
+    setDraft((current) => ({
+      ...current,
+      memberships: current.memberships.map((membership) => (
+        membership.id === membershipId ? { ...membership, [field]: value } : membership
+      )),
+    }));
+  };
+
   return (
     <div className="min-w-0 space-y-6">
       <header className="rounded-2xl bg-white p-5 shadow-sm sm:p-6">
@@ -198,7 +290,21 @@ export default function OrganizationDirectoryEditor({ onBack }) {
             <h2 className="text-2xl font-bold text-gray-950">함께하는이들 조직도 관리</h2>
             <p className="mt-2 text-gray-700">그룹 변경은 저장 전 미리보기 모델에만 반영됩니다.</p>
           </div>
-          <div className="grid w-full grid-cols-1 items-center gap-3 sm:w-auto">
+          <div className="grid w-full grid-cols-1 items-center gap-3 sm:w-auto sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => setPanel((current) => (current === 'people' ? 'groups' : 'people'))}
+              className="min-h-12 w-full rounded-lg border border-green-700 px-4 font-bold text-green-800"
+            >
+              {panel === 'people' ? '조직 편집' : '인물 관리'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setPreviewOpen(true)}
+              className="min-h-12 w-full rounded-lg bg-green-700 px-4 font-bold text-white"
+            >
+              저장 전 미리보기
+            </button>
             <button
               type="button"
               onClick={() => organizationQuery.refetch()}
@@ -207,7 +313,7 @@ export default function OrganizationDirectoryEditor({ onBack }) {
             >
               {organizationQuery.isFetching ? '서버 확인 중…' : '서버 변경 확인'}
             </button>
-            <p className={`rounded-full px-4 py-2 text-sm font-bold ${dirty ? 'bg-amber-100 text-amber-900' : 'bg-green-100 text-green-800'}`} role="status">
+            <p className={`rounded-full px-4 py-2 text-sm font-bold sm:col-span-2 ${dirty ? 'bg-amber-100 text-amber-900' : 'bg-green-100 text-green-800'}`} role="status">
               {dirty ? '저장하지 않은 변경사항 있음' : '서버 내용과 동일'}
             </p>
           </div>
@@ -239,31 +345,62 @@ export default function OrganizationDirectoryEditor({ onBack }) {
         </div>
       )}
 
-      <div className="grid min-w-0 grid-cols-1 gap-6 xl:grid-cols-[minmax(20rem,0.9fr)_minmax(24rem,1.1fr)]">
-        <OrganizationGroupTree
-          groups={draft.groups}
-          selectedGroupId={selectedGroupId}
-          onSelect={setSelectedGroupId}
-          onAddRoot={() => addGroup(null)}
-          onAddChild={addGroup}
-          onMove={(groupId, direction) => setDraft((current) => moveGroup(current, groupId, direction))}
-          onToggleEnabled={(groupId) => setDraft((current) => ({
-            ...current,
-            groups: current.groups.map((group) => (
-              group.id === groupId ? { ...group, enabled: !group.enabled } : group
-            )),
-          }))}
-          onDelete={deleteGroup}
+      {panel === 'people' ? (
+        <OrganizationPeopleDirectory
+          people={draft.people}
+          memberships={membershipsWithGroupNames}
+          errors={peopleErrors}
+          onAdd={addPerson}
+          onChange={changePerson}
+          onDelete={deletePerson}
+          onBack={() => setPanel('groups')}
         />
-        <OrganizationGroupForm
-          group={selectedGroup}
-          parentOptions={parentOptions}
-          errors={selectedErrors}
-          onChange={changeSelectedGroup}
-        />
-      </div>
+      ) : (
+        <>
+          <div className="grid min-w-0 grid-cols-1 gap-6 xl:grid-cols-[minmax(20rem,0.9fr)_minmax(24rem,1.1fr)]">
+            <OrganizationGroupTree
+              groups={draft.groups}
+              selectedGroupId={selectedGroupId}
+              onSelect={setSelectedGroupId}
+              onAddRoot={() => addGroup(null)}
+              onAddChild={addGroup}
+              onMove={(groupId, direction) => setDraft((current) => moveGroup(current, groupId, direction))}
+              onToggleEnabled={(groupId) => setDraft((current) => ({
+                ...current,
+                groups: current.groups.map((group) => (
+                  group.id === groupId ? { ...group, enabled: !group.enabled } : group
+                )),
+              }))}
+              onDelete={deleteGroup}
+            />
+            <OrganizationGroupForm
+              group={selectedGroup}
+              parentOptions={parentOptions}
+              errors={selectedErrors}
+              onChange={changeSelectedGroup}
+            />
+          </div>
+          <OrganizationMembershipEditor
+            key={`${acceptedServerSnapshot.revision}:${acceptedServerSnapshot.legacyContentFingerprint}`}
+            group={selectedGroup}
+            memberships={selectedMemberships}
+            people={peopleWithLinks}
+            errors={membershipErrors}
+            onAddExisting={addExistingMembership}
+            onCreateAndAdd={createAndAddMembership}
+            onChange={changeMembership}
+            onMove={(membershipId, direction) => setDraft((current) => (
+              moveMembership(current, selectedGroup.id, membershipId, direction)
+            ))}
+            onRemove={(membershipId) => setDraft((current) => ({
+              ...current,
+              memberships: current.memberships.filter(({ id }) => id !== membershipId),
+            }))}
+          />
+        </>
+      )}
 
-      <DraftGroupPreview draft={draft} />
+      {previewOpen && <OrganizationDirectoryPreview draft={draft} onClose={() => setPreviewOpen(false)} />}
     </div>
   );
 }
