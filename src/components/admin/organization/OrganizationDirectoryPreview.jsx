@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import OrganizationDirectory from '../../organization/OrganizationDirectory';
 import useFocusTrap from '../../../hooks/useFocusTrap';
+import { ORGANIZATION_WRITES_ENABLED } from '../../../config/organizationDeployment';
 import {
   projectOrganizationDraftForPreview,
   resolveSelectedGroupId,
@@ -44,6 +45,11 @@ export default function OrganizationDirectoryPreview({ draft, onClose }) {
             미리보기 닫기
           </button>
         </div>
+        {!ORGANIZATION_WRITES_ENABLED && (
+          <p role="status" className="mb-5 rounded-xl border border-blue-200 bg-blue-50 p-4 font-semibold text-blue-950">
+            미리보기 환경은 읽기 전용이며 이 화면의 변경사항을 서버에 저장하지 않습니다.
+          </p>
+        )}
         <div className="[&_nav]:!grid-cols-1">
           <OrganizationDirectory
             snapshot={snapshot}

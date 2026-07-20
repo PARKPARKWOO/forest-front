@@ -1,9 +1,18 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import AsyncState from '../../AsyncState';
 import useUnsavedChanges from '../../../hooks/useUnsavedChanges';
-import { getManagedOrganizationDirectory } from '../../../services/organizationDirectoryService';
-import { resolveSelectedGroupId } from '../../../utils/organizationDirectory';
+import { ORGANIZATION_WRITES_ENABLED } from '../../../config/organizationDeployment';
+import { sanitizeRichText } from '../../../utils/editorContent';
+import {
+  getManagedOrganizationDirectory,
+  updateManagedOrganizationDirectory,
+} from '../../../services/organizationDirectoryService';
+import { getStaticContent } from '../../../services/staticContentService';
+import {
+  hasMeaningfulLegacyPeopleHtml,
+  resolveSelectedGroupId,
+} from '../../../utils/organizationDirectory';
 import {
   canDeletePerson,
   canDeleteGroup,
@@ -18,6 +27,7 @@ import OrganizationGroupForm from './OrganizationGroupForm';
 import OrganizationGroupTree from './OrganizationGroupTree';
 import OrganizationMembershipEditor from './OrganizationMembershipEditor';
 import OrganizationPeopleDirectory from './OrganizationPeopleDirectory';
+import OrganizationSaveConfirmation from './OrganizationSaveConfirmation';
 
 const cloneEditableSnapshot = (snapshot) => ({
   schemaVersion: snapshot.schemaVersion,
@@ -49,9 +59,19 @@ const nextMembershipOrder = (memberships, groupId) => {
 };
 
 export default function OrganizationDirectoryEditor({ onBack }) {
+  const queryClient = useQueryClient();
   const organizationQuery = useQuery({
     queryKey: ['organizationDirectory', 'manage'],
     queryFn: getManagedOrganizationDirectory,
+    retry: false,
+  });
+  const legacyQuery = useQuery({
+    queryKey: ['staticContent', 'intro-people'],
+    queryFn: () => getStaticContent('intro-people'),
+    retry: false,
+  });
+  const saveMutation = useMutation({
+    mutationFn: updateManagedOrganizationDirectory,
     retry: false,
   });
   const [acceptedServerSnapshot, setAcceptedServerSnapshot] = useState(null);
@@ -59,13 +79,37 @@ export default function OrganizationDirectoryEditor({ onBack }) {
   const [selectedGroupId, setSelectedGroupId] = useState(null);
   const [panel, setPanel] = useState('groups');
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [confirmationOpen, setConfirmationOpen] = useState(false);
+  const [saveFeedback, setSaveFeedback] = useState(null);
+  const [revisionConflict, setRevisionConflict] = useState(null);
+  const [pendingCutover, setPendingCutover] = useState(null);
+  const [legacyConflictRefresh, setLegacyConflictRefresh] = useState(null);
+  const editorRef = useRef(null);
+  const saveFeedbackRef = useRef(null);
+  const saveRequestInFlightRef = useRef(false);
+  const feedbackSequenceRef = useRef(0);
+  const draftRef = useRef(null);
+  draftRef.current = draft;
 
   const acceptServerSnapshot = (snapshot) => {
     const nextDraft = cloneEditableSnapshot(snapshot);
     setAcceptedServerSnapshot(snapshot);
     setDraft(nextDraft);
     setSelectedGroupId((current) => resolveSelectedGroupId(nextDraft.groups, current));
+    setRevisionConflict(null);
+    setPendingCutover(null);
   };
+
+  const showSaveFeedback = (type, message, { focus = false } = {}) => {
+    feedbackSequenceRef.current += 1;
+    setSaveFeedback({ type, message, focus, sequence: feedbackSequenceRef.current });
+  };
+
+  useEffect(() => {
+    if (!saveFeedback?.focus) return undefined;
+    const focusTimer = window.setTimeout(() => saveFeedbackRef.current?.focus(), 0);
+    return () => window.clearTimeout(focusTimer);
+  }, [saveFeedback]);
 
   useEffect(() => {
     if (!organizationQuery.data || acceptedServerSnapshot) return;
@@ -92,6 +136,30 @@ export default function OrganizationDirectoryEditor({ onBack }) {
     && (
       latestServerSnapshot.legacyContentFingerprint !== acceptedServerSnapshot.legacyContentFingerprint
       || latestServerSnapshot.legacyContentDrift !== acceptedServerSnapshot.legacyContentDrift
+    ),
+  );
+  const sanitizedLegacyHtml = useMemo(
+    () => sanitizeRichText(legacyQuery.data?.content || ''),
+    [legacyQuery.data],
+  );
+  const effectiveLegacyHtml = pendingCutover?.sanitizedLegacyHtml ?? sanitizedLegacyHtml;
+  const legacyDecisionRequired = Boolean(
+    acceptedServerSnapshot
+    && (!acceptedServerSnapshot.configured || acceptedServerSnapshot.legacyContentDrift),
+  );
+  const legacyQueryReady = Boolean(pendingCutover || legacyQuery.isSuccess);
+  const legacySaveBlocked = (
+    (legacyDecisionRequired && !legacyQueryReady)
+    || Boolean(legacyConflictRefresh)
+  );
+  const legacyConfirmationRequired = Boolean(
+    pendingCutover
+    || (
+      acceptedServerSnapshot
+      && (
+        acceptedServerSnapshot.legacyContentDrift
+        || (!acceptedServerSnapshot.configured && hasMeaningfulLegacyPeopleHtml(effectiveLegacyHtml))
+      )
     ),
   );
 
@@ -143,6 +211,186 @@ export default function OrganizationDirectoryEditor({ onBack }) {
     ...membership,
     groupName: groupNamesById.get(membership.groupId) ?? '',
   }));
+  const revisionConflictActive = Boolean(revisionConflict || (dirty && revisionChanged));
+
+  const focusValidationPath = (path) => {
+    const [collection, indexText, field] = path.split('.');
+    const index = Number(indexText);
+    if (collection === 'groups' && draft.groups[index]) {
+      setPanel('groups');
+      setSelectedGroupId(draft.groups[index].id);
+    } else if (collection === 'people' && draft.people[index]) {
+      setPanel('people');
+    } else if (collection === 'memberships' && draft.memberships[index]) {
+      setPanel('groups');
+      setSelectedGroupId(draft.memberships[index].groupId);
+    }
+
+    window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
+      const root = editorRef.current;
+      let target = null;
+      if (collection === 'groups' && draft.groups[index]) {
+        const form = root?.querySelector('[aria-labelledby="organization-group-form-title"]');
+        if (field === 'name') target = form?.querySelector('input[type="text"]');
+        if (field === 'description') target = form?.querySelector('textarea');
+        if (field === 'parentGroupId') target = form?.querySelector('select');
+      } else if (collection === 'people' && draft.people[index]) {
+        const personId = window.CSS.escape(draft.people[index].id);
+        if (field === 'name') target = root?.querySelector(`#organization-person-name-${personId}`);
+        if (field === 'affiliation') target = root?.querySelector(`#organization-person-affiliation-${personId}`);
+      } else if (collection === 'memberships' && draft.memberships[index]) {
+        const membershipId = window.CSS.escape(draft.memberships[index].id);
+        if (field === 'roleLabel') target = root?.querySelector(`#organization-membership-role-${membershipId}`);
+        if (field === 'affiliationOverride') {
+          target = root?.querySelector(`#organization-membership-custom-affiliation-${membershipId}`);
+        }
+      }
+      if (target) {
+        target.setAttribute('data-field-path', path);
+        const escapedPath = window.CSS.escape(path);
+        root.querySelector(`[data-field-path="${escapedPath}"]`)?.focus();
+      } else {
+        saveFeedbackRef.current?.focus();
+      }
+    }));
+  };
+
+  const fetchLatestForRevisionConflict = async () => {
+    setRevisionConflict({ status: 'loading', snapshot: null });
+    try {
+      const latest = await getManagedOrganizationDirectory();
+      setRevisionConflict({ status: 'ready', snapshot: latest });
+      queryClient.setQueryData(['organizationDirectory', 'manage'], latest);
+    } catch {
+      setRevisionConflict({ status: 'error', snapshot: null });
+      showSaveFeedback('error', '최신 조직도 내용을 불러오지 못했습니다. 다시 확인해 주세요.', { focus: true });
+    }
+  };
+
+  const refreshLegacyConflictState = async () => {
+    setLegacyConflictRefresh({ status: 'loading' });
+    const [latestResult, legacyResult] = await Promise.allSettled([
+      getManagedOrganizationDirectory(),
+      getStaticContent('intro-people'),
+    ]);
+    if (
+      latestResult.status === 'fulfilled'
+      && latestResult.value.revision !== acceptedServerSnapshot.revision
+    ) {
+      const latest = latestResult.value;
+      setRevisionConflict({ status: 'ready', snapshot: latest });
+      queryClient.setQueryData(['organizationDirectory', 'manage'], latest);
+      setPendingCutover(null);
+      setLegacyConflictRefresh({ status: 'error' });
+      showSaveFeedback('error', '저장 충돌이 발생했습니다. 최신 내용을 확인해 주세요.');
+      return;
+    }
+    if (latestResult.status === 'rejected' || legacyResult.status === 'rejected') {
+      setPendingCutover(null);
+      setLegacyConflictRefresh({ status: 'error' });
+      showSaveFeedback('error', '최신 기존 내용을 확인하지 못했습니다. 초안은 유지됩니다.', { focus: true });
+      return;
+    }
+    const latest = latestResult.value;
+    const refreshedLegacyHtml = sanitizeRichText(legacyResult.value?.content || '');
+    setPendingCutover({
+      legacyContentFingerprint: latest.legacyContentFingerprint,
+      sanitizedLegacyHtml: refreshedLegacyHtml,
+    });
+    setLegacyConflictRefresh(null);
+    queryClient.setQueryData(['staticContent', 'intro-people'], legacyResult.value);
+    showSaveFeedback('error', '기존 함께하는이들 내용이 변경되었습니다. 다시 확인해 주세요.');
+  };
+
+  const handleSaveError = async (error) => {
+    const status = error?.response?.status;
+    const code = error?.response?.data?.code ?? error?.code;
+    if (code === 'ORGANIZATION_REVISION_CONFLICT') {
+      showSaveFeedback('error', '저장 충돌이 발생했습니다. 최신 내용을 확인해 주세요.');
+      await fetchLatestForRevisionConflict();
+      return;
+    }
+    if (code === 'ORGANIZATION_LEGACY_CONTENT_CONFLICT') {
+      showSaveFeedback('error', '기존 함께하는이들 내용이 변경되었습니다. 다시 확인해 주세요.');
+      await refreshLegacyConflictState();
+      return;
+    }
+    if (status === 400) {
+      showSaveFeedback('error', '입력 내용을 저장할 수 없습니다. 표시된 항목을 확인해 주세요.', { focus: true });
+      return;
+    }
+    if (status === 403) {
+      showSaveFeedback('error', '로그인 상태와 조직도 관리 권한을 확인해 주세요. 초안은 유지됩니다.', { focus: true });
+      return;
+    }
+    showSaveFeedback('error', '조직도를 저장하지 못했습니다. 초안은 유지됩니다.', { focus: true });
+  };
+
+  const performSave = async () => {
+    if (saveRequestInFlightRef.current || !dirty || revisionConflictActive || legacySaveBlocked) return;
+    saveRequestInFlightRef.current = true;
+    const request = {
+      schemaVersion: draft.schemaVersion,
+      revision: acceptedServerSnapshot.revision,
+      legacyContentFingerprint: pendingCutover?.legacyContentFingerprint
+        ?? acceptedServerSnapshot.legacyContentFingerprint,
+      groups: draft.groups,
+      people: draft.people,
+      memberships: draft.memberships,
+    };
+    const submittedDraft = draft;
+    try {
+      const saved = await saveMutation.mutateAsync(request);
+      queryClient.setQueryData(['organizationDirectory', 'manage'], saved);
+      queryClient.invalidateQueries({ queryKey: ['organizationDirectory', 'public'] });
+      queryClient.invalidateQueries({ queryKey: ['staticContent', 'intro-people'] });
+      const latestDraft = draftRef.current;
+      const changedWhilePending = (
+        latestDraft
+        && stableSerialize(latestDraft) !== stableSerialize(submittedDraft)
+      );
+      setAcceptedServerSnapshot(saved);
+      if (!changedWhilePending) {
+        const nextDraft = cloneEditableSnapshot(saved);
+        setDraft(nextDraft);
+        setSelectedGroupId((current) => resolveSelectedGroupId(nextDraft.groups, current));
+      }
+      setRevisionConflict(null);
+      setPendingCutover(null);
+      setLegacyConflictRefresh(null);
+      showSaveFeedback('success', `조직도를 저장했습니다. revision ${saved.revision}`);
+    } catch (error) {
+      await handleSaveError(error);
+    } finally {
+      saveRequestInFlightRef.current = false;
+    }
+  };
+
+  const requestSave = () => {
+    if (saveRequestInFlightRef.current || saveMutation.isPending) return;
+    const currentErrors = validateOrganizationDraft(draft);
+    if (currentErrors.length > 0) {
+      showSaveFeedback('error', '저장할 수 없는 항목이 있습니다. 첫 번째 오류를 확인해 주세요.');
+      focusValidationPath(currentErrors[0].path);
+      return;
+    }
+    if (legacyConfirmationRequired) {
+      setConfirmationOpen(true);
+      return;
+    }
+    performSave();
+  };
+
+  const saveDisabled = (
+    !ORGANIZATION_WRITES_ENABLED
+    || !dirty
+    || saveMutation.isPending
+    || revisionConflictActive
+    || legacySaveBlocked
+  );
+  const saveLabel = !ORGANIZATION_WRITES_ENABLED
+    ? '미리보기에서는 저장할 수 없습니다'
+    : saveMutation.isPending ? '저장 중…' : '변경사항 저장';
 
   const addGroup = (parentGroupId) => {
     const newGroup = {
@@ -193,9 +441,11 @@ export default function OrganizationDirectoryEditor({ onBack }) {
   };
 
   const loadLatestServerSnapshot = () => {
-    if (!latestServerSnapshot) return;
+    const snapshot = revisionConflict?.snapshot ?? latestServerSnapshot;
+    if (!snapshot) return;
     if (dirty && !window.confirm('저장하지 않은 변경사항을 버리고 최신 내용을 불러오시겠습니까?')) return;
-    acceptServerSnapshot(latestServerSnapshot);
+    acceptServerSnapshot(snapshot);
+    setSaveFeedback(null);
   };
 
   const addPerson = ({ name, affiliation }) => {
@@ -280,7 +530,7 @@ export default function OrganizationDirectoryEditor({ onBack }) {
   };
 
   return (
-    <div className="min-w-0 space-y-6">
+    <div ref={editorRef} className="min-w-0 space-y-6">
       <header className="rounded-2xl bg-white p-5 shadow-sm sm:p-6">
         <button type="button" onClick={onBack} className="min-h-12 w-full rounded-lg border border-gray-300 px-4 font-bold text-gray-800 hover:bg-gray-50 sm:w-auto">
           소개글 목록으로 돌아가기
@@ -313,6 +563,14 @@ export default function OrganizationDirectoryEditor({ onBack }) {
             >
               {organizationQuery.isFetching ? '서버 확인 중…' : '서버 변경 확인'}
             </button>
+            <button
+              type="button"
+              onClick={requestSave}
+              disabled={saveDisabled}
+              className="min-h-12 w-full rounded-lg bg-green-800 px-4 font-bold text-white disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-700"
+            >
+              {saveLabel}
+            </button>
             <p className={`rounded-full px-4 py-2 text-sm font-bold sm:col-span-2 ${dirty ? 'bg-amber-100 text-amber-900' : 'bg-green-100 text-green-800'}`} role="status">
               {dirty ? '저장하지 않은 변경사항 있음' : '서버 내용과 동일'}
             </p>
@@ -320,11 +578,84 @@ export default function OrganizationDirectoryEditor({ onBack }) {
         </div>
       </header>
 
-      {dirty && revisionChanged && (
+      {saveFeedback && (
+        <div
+          ref={saveFeedbackRef}
+          role={saveFeedback.type === 'success' ? 'status' : 'alert'}
+          tabIndex={-1}
+          data-save-feedback
+          className={`rounded-xl border p-4 font-semibold ${saveFeedback.type === 'success'
+            ? 'border-green-300 bg-green-50 text-green-900'
+            : 'border-red-300 bg-red-50 text-red-900'}`}
+        >
+          {saveFeedback.message}
+        </div>
+      )}
+
+      {!acceptedServerSnapshot.configured && (
+        <div role="alert" className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-950">
+          <strong>기존 함께하는이들 내용이 공개 중입니다.</strong>
+          <p className="mt-1">첫 저장 전에 현재 기존 내용을 별도로 확인합니다.</p>
+        </div>
+      )}
+      {acceptedServerSnapshot.configured && acceptedServerSnapshot.legacyContentDrift && (
+        <div role="alert" className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-950">
+          <strong>저장된 조직도와 기존 내용이 달라졌습니다.</strong>
+          <p className="mt-1">현재 기존 내용을 확인하고 변경 사실을 승인한 뒤 저장해 주세요.</p>
+        </div>
+      )}
+      {legacyDecisionRequired && legacyQuery.isPending && !pendingCutover && (
+        <div role="status" className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-blue-950">
+          기존 함께하는이들 내용을 확인하고 있습니다. 확인이 끝날 때까지 저장할 수 없습니다.
+        </div>
+      )}
+      {legacyDecisionRequired && legacyQuery.isError && !pendingCutover && (
+        <div role="alert" className="rounded-xl border border-red-300 bg-red-50 p-4 text-red-900">
+          <strong>기존 함께하는이들 내용을 확인하지 못했습니다.</strong>
+          <p className="mt-1">확인에 성공하기 전에는 저장하지 않습니다.</p>
+          <button
+            type="button"
+            onClick={() => legacyQuery.refetch()}
+            disabled={legacyQuery.isFetching}
+            className="mt-3 min-h-12 w-full rounded-lg border border-red-700 px-4 font-bold sm:w-auto"
+          >
+            {legacyQuery.isFetching ? '기존 내용 확인 중…' : '기존 내용 다시 확인'}
+          </button>
+        </div>
+      )}
+      {legacyConflictRefresh?.status === 'loading' && !revisionConflictActive && (
+        <div role="status" className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-blue-950">
+          변경된 기존 내용과 최신 조직도 기준을 다시 확인하고 있습니다.
+        </div>
+      )}
+      {legacyConflictRefresh?.status === 'error' && !revisionConflictActive && (
+        <div className="rounded-xl border border-red-300 bg-red-50 p-4 text-red-900">
+          <button
+            type="button"
+            onClick={refreshLegacyConflictState}
+            className="min-h-12 w-full rounded-lg border border-red-700 px-4 font-bold sm:w-auto"
+          >
+            최신 기존 내용 다시 확인
+          </button>
+        </div>
+      )}
+
+      {dirty && revisionConflictActive && (
         <div role="alert" className="rounded-xl border border-red-300 bg-red-50 p-4 text-red-900">
           <strong>다른 관리자가 먼저 저장했습니다.</strong>
           <p className="mt-1">현재 초안은 유지됩니다. 비교 후 최신 내용을 직접 불러와 주세요.</p>
-          <button type="button" onClick={loadLatestServerSnapshot} className="mt-3 min-h-12 w-full rounded-lg bg-red-700 px-4 font-bold text-white sm:w-auto">최신 내용 불러오기</button>
+          <button
+            type="button"
+            onClick={revisionConflict?.status === 'error'
+              ? fetchLatestForRevisionConflict
+              : loadLatestServerSnapshot}
+            disabled={revisionConflict?.status === 'loading'}
+            className="mt-3 min-h-12 w-full rounded-lg bg-red-700 px-4 font-bold text-white disabled:cursor-wait disabled:opacity-60 sm:w-auto"
+          >
+            {revisionConflict?.status === 'loading'
+              ? '최신 내용 불러오는 중…'
+              : revisionConflict?.status === 'error' ? '최신 내용 다시 확인' : '최신 내용 불러오기'}
+          </button>
         </div>
       )}
       {organizationQuery.isError && (
@@ -332,13 +663,13 @@ export default function OrganizationDirectoryEditor({ onBack }) {
           서버 변경 확인에 실패했습니다. 현재 편집 중인 초안은 그대로 유지됩니다.
         </div>
       )}
-      {dirty && cutoverStateChanged && !revisionChanged && (
+      {dirty && cutoverStateChanged && !revisionConflictActive && (
         <div role="alert" className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-950">
           <p>기존 함께하는이들 내용의 전환 상태가 바뀌었습니다. 현재 초안과 승인한 기준은 유지됩니다.</p>
           <button type="button" onClick={loadLatestServerSnapshot} className="mt-3 min-h-12 w-full rounded-lg border border-amber-700 px-4 font-bold sm:w-auto">최신 내용 불러오기</button>
         </div>
       )}
-      {!dirty && (revisionChanged || cutoverStateChanged) && (
+      {!dirty && (revisionChanged || cutoverStateChanged) && !revisionConflict && (
         <div role="status" className="rounded-xl border border-blue-300 bg-blue-50 p-4 text-blue-950">
           <p>서버에 더 최신 내용이 있습니다.</p>
           <button type="button" onClick={loadLatestServerSnapshot} className="mt-3 min-h-12 w-full rounded-lg border border-blue-700 px-4 font-bold sm:w-auto">최신 내용 불러오기</button>
@@ -400,6 +731,17 @@ export default function OrganizationDirectoryEditor({ onBack }) {
       </div>
 
       {previewOpen && <OrganizationDirectoryPreview draft={draft} onClose={() => setPreviewOpen(false)} />}
+      {confirmationOpen && (
+        <OrganizationSaveConfirmation
+          legacyHtml={effectiveLegacyHtml}
+          mode={acceptedServerSnapshot.legacyContentDrift ? 'drift' : 'cutover'}
+          onCancel={() => setConfirmationOpen(false)}
+          onConfirm={() => {
+            setConfirmationOpen(false);
+            performSave();
+          }}
+        />
+      )}
     </div>
   );
 }

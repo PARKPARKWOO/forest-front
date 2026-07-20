@@ -6,6 +6,10 @@ const previewMode = process.env.FOREST_E2E_PREVIEW === 'true';
 
 export default defineConfig({
   ...baseConfig,
+  metadata: {
+    ...baseConfig.metadata,
+    organizationPreviewMode: previewMode,
+  },
   testMatch: /organization-directory-.*\.spec\.js/,
   webServer: {
     ...baseConfig.webServer,

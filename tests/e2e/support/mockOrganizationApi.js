@@ -2,13 +2,19 @@ import { expect } from '@playwright/test';
 import { installPublicApiMocks } from './mockForestApi.js';
 import { organizationFixture } from '../fixtures/organizationDirectoryData.js';
 
-const managedFingerprint = `sha256:${'a'.repeat(64)}`;
-
 export async function installOrganizationApiMocks(page) {
   let organization = organizationFixture;
   let legacyHtml = '';
+  let managedFingerprint = `sha256:${'a'.repeat(64)}`;
+  let nextSavedFingerprint = null;
   let userResponse = { status: 403, body: { message: 'anonymous' } };
   let expectedPutCount = 0;
+  let nextPutFailure = null;
+  let nextManageGetFailure = null;
+  let nextPutGate = null;
+  let deferredPutGate = null;
+  let nextLegacyGate = null;
+  let deferredLegacyGate = null;
   const failures = new Map();
   const requests = [];
   const unhandled = [];
@@ -17,6 +23,40 @@ export async function installOrganizationApiMocks(page) {
   const publicApi = await installPublicApiMocks(page, {
     organization,
     staticContents: { 'intro-people': null },
+  });
+  const setPublicOrganization = (next) => {
+    const { legacyContentFingerprint: _managedOnly, ...publicOrganization } = next;
+    publicApi.setData({ organization: publicOrganization });
+  };
+
+  await page.route(/\/api\/v1\/static-content\/intro-people(?:[?#].*)?$/, async (route) => {
+    const request = route.request();
+    const method = request.method();
+    requests.push(`${method} /static-content/intro-people`);
+    if (method !== 'GET') {
+      unhandled.push(`${method} /static-content/intro-people`);
+      return route.fulfill({ status: 405, contentType: 'application/json', body: JSON.stringify({ message: 'method not allowed' }) });
+    }
+    if (nextLegacyGate) {
+      const gate = nextLegacyGate;
+      nextLegacyGate = null;
+      await gate.promise;
+    }
+    const forcedStatus = failures.get('/static-content/intro-people');
+    if (forcedStatus) {
+      return route.fulfill({
+        status: forcedStatus,
+        contentType: 'application/json',
+        body: JSON.stringify({ message: 'forced organization test failure: /static-content/intro-people' }),
+      });
+    }
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        data: legacyHtml ? { key: 'intro-people', content: legacyHtml } : null,
+      }),
+    });
   });
 
   await page.route(/\/api\/v1\/users(?:[?#].*)?$/, async (route) => {
@@ -46,6 +86,15 @@ export async function installOrganizationApiMocks(page) {
       });
     }
     if (method === 'GET') {
+      if (nextManageGetFailure) {
+        const status = nextManageGetFailure;
+        nextManageGetFailure = null;
+        return route.fulfill({
+          status,
+          contentType: 'application/json',
+          body: JSON.stringify({ message: 'forced next organization GET failure' }),
+        });
+      }
       return route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -55,15 +104,34 @@ export async function installOrganizationApiMocks(page) {
     if (method === 'PUT') {
       const requestBody = request.postDataJSON();
       putRequests.push(requestBody);
+      if (nextPutGate) {
+        const gate = nextPutGate;
+        nextPutGate = null;
+        await gate.promise;
+      }
+      if (nextPutFailure) {
+        const response = nextPutFailure;
+        nextPutFailure = null;
+        return route.fulfill({
+          status: response.status,
+          contentType: 'application/json',
+          body: JSON.stringify(response.body),
+        });
+      }
+      if (nextSavedFingerprint) {
+        managedFingerprint = nextSavedFingerprint;
+        nextSavedFingerprint = null;
+      }
+      const { legacyContentFingerprint: _submittedFingerprint, ...editableRequest } = requestBody;
       organization = {
         ...organization,
-        ...requestBody,
+        ...editableRequest,
         configured: true,
         revision: organization.revision + 1,
         legacyContentDrift: false,
         updatedAt: '2026-07-19T12:10:00+09:00',
       };
-      publicApi.setData({ organization });
+      setPublicOrganization(organization);
       return route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -77,7 +145,7 @@ export async function installOrganizationApiMocks(page) {
   return {
     setOrganization(next) {
       organization = next;
-      publicApi.setData({ organization });
+      setPublicOrganization(organization);
     },
     setLegacyHtml(next) {
       legacyHtml = next;
@@ -87,11 +155,53 @@ export async function installOrganizationApiMocks(page) {
         },
       });
     },
+    getLegacyHtml() {
+      return legacyHtml;
+    },
+    setManagedFingerprint(next) {
+      managedFingerprint = next;
+    },
+    setNextSavedFingerprint(next) {
+      nextSavedFingerprint = next;
+    },
+    failNextPut(status, code, message = 'forced organization PUT failure') {
+      nextPutFailure = {
+        status,
+        body: { ...(code ? { code } : {}), message },
+      };
+    },
+    failNextManageGet(status = 500) {
+      nextManageGetFailure = status;
+    },
+    deferNextPut() {
+      if (nextPutGate) throw new Error('an organization PUT is already deferred');
+      let release;
+      const promise = new Promise((resolve) => { release = resolve; });
+      nextPutGate = { promise, release };
+      deferredPutGate = nextPutGate;
+    },
+    releaseDeferredPut() {
+      if (!deferredPutGate) throw new Error('no deferred organization PUT');
+      deferredPutGate.release();
+      deferredPutGate = null;
+    },
+    deferNextLegacyGet() {
+      if (nextLegacyGate) throw new Error('an intro-people GET is already deferred');
+      let release;
+      const promise = new Promise((resolve) => { release = resolve; });
+      nextLegacyGate = { promise, release };
+      deferredLegacyGate = nextLegacyGate;
+    },
+    releaseDeferredLegacyGet() {
+      if (!deferredLegacyGate) throw new Error('no deferred intro-people GET');
+      deferredLegacyGate.release();
+      deferredLegacyGate = null;
+    },
     setUser(response) {
       userResponse = response;
     },
     fail(path, status = 500) {
-      if (path === '/users' || path === '/organization/manage') failures.set(path, status);
+      if (path === '/users' || path === '/organization/manage' || path === '/static-content/intro-people') failures.set(path, status);
       else publicApi.fail(path, status);
     },
     recover(path) {

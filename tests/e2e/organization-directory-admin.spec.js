@@ -62,6 +62,37 @@ test('the people row opens a reloadable editor route and back preserves unrelate
   await expect.poll(() => new URL(page.url()).searchParams.get('campaign')).toBe('forest');
 });
 
+test('preview deployment disables organization saves in both the editor and service layer', async ({
+  page,
+  organizationApi,
+}, testInfo) => {
+  test.skip(!testInfo.config.metadata.organizationPreviewMode, 'preview deployment regression only');
+  await openOrganizationEditor(page, organizationApi);
+
+  const saveButton = page.getByRole('button', { name: '미리보기에서는 저장할 수 없습니다' });
+  await expect(saveButton).toBeDisabled();
+
+  const errorCode = await page.evaluate(async (request) => {
+    const { updateManagedOrganizationDirectory } = await import('/src/services/organizationDirectoryService.js');
+    try {
+      await updateManagedOrganizationDirectory(request);
+      return null;
+    } catch (error) {
+      return error.code;
+    }
+  }, {
+    schemaVersion: organizationFixture.schemaVersion,
+    revision: organizationFixture.revision,
+    legacyContentFingerprint: `sha256:${'a'.repeat(64)}`,
+    groups: organizationFixture.groups,
+    people: organizationFixture.people,
+    memberships: organizationFixture.memberships,
+  });
+
+  expect(errorCode).toBe('ORGANIZATION_WRITES_DISABLED');
+  expect(organizationApi.getPutRequests()).toEqual([]);
+});
+
 test('group edits stay in an unsaved preview and only move siblings', async ({ page, organizationApi }) => {
   await openOrganizationEditor(page, organizationApi);
   const tree = page.getByRole('tree', { name: '조직 그룹 편집' });
