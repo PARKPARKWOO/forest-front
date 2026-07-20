@@ -29,19 +29,17 @@ const stableSerialize = (value) => {
   return JSON.stringify(value);
 };
 
-const nextSiblingOrder = (groups, parentGroupId) => (
-  Math.max(
-    0,
-    ...groups
-      .filter((group) => group.parentGroupId === parentGroupId)
-      .map(({ displayOrder }) => displayOrder),
-  ) + 10
-);
+const nextSiblingOrder = (groups, parentGroupId) => {
+  const siblingOrders = groups
+    .filter((group) => group.parentGroupId === parentGroupId)
+    .map(({ displayOrder }) => displayOrder);
+  return siblingOrders.length === 0 ? 10 : Math.max(...siblingOrders) + 10;
+};
 
 function DraftGroupPreview({ draft }) {
   const groups = flattenOrganizationGroups(draft.groups);
   return (
-    <section className="rounded-2xl border border-green-200 bg-green-50 p-5 shadow-sm" role="region" aria-label="저장 전 조직도 미리보기">
+    <section className="min-w-0 rounded-2xl border border-green-200 bg-green-50 p-5 shadow-sm" role="region" aria-label="저장 전 조직도 미리보기">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-xl font-bold text-green-950">저장 전 미리보기</h3>
         <span className="rounded-full bg-white px-3 py-1 text-sm font-bold text-green-800">서버 미반영</span>
@@ -51,7 +49,7 @@ function DraftGroupPreview({ draft }) {
       ) : (
         <ul className="mt-4 space-y-3">
           {groups.map((group) => (
-            <li key={group.id} className="rounded-xl border border-green-100 bg-white p-4" style={{ marginInlineStart: `${Math.min(group.depth, 6) * 0.75}rem` }}>
+            <li key={group.id} className="min-w-0 rounded-xl border border-green-100 bg-white p-4" style={{ marginInlineStart: `${Math.min(group.depth, 6) * 0.75}rem` }}>
               <div className="flex flex-wrap items-center gap-2">
                 <strong className="break-words text-gray-950">{group.name || '이름 없는 조직'}</strong>
                 <span className={`rounded-full px-2 py-1 text-xs font-bold ${group.enabled ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-700'}`}>
@@ -190,22 +188,22 @@ export default function OrganizationDirectoryEditor({ onBack }) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-6">
       <header className="rounded-2xl bg-white p-5 shadow-sm sm:p-6">
-        <button type="button" onClick={onBack} className="min-h-12 rounded-lg border border-gray-300 px-4 font-bold text-gray-800 hover:bg-gray-50">
+        <button type="button" onClick={onBack} className="min-h-12 w-full rounded-lg border border-gray-300 px-4 font-bold text-gray-800 hover:bg-gray-50 sm:w-auto">
           소개글 목록으로 돌아가기
         </button>
-        <div className="mt-5 flex flex-wrap items-start justify-between gap-4">
+        <div className="mt-5 flex flex-col items-stretch justify-between gap-4 sm:flex-row sm:items-start">
           <div>
             <h2 className="text-2xl font-bold text-gray-950">함께하는이들 조직도 관리</h2>
             <p className="mt-2 text-gray-700">그룹 변경은 저장 전 미리보기 모델에만 반영됩니다.</p>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="grid w-full grid-cols-1 items-center gap-3 sm:w-auto">
             <button
               type="button"
               onClick={() => organizationQuery.refetch()}
               disabled={organizationQuery.isFetching}
-              className="min-h-11 rounded-lg border border-gray-300 px-4 font-bold text-gray-800 disabled:cursor-wait disabled:opacity-60"
+              className="min-h-12 w-full rounded-lg border border-gray-300 px-4 font-bold text-gray-800 disabled:cursor-wait disabled:opacity-60"
             >
               {organizationQuery.isFetching ? '서버 확인 중…' : '서버 변경 확인'}
             </button>
@@ -220,7 +218,7 @@ export default function OrganizationDirectoryEditor({ onBack }) {
         <div role="alert" className="rounded-xl border border-red-300 bg-red-50 p-4 text-red-900">
           <strong>다른 관리자가 먼저 저장했습니다.</strong>
           <p className="mt-1">현재 초안은 유지됩니다. 비교 후 최신 내용을 직접 불러와 주세요.</p>
-          <button type="button" onClick={loadLatestServerSnapshot} className="mt-3 min-h-11 rounded-lg bg-red-700 px-4 font-bold text-white">최신 내용 불러오기</button>
+          <button type="button" onClick={loadLatestServerSnapshot} className="mt-3 min-h-12 w-full rounded-lg bg-red-700 px-4 font-bold text-white sm:w-auto">최신 내용 불러오기</button>
         </div>
       )}
       {organizationQuery.isError && (
@@ -230,18 +228,18 @@ export default function OrganizationDirectoryEditor({ onBack }) {
       )}
       {dirty && cutoverStateChanged && !revisionChanged && (
         <div role="alert" className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-950">
-          기존 함께하는이들 내용의 전환 상태가 바뀌었습니다. 현재 초안과 승인한 기준은 유지됩니다.
-          <button type="button" onClick={loadLatestServerSnapshot} className="ml-3 min-h-11 rounded-lg border border-amber-700 px-4 font-bold">최신 내용 불러오기</button>
+          <p>기존 함께하는이들 내용의 전환 상태가 바뀌었습니다. 현재 초안과 승인한 기준은 유지됩니다.</p>
+          <button type="button" onClick={loadLatestServerSnapshot} className="mt-3 min-h-12 w-full rounded-lg border border-amber-700 px-4 font-bold sm:w-auto">최신 내용 불러오기</button>
         </div>
       )}
       {!dirty && (revisionChanged || cutoverStateChanged) && (
         <div role="status" className="rounded-xl border border-blue-300 bg-blue-50 p-4 text-blue-950">
-          서버에 더 최신 내용이 있습니다.
-          <button type="button" onClick={loadLatestServerSnapshot} className="ml-3 min-h-11 rounded-lg border border-blue-700 px-4 font-bold">최신 내용 불러오기</button>
+          <p>서버에 더 최신 내용이 있습니다.</p>
+          <button type="button" onClick={loadLatestServerSnapshot} className="mt-3 min-h-12 w-full rounded-lg border border-blue-700 px-4 font-bold sm:w-auto">최신 내용 불러오기</button>
         </div>
       )}
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(20rem,0.9fr)_minmax(24rem,1.1fr)]">
+      <div className="grid min-w-0 grid-cols-1 gap-6 xl:grid-cols-[minmax(20rem,0.9fr)_minmax(24rem,1.1fr)]">
         <OrganizationGroupTree
           groups={draft.groups}
           selectedGroupId={selectedGroupId}

@@ -74,6 +74,13 @@ test('group edits stay in an unsaved preview and only move siblings', async ({ p
   await expect(preview.getByText('새 루트 조직')).toBeVisible();
   await expect(preview.getByText('저장 전 설명')).toBeVisible();
 
+  const descriptionInput = page.getByLabel('그룹 설명');
+  await descriptionInput.fill('허용되지 않는 <설명');
+  const descriptionErrorId = await descriptionInput.getAttribute('aria-describedby');
+  expect(descriptionErrorId).toBeTruthy();
+  await expect(page.locator(`#${descriptionErrorId}`)).toContainText('그룹 설명이 올바르지 않습니다');
+  await descriptionInput.fill('저장 전 설명');
+
   await tree.getByRole('button', { name: '새 루트 조직 위로 이동' }).click();
   const topLevelNames = await tree.locator('[role="treeitem"][data-parent-id="root"] [data-group-name]').allTextContents();
   expect(topLevelNames.map((name) => name.trim())).toEqual(['새 루트 조직', '운영위원회']);
@@ -96,7 +103,21 @@ test('group edits stay in an unsaved preview and only move siblings', async ({ p
     '숲교육분과 이름이 길어도 줄바꿈됩니다',
   ]);
 
-  await page.getByLabel('상위 그룹').selectOption(rootId);
+  const parentInput = page.getByLabel('상위 그룹');
+  await parentInput.evaluate((select) => {
+    const invalidOption = document.createElement('option');
+    invalidOption.value = 'invalid-parent';
+    invalidOption.textContent = '유효하지 않은 상위 그룹';
+    select.append(invalidOption);
+    select.value = invalidOption.value;
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  const parentErrorId = await parentInput.getAttribute('aria-describedby');
+  expect(parentErrorId).toBeTruthy();
+  expect(parentErrorId).not.toBe(descriptionErrorId);
+  await expect(page.locator(`#${parentErrorId}`)).toContainText('상위 그룹 ID가 올바르지 않습니다');
+
+  await parentInput.selectOption(rootId);
   await expect(tree.locator(`[data-group-id="${childId}"]`)).toHaveAttribute('data-parent-id', rootId);
   await page.getByRole('checkbox', { name: '공개', exact: true }).uncheck();
   await expect(preview.getByText('새 하위 조직')).toBeVisible();
@@ -235,5 +256,94 @@ test('a failed background refetch reports the error without hiding a dirty draft
 
   await expect(nameInput).toHaveValue('실패해도 남아야 하는 로컬 이름');
   await expect(page.getByRole('alert')).toContainText('서버 변경 확인에 실패했습니다');
+  expect(organizationApi.getPutRequests()).toEqual([]);
+});
+
+test('a new group follows the greatest negative sibling order by ten', async ({ page, organizationApi }) => {
+  organizationApi.setOrganization(copyOrganization({
+    groups: [
+      {
+        id: '88888888-8888-4888-8888-888888888888',
+        name: '음수 첫 조직',
+        description: '',
+        parentGroupId: null,
+        displayOrder: -20,
+        enabled: true,
+      },
+      {
+        id: '99999999-9999-4999-8999-999999999999',
+        name: '음수 둘째 조직',
+        description: '',
+        parentGroupId: null,
+        displayOrder: -10,
+        enabled: true,
+      },
+    ],
+    people: [],
+    memberships: [],
+  }));
+  await openOrganizationEditor(page, organizationApi);
+
+  await page.getByRole('button', { name: '최상위 조직 추가' }).click();
+
+  await expect(page.getByRole('treeitem', { name: /새 조직/ })).toHaveAttribute('data-order', '0');
+  expect(organizationApi.getPutRequests()).toEqual([]);
+});
+
+test('mobile intro and group editor actions stay single-column, touch-sized, and overflow-free', async ({
+  page,
+  organizationApi,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== 'mobile', '390px mobile regression only');
+  organizationApi.setUser(ADMIN_USER_RESPONSE);
+  await page.goto('/admin?section=intro');
+
+  const peopleRow = page.getByRole('row').filter({ hasText: '함께하는이들' });
+  const peopleCells = peopleRow.getByRole('cell');
+  await expect(peopleCells).toHaveCount(4);
+  const cellBoxes = await peopleCells.evaluateAll((cells) => cells.map((cell) => {
+    const { x, width } = cell.getBoundingClientRect();
+    return { x, width };
+  }));
+  expect(Math.max(...cellBoxes.map(({ x }) => x)) - Math.min(...cellBoxes.map(({ x }) => x))).toBeLessThanOrEqual(1);
+  expect(cellBoxes.every(({ width }) => width <= 358)).toBe(true);
+
+  const manageButton = peopleRow.getByRole('button', { name: '조직도 관리' });
+  expect((await manageButton.boundingBox()).height).toBeGreaterThanOrEqual(48);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBe(true);
+  await manageButton.click();
+
+  const treeSection = page.getByRole('heading', { name: '그룹 구조' }).locator('xpath=ancestor::section[1]');
+  const formSection = page.getByRole('heading', { name: '선택한 그룹 편집' }).locator('xpath=ancestor::section[1]');
+  const treeBox = await treeSection.boundingBox();
+  const formBox = await formSection.boundingBox();
+  expect(Math.abs(treeBox.x - formBox.x)).toBeLessThanOrEqual(1);
+  expect(formBox.y).toBeGreaterThanOrEqual(treeBox.y + treeBox.height);
+
+  const tree = page.getByRole('tree', { name: '조직 그룹 편집' });
+  const actionButtons = [
+    page.getByRole('button', { name: '최상위 조직 추가' }),
+    tree.getByRole('button', { name: '운영위원회 하위 조직 추가' }),
+    tree.getByRole('button', { name: '운영위원회 위로 이동' }),
+    tree.getByRole('button', { name: '운영위원회 아래로 이동' }),
+    tree.getByRole('button', { name: '운영위원회 비공개로 전환' }),
+    tree.getByRole('button', { name: '운영위원회 삭제' }),
+    page.getByRole('button', { name: '서버 변경 확인' }),
+  ];
+  const actionBoxes = [];
+  for (const button of actionButtons) {
+    const box = await button.boundingBox();
+    expect(box.height).toBeGreaterThanOrEqual(48);
+    actionBoxes.push(box);
+  }
+  const rowActionBoxes = actionBoxes.slice(1, 6);
+  expect(Math.max(...rowActionBoxes.map(({ x }) => x)) - Math.min(...rowActionBoxes.map(({ x }) => x))).toBeLessThanOrEqual(1);
+  expect(rowActionBoxes.every((box, index) => index === 0 || box.y >= rowActionBoxes[index - 1].y + rowActionBoxes[index - 1].height)).toBe(true);
+
+  await page.getByLabel('그룹 이름').fill('모바일 로컬 초안');
+  organizationApi.setOrganization(copyOrganization({ revision: organizationFixture.revision + 1 }));
+  await page.getByRole('button', { name: '서버 변경 확인' }).click();
+  expect((await page.getByRole('button', { name: '최신 내용 불러오기' }).boundingBox()).height).toBeGreaterThanOrEqual(48);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBe(true);
   expect(organizationApi.getPutRequests()).toEqual([]);
 });

@@ -1057,8 +1057,8 @@ export default function AdminDashboard() {
           }} />
         )}
         {activeMenu === 'intro' && searchParams.get('item') !== 'people' && (
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex justify-between items-center mb-6">
+          <div className="min-w-0 rounded-lg bg-white p-4 shadow sm:p-6">
+            <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <h3 className="text-lg font-medium">소개(정적 카테고리) 편집</h3>
               <span className="text-sm text-gray-500">
                 저장 후 즉시 프론트 소개 페이지에 반영됩니다.
@@ -1070,8 +1070,8 @@ export default function AdminDashboard() {
                 <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-green-500 mx-auto"></div>
               </div>
             ) : (
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="block w-full divide-y divide-gray-200 md:table md:min-w-full">
+                <thead className="sr-only bg-gray-50 md:not-sr-only md:table-header-group">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">항목</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">상태</th>
@@ -1079,7 +1079,7 @@ export default function AdminDashboard() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">작업</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="block divide-y divide-gray-200 bg-white md:table-row-group">
                   {INTRO_CONTENT_ITEMS.map((item) => {
                     const content = introContents?.[item.key];
                     const rawContent = content?.content || '';
@@ -1089,44 +1089,47 @@ export default function AdminDashboard() {
                       : '기본 템플릿 사용 중';
 
                     return (
-                      <tr key={item.key}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      <tr key={item.key} className="block py-3 md:table-row md:py-0">
+                        <td className="block w-full px-0 py-2 text-sm font-medium text-gray-900 md:table-cell md:w-auto md:whitespace-nowrap md:px-6 md:py-4">
                           {item.label}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <td className="block w-full px-0 py-2 text-sm md:table-cell md:w-auto md:whitespace-nowrap md:px-6 md:py-4">
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                             hasCustomContent ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-700'
                           }`}>
                             {hasCustomContent ? '커스텀 적용' : '기본값'}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-500 max-w-xs">
+                        <td className="block w-full max-w-none px-0 py-2 text-sm text-gray-500 md:table-cell md:max-w-xs md:px-6 md:py-4">
                           <div className="line-clamp-2">{previewText || '내용 없음'}</div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          <button
-                            onClick={() => {
-                              if (item.key === 'intro-people') {
-                                const next = new URLSearchParams(searchParams);
-                                next.set('section', 'intro');
-                                next.set('item', 'people');
-                                setSearchParams(next, { replace: true });
-                                return;
-                              }
-                              handleOpenIntroEditor(item);
-                            }}
-                            className="text-green-600 hover:text-green-800 mr-3"
-                          >
-                            {item.key === 'intro-people' ? '조직도 관리' : '수정'}
-                          </button>
-                          <Link
-                            to={item.path}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:text-blue-800"
-                          >
-                            보기
-                          </Link>
+                        <td className="block w-full px-0 py-2 text-sm md:table-cell md:w-auto md:whitespace-nowrap md:px-6 md:py-4">
+                          <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:items-center">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (item.key === 'intro-people') {
+                                  const next = new URLSearchParams(searchParams);
+                                  next.set('section', 'intro');
+                                  next.set('item', 'people');
+                                  setSearchParams(next, { replace: true });
+                                  return;
+                                }
+                                handleOpenIntroEditor(item);
+                              }}
+                              className="inline-flex min-h-12 items-center justify-center rounded-lg px-3 font-semibold text-green-700 hover:bg-green-50 hover:text-green-900"
+                            >
+                              {item.key === 'intro-people' ? '조직도 관리' : '수정'}
+                            </button>
+                            <Link
+                              to={item.path}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex min-h-12 items-center justify-center rounded-lg px-3 font-semibold text-blue-700 hover:bg-blue-50 hover:text-blue-900"
+                            >
+                              보기
+                            </Link>
+                          </div>
                         </td>
                       </tr>
                     );
