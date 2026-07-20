@@ -25,6 +25,7 @@ import ProgramApplyDetailModal from '../../components/program/ProgramApplyDetail
 import HomeBannerHero from '../../components/HomeBannerHero';
 import { useAuth } from '../../contexts/AuthContext';
 import AsyncState from '../../components/AsyncState';
+import OrganizationDirectoryEditor from '../../components/admin/organization/OrganizationDirectoryEditor';
 
 // 카테고리 뱃지 헬퍼 함수
 const getCategoryBadge = (category) => {
@@ -1047,7 +1048,15 @@ export default function AdminDashboard() {
         )}
 
         {/* 소개글 관리 */}
-        {activeMenu === 'intro' && (
+        {activeMenu === 'intro' && searchParams.get('item') === 'people' && (
+          <OrganizationDirectoryEditor onBack={() => {
+            const next = new URLSearchParams(searchParams);
+            next.set('section', 'intro');
+            next.delete('item');
+            setSearchParams(next, { replace: true });
+          }} />
+        )}
+        {activeMenu === 'intro' && searchParams.get('item') !== 'people' && (
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-lg font-medium">소개(정적 카테고리) 편집</h3>
@@ -1096,10 +1105,19 @@ export default function AdminDashboard() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
                           <button
-                            onClick={() => handleOpenIntroEditor(item)}
+                            onClick={() => {
+                              if (item.key === 'intro-people') {
+                                const next = new URLSearchParams(searchParams);
+                                next.set('section', 'intro');
+                                next.set('item', 'people');
+                                setSearchParams(next, { replace: true });
+                                return;
+                              }
+                              handleOpenIntroEditor(item);
+                            }}
                             className="text-green-600 hover:text-green-800 mr-3"
                           >
-                            수정
+                            {item.key === 'intro-people' ? '조직도 관리' : '수정'}
                           </button>
                           <Link
                             to={item.path}
