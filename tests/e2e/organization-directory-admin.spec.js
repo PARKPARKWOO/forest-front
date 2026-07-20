@@ -637,7 +637,14 @@ test('tri-state affiliation and disabled people use the shared unsaved public pr
   await previewTrigger.click();
   dialog = page.getByRole('dialog', { name: '저장 전 조직도 미리보기' });
   await expect(dialog.getByText('미리보기 전용 소속', { exact: true })).toBeVisible();
-  await expect(dialog.getByRole('button', { name: '미리보기 닫기' })).toBeFocused();
+  const closePreview = dialog.getByRole('button', { name: '미리보기 닫기' });
+  await expect(closePreview).toBeFocused();
+  const closeFocusStyle = await closePreview.evaluate((node) => ({
+    outlineStyle: getComputedStyle(node).outlineStyle,
+    outlineWidth: Number.parseFloat(getComputedStyle(node).outlineWidth),
+  }));
+  expect(closeFocusStyle.outlineStyle).not.toBe('none');
+  expect(closeFocusStyle.outlineWidth).toBeGreaterThanOrEqual(4);
   await page.keyboard.press('Shift+Tab');
   await expect(dialog.locator(':focus')).toBeVisible();
   expect(await dialog.evaluate((element) => element.contains(document.activeElement))).toBe(true);

@@ -40,7 +40,7 @@ export default function OrganizationDirectoryPreview({ draft, onClose }) {
             ref={closeButtonRef}
             type="button"
             onClick={onClose}
-            className="min-h-12 w-full rounded-lg border border-gray-400 bg-white px-4 font-bold text-gray-900 sm:w-auto"
+            className="min-h-12 w-full rounded-lg border border-gray-400 bg-white px-4 font-bold text-gray-900 focus:outline focus:outline-4 focus:outline-offset-2 focus:outline-green-800 sm:w-auto"
           >
             미리보기 닫기
           </button>
