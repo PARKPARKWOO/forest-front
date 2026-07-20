@@ -13,7 +13,7 @@ export default function OrganizationDirectory({
   if (!selected) {
     return (
       <div className="rounded-2xl border border-green-200 bg-white px-5 py-10 text-center" role="status">
-        <h2 className="text-2xl font-bold text-green-900">등록된 조직이 없습니다</h2>
+        <h2 className="text-2xl font-bold text-green-900">현재 공개된 조직 정보가 없습니다</h2>
         <p className="mt-3 text-lg text-gray-700">조직 정보가 등록되면 이곳에서 확인하실 수 있습니다.</p>
       </div>
     );
@@ -21,6 +21,7 @@ export default function OrganizationDirectory({
 
   const peopleById = new Map(snapshot.people.map((person) => [person.id, person]));
   const selectedMemberships = snapshot.memberships.filter(({ groupId }) => groupId === selected.id);
+  const selectedDescription = typeof selected.description === 'string' ? selected.description.trim() : '';
 
   return (
     <>
@@ -43,6 +44,9 @@ export default function OrganizationDirectory({
         </nav>
         <section aria-labelledby={`organization-group-${selected.id}`} className="min-w-0 rounded-2xl border border-green-200 bg-white p-5 sm:p-7">
           <h2 id={`organization-group-${selected.id}`} className="break-words text-2xl font-bold text-green-900">{selected.name}</h2>
+          {selectedDescription && (
+            <p className="mt-3 break-words text-lg leading-relaxed text-gray-700">{selectedDescription}</p>
+          )}
           <p className="mt-3 text-lg font-semibold text-gray-700">구성원 {selectedMemberships.length}명</p>
           <OrganizationMemberList group={selected} peopleById={peopleById} memberships={selectedMemberships} />
         </section>

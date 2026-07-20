@@ -1,3 +1,4 @@
+import AxeBuilder from '@axe-core/playwright';
 import { test, expect } from './fixtures/organizationTest.js';
 import {
   copyOrganization,
@@ -32,6 +33,10 @@ async function openOrganizationEditor(page, organizationApi, url = '/admin?secti
 const getPeopleDirectory = (page) => (
   page.getByRole('heading', { name: '인물 관리', exact: true }).locator('xpath=ancestor::section[1]')
 );
+const getGroupList = (page) => page.getByRole('list', { name: '조직 그룹 편집' });
+const getGroupItem = (page, selectButtonName) => getGroupList(page).locator('[data-group-id]').filter({
+  has: page.getByRole('button', { name: selectButtonName }),
+});
 
 test('the people row opens a reloadable editor route and back preserves unrelated query state', async ({
   page,
@@ -62,7 +67,34 @@ test('the people row opens a reloadable editor route and back preserves unrelate
   await expect.poll(() => new URL(page.url()).searchParams.get('campaign')).toBe('forest');
 });
 
-test('preview deployment disables organization saves in both the editor and service layer', async ({
+test('group hierarchy uses list semantics and exposes keyboard selection on the selection button', async ({
+  page,
+  organizationApi,
+}) => {
+  await openOrganizationEditor(page, organizationApi);
+
+  const groupList = getGroupList(page);
+  await expect(page.getByRole('tree', { name: '조직 그룹 편집' })).toHaveCount(0);
+  await expect(groupList.getByRole('listitem')).toHaveCount(2);
+  await expect(groupList.locator(`[data-group-id="${organizationGroupIds.root}"]`)).toHaveAttribute('aria-level', '1');
+  await expect(groupList.locator(`[data-group-id="${organizationGroupIds.child}"]`)).toHaveAttribute('aria-level', '2');
+
+  const rootSelect = groupList.getByRole('button', { name: '운영위원회 선택' });
+  const childSelect = groupList.getByRole('button', { name: '숲교육분과 이름이 길어도 줄바꿈됩니다 선택' });
+  await expect(rootSelect).toHaveAttribute('aria-current', 'true');
+  await expect(childSelect).not.toHaveAttribute('aria-current');
+  await childSelect.focus();
+  await childSelect.press('Enter');
+  await expect(childSelect).toBeFocused();
+  await expect(childSelect).toHaveAttribute('aria-current', 'true');
+  await expect(rootSelect).not.toHaveAttribute('aria-current');
+
+  const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze();
+  const serious = results.violations.filter(({ impact }) => impact === 'critical' || impact === 'serious');
+  expect(serious).toEqual([]);
+});
+
+test('preview deployment blocks every mutation before the network and keeps the organization double guard', async ({
   page,
   organizationApi,
 }, testInfo) => {
@@ -91,14 +123,38 @@ test('preview deployment disables organization saves in both the editor and serv
 
   expect(errorCode).toBe('ORGANIZATION_WRITES_DISABLED');
   expect(organizationApi.getPutRequests()).toEqual([]);
+
+  let representativeMutationRouteCount = 0;
+  await page.route('**/api/v1/static-content/intro-greeting', async (route) => {
+    representativeMutationRouteCount += 1;
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ data: { key: 'intro-greeting', content: 'should not be reached' } }),
+    });
+  });
+  const editorUrl = page.url();
+  const globalErrorCode = await page.evaluate(async () => {
+    const { default: axiosInstance } = await import('/src/axiosInstance.js');
+    try {
+      await axiosInstance.put('/static-content/intro-greeting', { content: 'blocked preview write' });
+      return null;
+    } catch (error) {
+      return error.code;
+    }
+  });
+
+  expect(globalErrorCode).toBe('FOREST_MUTATIONS_DISABLED');
+  expect(representativeMutationRouteCount).toBe(0);
+  await expect(page).toHaveURL(editorUrl);
 });
 
 test('group edits stay in an unsaved preview and only move siblings', async ({ page, organizationApi }) => {
   await openOrganizationEditor(page, organizationApi);
-  const tree = page.getByRole('tree', { name: '조직 그룹 편집' });
+  const tree = getGroupList(page);
 
   await page.getByRole('button', { name: '최상위 조직 추가' }).click();
-  const createdRoot = tree.getByRole('treeitem', { name: /새 조직/ });
+  const createdRoot = getGroupItem(page, /새 조직.*선택/);
   const rootId = await createdRoot.getAttribute('data-group-id');
   expect(rootId).toMatch(UUID_V4_PATTERN);
   await expect(createdRoot).toHaveAttribute('data-parent-id', 'root');
@@ -107,7 +163,9 @@ test('group edits stay in an unsaved preview and only move siblings', async ({ p
   await page.getByLabel('그룹 설명').fill('저장 전 설명');
   await page.getByRole('button', { name: '저장 전 미리보기' }).click();
   let preview = page.getByRole('dialog', { name: '저장 전 조직도 미리보기' });
-  await expect(preview.getByText('새 루트 조직')).toBeVisible();
+  await preview.getByRole('button', { name: '새 루트 조직' }).click();
+  await expect(preview.getByRole('heading', { name: '새 루트 조직', level: 2 })).toBeVisible();
+  await expect(preview.getByText('저장 전 설명', { exact: true })).toBeVisible();
   await preview.getByRole('button', { name: '미리보기 닫기' }).click();
 
   const descriptionInput = page.getByLabel('그룹 설명');
@@ -118,14 +176,14 @@ test('group edits stay in an unsaved preview and only move siblings', async ({ p
   await descriptionInput.fill('저장 전 설명');
 
   await tree.getByRole('button', { name: '새 루트 조직 위로 이동' }).click();
-  const topLevelNames = await tree.locator('[role="treeitem"][data-parent-id="root"] [data-group-name]').allTextContents();
+  const topLevelNames = await tree.locator('[data-group-id][data-parent-id="root"] [data-group-name]').allTextContents();
   expect(topLevelNames.map((name) => name.trim())).toEqual(['새 루트 조직', '운영위원회']);
   await expect(tree.locator(`[data-group-id="${organizationGroupIds.child}"]`))
     .toHaveAttribute('data-parent-id', organizationGroupIds.root);
 
   await tree.getByRole('button', { name: '운영위원회 선택' }).click();
   await page.getByRole('button', { name: '운영위원회 하위 조직 추가' }).click();
-  const createdChild = tree.getByRole('treeitem', { name: /새 조직/ });
+  const createdChild = getGroupItem(page, /새 조직.*선택/);
   const childId = await createdChild.getAttribute('data-group-id');
   expect(childId).toMatch(UUID_V4_PATTERN);
   expect(childId).not.toBe(rootId);
@@ -133,7 +191,7 @@ test('group edits stay in an unsaved preview and only move siblings', async ({ p
 
   await page.getByLabel('그룹 이름').fill('새 하위 조직');
   await tree.getByRole('button', { name: '새 하위 조직 위로 이동' }).click();
-  const childNames = await tree.locator(`[role="treeitem"][data-parent-id="${organizationGroupIds.root}"] [data-group-name]`).allTextContents();
+  const childNames = await tree.locator(`[data-group-id][data-parent-id="${organizationGroupIds.root}"] [data-group-name]`).allTextContents();
   expect(childNames.map((name) => name.trim())).toEqual([
     '새 하위 조직',
     '숲교육분과 이름이 길어도 줄바꿈됩니다',
@@ -164,7 +222,7 @@ test('group edits stay in an unsaved preview and only move siblings', async ({ p
 
 test('parent choices prevent cycles and guarded deletion only removes an empty group', async ({ page, organizationApi }) => {
   await openOrganizationEditor(page, organizationApi);
-  const tree = page.getByRole('tree', { name: '조직 그룹 편집' });
+  const tree = getGroupList(page);
 
   await tree.getByRole('button', { name: '운영위원회 선택' }).click();
   const parentOptions = await page.getByLabel('상위 그룹').locator('option').allTextContents();
@@ -193,7 +251,7 @@ test('parent choices prevent cycles and guarded deletion only removes an empty g
   await expect(tree.locator(`[data-group-id="${organizationGroupIds.child}"]`)).toBeVisible();
 
   await page.getByRole('button', { name: '최상위 조직 추가' }).click();
-  const emptyGroup = tree.getByRole('treeitem', { name: /새 조직/ });
+  const emptyGroup = getGroupItem(page, /새 조직.*선택/);
   const emptyGroupId = await emptyGroup.getAttribute('data-group-id');
   await Promise.all([
     page.waitForEvent('dialog').then(async (dialog) => {
@@ -323,7 +381,7 @@ test('a new group follows the greatest negative sibling order by ten', async ({ 
 
   await page.getByRole('button', { name: '최상위 조직 추가' }).click();
 
-  await expect(page.getByRole('treeitem', { name: /새 조직/ })).toHaveAttribute('data-order', '0');
+  await expect(getGroupItem(page, /새 조직.*선택/)).toHaveAttribute('data-order', '0');
   expect(organizationApi.getPutRequests()).toEqual([]);
 });
 
@@ -432,7 +490,7 @@ test('a created person joins two groups with distinct roles and memberships move
   expect(personId).toMatch(UUID_V4_PATTERN);
   await page.getByRole('button', { name: '조직 편집으로 돌아가기' }).click();
 
-  const tree = page.getByRole('tree', { name: '조직 그룹 편집' });
+  const tree = getGroupList(page);
   const rootMemberships = page.getByRole('region', { name: '운영위원회 구성원 편집' });
   await rootMemberships.getByLabel('기존 인물').selectOption(personId);
   await rootMemberships.getByRole('button', { name: '기존 인물 연결' }).click();
@@ -523,7 +581,7 @@ test('tri-state affiliation and disabled people use the shared unsaved public pr
   await previewTrigger.click();
   dialog = page.getByRole('dialog', { name: '저장 전 조직도 미리보기' });
   await expect(dialog.getByText('김테스트', { exact: true })).toHaveCount(0);
-  await expect(dialog.getByText('등록된 구성원이 없습니다', { exact: true })).toBeVisible();
+  await expect(dialog.getByText('등록된 공개 구성원이 없습니다', { exact: true })).toBeVisible();
   expect(organizationApi.getPutRequests()).toEqual([]);
 });
 
@@ -532,7 +590,7 @@ test('custom affiliation toggles restore the last real value without persisting 
   organizationApi,
 }) => {
   await openOrganizationEditor(page, organizationApi);
-  const tree = page.getByRole('tree', { name: '조직 그룹 편집' });
+  const tree = getGroupList(page);
   await tree.getByRole('button', { name: '숲교육분과 이름이 길어도 줄바꿈됩니다 선택' }).click();
   const memberships = page.getByRole('region', { name: '숲교육분과 이름이 길어도 줄바꿈됩니다 구성원 편집' });
   const connection = memberships.locator('[data-person-id="44444444-4444-4444-8444-444444444444"]');
@@ -563,7 +621,7 @@ test('custom affiliation memory survives a people-panel round trip', async ({
   organizationApi,
 }) => {
   await openOrganizationEditor(page, organizationApi);
-  const tree = page.getByRole('tree', { name: '조직 그룹 편집' });
+  const tree = getGroupList(page);
   await tree.getByRole('button', { name: '숲교육분과 이름이 길어도 줄바꿈됩니다 선택' }).click();
   let memberships = page.getByRole('region', { name: '숲교육분과 이름이 길어도 줄바꿈됩니다 구성원 편집' });
   let connection = memberships.locator('[data-person-id="44444444-4444-4444-8444-444444444444"]');
@@ -670,7 +728,7 @@ test('mobile intro and group editor actions stay single-column, touch-sized, and
   expect(Math.abs(treeBox.x - formBox.x)).toBeLessThanOrEqual(1);
   expect(formBox.y).toBeGreaterThanOrEqual(treeBox.y + treeBox.height);
 
-  const tree = page.getByRole('tree', { name: '조직 그룹 편집' });
+  const tree = getGroupList(page);
   const actionButtons = [
     page.getByRole('button', { name: '최상위 조직 추가' }),
     tree.getByRole('button', { name: '운영위원회 하위 조직 추가' }),
@@ -747,7 +805,7 @@ test('mobile people, membership, and preview surfaces are stacked, touch-sized, 
     expect((await button.boundingBox()).height).toBeGreaterThanOrEqual(48);
   }
 
-  const tree = page.getByRole('tree', { name: '조직 그룹 편집' });
+  const tree = getGroupList(page);
   await tree.getByRole('button', { name: '숲교육분과 이름이 길어도 줄바꿈됩니다 선택' }).click();
   const childMembershipSection = page.getByRole('region', { name: '숲교육분과 이름이 길어도 줄바꿈됩니다 구성원 편집' });
   const membershipCardBoxes = await childMembershipSection.locator('[data-membership-id]').evaluateAll((cards) => cards.map((card) => {

@@ -1,24 +1,25 @@
 export default function LegacyOrganizationDirectory() {
   return (
-    <div className="space-y-8">
-      <p className="text-xl text-gray-700 leading-relaxed text-center">
+    <div className="min-w-0 space-y-8">
+      <p className="break-words text-center text-xl leading-relaxed text-gray-700">
         전북생명의숲은 다양한 분야의 전문가들과 시민들이 함께 모여 활동하고 있습니다.
       </p>
 
       {/* 조직도 */}
-      <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-10 rounded-xl border border-green-200">
+      <div className="min-w-0 rounded-xl border border-green-200 bg-gradient-to-br from-green-50 to-emerald-50 p-4 sm:p-10">
         <h3 className="text-3xl font-bold text-green-800 mb-10 text-center">조직도</h3>
 
-        <div className="flex flex-col items-center space-y-8">
+        <div className="flex min-w-0 flex-col items-center space-y-8">
           {/* 최고 지도층 */}
-          <div className="bg-green-600 text-white px-8 py-4 rounded-lg font-semibold text-center min-w-[250px] text-lg cursor-pointer hover:bg-green-700 transition-colors duration-200">
+          <div className="w-full min-w-0 max-w-[250px] rounded-lg bg-green-700 px-4 py-4 text-center text-lg font-semibold text-white sm:px-8">
             공동대표 / 이사장
           </div>
 
           {/* 이사회와 감사 */}
-          <div className="flex justify-center space-x-10">
-            <div
-              className="bg-blue-600 text-white px-8 py-4 rounded-lg font-semibold text-center min-w-[150px] text-lg cursor-pointer hover:bg-blue-700 transition-colors duration-200"
+          <div className="flex w-full min-w-0 flex-col items-stretch justify-center gap-4 sm:flex-row sm:items-center sm:gap-10">
+            <button
+              type="button"
+              className="min-h-12 w-full min-w-0 rounded-lg bg-blue-600 px-4 py-4 text-center text-lg font-semibold text-white transition-colors duration-200 hover:bg-blue-700 focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-blue-900 sm:w-auto sm:min-w-[150px] sm:px-8"
               onClick={() => {
                 const element = document.getElementById('board-section');
                 if (element) {
@@ -27,15 +28,16 @@ export default function LegacyOrganizationDirectory() {
               }}
             >
               이사회
-            </div>
-            <div className="bg-gray-600 text-white px-8 py-4 rounded-lg font-semibold text-center min-w-[100px] text-lg cursor-pointer hover:bg-gray-700 transition-colors duration-200">
+            </button>
+            <div className="w-full min-w-0 rounded-lg bg-gray-600 px-4 py-4 text-center text-lg font-semibold text-white sm:w-auto sm:min-w-[100px] sm:px-8">
               감사
             </div>
           </div>
 
           {/* 운영위원회 */}
-          <div
-            className="bg-orange-500 text-white px-8 py-4 rounded-lg font-semibold text-center min-w-[200px] text-lg cursor-pointer hover:bg-orange-600 transition-colors duration-200"
+          <button
+            type="button"
+            className="min-h-12 w-full min-w-0 max-w-[200px] rounded-lg bg-orange-700 px-4 py-4 text-center text-lg font-semibold text-white transition-colors duration-200 hover:bg-orange-800 focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-orange-950 sm:px-8"
             onClick={() => {
               const element = document.getElementById('committee-section');
               if (element) {
@@ -44,26 +46,26 @@ export default function LegacyOrganizationDirectory() {
             }}
           >
             운영위원회
-          </div>
+          </button>
 
           {/* 4개 분과 */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            <div className="bg-purple-400 text-white px-6 py-3 rounded-lg font-medium text-center text-base cursor-pointer hover:bg-purple-500 transition-colors duration-200">
+          <div className="grid w-full min-w-0 grid-cols-1 gap-4 min-[390px]:grid-cols-2 md:grid-cols-4 md:gap-6">
+            <div className="min-w-0 break-words rounded-lg bg-purple-700 px-4 py-3 text-center text-base font-medium text-white sm:px-6">
               탄소중립숲분과
             </div>
-            <div className="bg-purple-400 text-white px-6 py-3 rounded-lg font-medium text-center text-base cursor-pointer hover:bg-purple-500 transition-colors duration-200">
+            <div className="min-w-0 break-words rounded-lg bg-purple-700 px-4 py-3 text-center text-base font-medium text-white sm:px-6">
               숲문화탐방분과
             </div>
-            <div className="bg-purple-400 text-white px-6 py-3 rounded-lg font-medium text-center text-base cursor-pointer hover:bg-purple-500 transition-colors duration-200">
+            <div className="min-w-0 break-words rounded-lg bg-purple-700 px-4 py-3 text-center text-base font-medium text-white sm:px-6">
               숲교육분과
             </div>
-            <div className="bg-purple-400 text-white px-6 py-3 rounded-lg font-medium text-center text-base cursor-pointer hover:bg-purple-500 transition-colors duration-200">
+            <div className="min-w-0 break-words rounded-lg bg-purple-700 px-4 py-3 text-center text-base font-medium text-white sm:px-6">
               숲조직홍보분과
             </div>
           </div>
 
           {/* 사무국 */}
-          <div className="bg-yellow-500 text-white px-8 py-4 rounded-lg font-semibold text-center min-w-[120px] text-lg cursor-pointer hover:bg-yellow-600 transition-colors duration-200">
+          <div className="w-full min-w-0 max-w-[120px] rounded-lg bg-yellow-700 px-4 py-4 text-center text-lg font-semibold text-white sm:px-8">
             사무국
           </div>
         </div>
@@ -72,7 +74,7 @@ export default function LegacyOrganizationDirectory() {
       {/* 조직 구성원 명단 */}
       <div className="space-y-8">
         {/* 공동대표 */}
-        <div className="bg-white p-8 rounded-lg shadow-sm border-l-4 border-green-500">
+        <div className="min-w-0 break-words rounded-lg border-l-4 border-green-500 bg-white p-4 shadow-sm sm:p-8">
           <h3 className="text-2xl font-bold text-green-800 mb-6">공동대표</h3>
           <div className="space-y-3 text-gray-700 text-lg">
             <p>• 박종민 (전북대학교 산림환경과학과 교수)</p>
@@ -82,7 +84,7 @@ export default function LegacyOrganizationDirectory() {
         </div>
 
         {/* 감사 */}
-        <div className="bg-white p-8 rounded-lg shadow-sm border-l-4 border-gray-500">
+        <div className="min-w-0 break-words rounded-lg border-l-4 border-gray-500 bg-white p-4 shadow-sm sm:p-8">
           <h3 className="text-2xl font-bold text-gray-800 mb-6">감사</h3>
           <div className="space-y-3 text-gray-700 text-lg">
             <p>• 사업감사: 양차랑 (국립생태원)</p>
@@ -90,7 +92,7 @@ export default function LegacyOrganizationDirectory() {
         </div>
 
         {/* 이사회 */}
-        <div id="board-section" className="bg-white p-8 rounded-lg shadow-sm border-l-4 border-blue-500">
+        <div id="board-section" className="min-w-0 break-words rounded-lg border-l-4 border-blue-500 bg-white p-4 shadow-sm sm:p-8">
           <h3 className="text-2xl font-bold text-blue-800 mb-6">이사회</h3>
           <div className="grid md:grid-cols-2 gap-6 text-gray-700 text-lg">
             <div className="space-y-2">
@@ -133,32 +135,32 @@ export default function LegacyOrganizationDirectory() {
         </div>
 
         {/* 운영위원회 */}
-        <div id="committee-section" className="bg-white p-8 rounded-lg shadow-sm border-l-4 border-orange-500">
+        <div id="committee-section" className="min-w-0 break-words rounded-lg border-l-4 border-orange-500 bg-white p-4 shadow-sm sm:p-8">
           <h3 className="text-2xl font-bold text-orange-800 mb-6">운영위원회 (운영위원장: 황중하)</h3>
 
           {/* 탄소중립분과 */}
-          <div className="mb-8 p-6 bg-purple-50 rounded-lg">
+          <div className="mb-8 rounded-lg bg-purple-50 p-4 sm:p-6">
             <h4 className="text-xl font-semibold text-purple-800 mb-3">탄소중립분과</h4>
             <p className="text-purple-700 mb-3 text-lg">분과장: 박해영</p>
             <p className="text-purple-700 text-lg">분과위원: 김연주, 김창석</p>
           </div>
 
           {/* 숲문화탐방분과 */}
-          <div className="mb-8 p-6 bg-purple-50 rounded-lg">
+          <div className="mb-8 rounded-lg bg-purple-50 p-4 sm:p-6">
             <h4 className="text-xl font-semibold text-purple-800 mb-3">숲문화탐방분과</h4>
             <p className="text-purple-700 mb-3 text-lg">분과장: 전정일</p>
             <p className="text-purple-700 text-lg">분과위원: 박영호, 박형근, 차옥순</p>
           </div>
 
           {/* 숲교육분과 */}
-          <div className="mb-8 p-6 bg-purple-50 rounded-lg">
+          <div className="mb-8 rounded-lg bg-purple-50 p-4 sm:p-6">
             <h4 className="text-xl font-semibold text-purple-800 mb-3">숲교육분과</h4>
             <p className="text-purple-700 mb-3 text-lg">분과장: 정진권</p>
             <p className="text-purple-700 text-lg">분과위원: 김기수, 김은아, 오광민, 이근자, 박은미</p>
           </div>
 
           {/* 숲조직홍보분과 */}
-          <div className="p-6 bg-purple-50 rounded-lg">
+          <div className="rounded-lg bg-purple-50 p-4 sm:p-6">
             <h4 className="text-xl font-semibold text-purple-800 mb-3">숲조직홍보분과</h4>
             <p className="text-purple-700 mb-3 text-lg">분과장: 황중하</p>
             <p className="text-purple-700 text-lg">분과위원: 김계숙, 김기수, 김석균, 박정섭</p>

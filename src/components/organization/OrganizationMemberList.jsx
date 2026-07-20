@@ -10,7 +10,7 @@ export default function OrganizationMemberList({ group, peopleById, memberships 
   if (memberships.length === 0) {
     return (
       <p className="mt-6 rounded-xl bg-gray-50 px-5 py-8 text-center text-lg text-gray-700" role="status">
-        등록된 구성원이 없습니다
+        등록된 공개 구성원이 없습니다
       </p>
     );
   }

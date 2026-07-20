@@ -34,18 +34,18 @@ export default function OrganizationGroupTree({
       {flattened.length === 0 ? (
         <p className="mt-6 rounded-xl bg-gray-50 px-4 py-6 text-center text-gray-600">등록된 그룹이 없습니다.</p>
       ) : (
-        <div role="tree" aria-label="조직 그룹 편집" className="mt-4 space-y-3">
+        <ul aria-label="조직 그룹 편집" className="mt-4 space-y-3">
           {flattened.map((group) => {
             const siblings = groups
               .filter(({ parentGroupId }) => parentGroupId === group.parentGroupId)
               .sort(byDisplayOrder);
             const siblingIndex = siblings.findIndex(({ id }) => id === group.id);
             return (
-              <div
+              <li
                 key={group.id}
-                role="treeitem"
                 aria-level={group.depth + 1}
-                aria-selected={group.id === selectedGroupId}
+                aria-posinset={siblingIndex + 1}
+                aria-setsize={siblings.length}
                 data-group-id={group.id}
                 data-parent-id={group.parentGroupId ?? 'root'}
                 data-order={group.displayOrder}
@@ -58,6 +58,7 @@ export default function OrganizationGroupTree({
                   onClick={() => onSelect(group.id)}
                   className="min-h-12 w-full break-words rounded-lg px-3 py-2 text-left text-base font-bold text-gray-900 hover:bg-green-100"
                   aria-label={`${group.name} 선택`}
+                  aria-current={group.id === selectedGroupId ? 'true' : undefined}
                 >
                   <span data-group-name>{group.name}</span>
                   <span className={`ml-2 text-sm font-semibold ${group.enabled ? 'text-green-700' : 'text-gray-500'}`}>
@@ -71,10 +72,10 @@ export default function OrganizationGroupTree({
                   <button type="button" onClick={() => onToggleEnabled(group.id)} className="min-h-12 rounded-lg border border-gray-300 px-2 font-semibold" aria-label={`${group.name} ${group.enabled ? '비공개로 전환' : '공개로 전환'}`}>{group.enabled ? '비공개' : '공개'}</button>
                   <button type="button" onClick={() => onDelete(group.id)} className="min-h-12 rounded-lg border border-red-600 px-2 font-semibold text-red-700" aria-label={`${group.name} 삭제`}>삭제</button>
                 </div>
-              </div>
+              </li>
             );
           })}
-        </div>
+        </ul>
       )}
     </section>
   );

@@ -58,6 +58,8 @@ test.beforeEach(async ({ pageQuality }) => {
 test('configured data without drift always uses the C directory', async ({ page, organizationApi }) => {
   await openPeople(page, organizationApi, { legacyHtml: legacyPeopleHtml });
   await expectStructuredDirectory(page);
+  await expect(page.locator('section[aria-labelledby^="organization-group-"]')
+    .getByText('운영 설명', { exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: '기존 조직도 명단' })).toHaveCount(0);
 });
 
@@ -103,11 +105,37 @@ test('organization 404 uses meaningful legacy content first', async ({ page, org
   await expectLegacyDirectory(page);
 });
 
-test('organization 404 and empty legacy content use the exact hardcoded emergency fallback', async ({ page, organizationApi, pageQuality }) => {
+test('organization 404 and empty legacy content use an accessible overflow-free emergency fallback', async ({ page, organizationApi, pageQuality }) => {
   pageQuality.allowConsoleError(API_404, ORGANIZATION_API_URL);
   await openPeople(page, organizationApi, { organizationFailure: 404 });
   await expect(page.getByRole('heading', { name: '조직도', level: 3 })).toBeVisible();
   await expect(page.getByRole('heading', { name: '공동대표', level: 3 })).toBeVisible();
+
+  for (const width of [320, 390]) {
+    await page.setViewportSize({ width, height: 844 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+      `emergency fallback overflows at ${width}px`).toBe(true);
+  }
+
+  const boardButton = page.getByRole('button', { name: '이사회', exact: true });
+  const committeeButton = page.getByRole('button', { name: '운영위원회', exact: true });
+  await boardButton.focus();
+  await boardButton.press('Enter');
+  await expect.poll(() => page.locator('#board-section').evaluate((element) => (
+    Math.abs(element.getBoundingClientRect().top)
+  ))).toBeLessThan(4);
+
+  await boardButton.focus();
+  await page.keyboard.press('Tab');
+  await expect(committeeButton).toBeFocused();
+  await committeeButton.press('Enter');
+  await expect.poll(() => page.locator('#committee-section').evaluate((element) => (
+    Math.abs(element.getBoundingClientRect().top)
+  ))).toBeLessThan(4);
+
+  const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze();
+  const serious = results.violations.filter(({ impact }) => impact === 'critical' || impact === 'serious');
+  expect(serious).toEqual([]);
 });
 
 test('organization 500 still uses meaningful legacy content', async ({ page, organizationApi, pageQuality }) => {
@@ -226,13 +254,13 @@ test('empty member and empty group collections have distinct visible states', as
     organization: copyOrganization({ groups: [...organizationFixture.groups, emptyGroup] }),
   });
   await page.getByRole('button', { name: emptyGroup.name }).click();
-  await expect(page.getByText('등록된 구성원이 없습니다')).toBeVisible();
+  await expect(page.getByText('등록된 공개 구성원이 없습니다')).toBeVisible();
   await expect(page.locator('section[aria-labelledby^="organization-group-"]').getByRole('listitem')).toHaveCount(0);
 
   organizationApi.setOrganization(copyOrganization({ groups: [], people: [], memberships: [] }));
   allowAnonymousRequest(pageQuality);
   await page.reload();
-  await expect(page.getByText('등록된 조직이 없습니다')).toBeVisible();
+  await expect(page.getByText('현재 공개된 조직 정보가 없습니다')).toBeVisible();
   await expect(page.getByRole('navigation', { name: '조직 선택' })).toHaveCount(0);
 });
 
