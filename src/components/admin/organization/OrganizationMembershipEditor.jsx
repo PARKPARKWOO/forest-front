@@ -53,6 +53,12 @@ export default function OrganizationMembershipEditor({
     setPendingCustomMembershipIds(new Set());
   }, [group?.id]);
 
+  useEffect(() => {
+    if (existingPersonId && !people.some(({ id }) => id === existingPersonId)) {
+      setExistingPersonId('');
+    }
+  }, [existingPersonId, people]);
+
   if (!group) return null;
 
   const sortedMemberships = [...memberships].sort(byDisplayOrder);

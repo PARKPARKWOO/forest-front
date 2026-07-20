@@ -44,12 +44,14 @@ export default function OrganizationDirectoryPreview({ draft, onClose }) {
             미리보기 닫기
           </button>
         </div>
-        <OrganizationDirectory
-          snapshot={snapshot}
-          selectedGroupId={selectedGroupId}
-          onSelectGroup={setSelectedGroupId}
-          ariaLabel="저장 전 미리보기 그룹"
-        />
+        <div className="[&_nav]:!grid-cols-1">
+          <OrganizationDirectory
+            snapshot={snapshot}
+            selectedGroupId={selectedGroupId}
+            onSelectGroup={setSelectedGroupId}
+            ariaLabel="저장 전 미리보기 그룹"
+          />
+        </div>
       </div>
     </div>
   );

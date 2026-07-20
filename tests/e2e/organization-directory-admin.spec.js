@@ -29,6 +29,10 @@ async function openOrganizationEditor(page, organizationApi, url = '/admin?secti
   await expect(page.getByRole('heading', { name: '함께하는이들 조직도 관리' })).toBeVisible();
 }
 
+const getPeopleDirectory = (page) => (
+  page.getByRole('heading', { name: '인물 관리', exact: true }).locator('xpath=ancestor::section[1]')
+);
+
 test('the people row opens a reloadable editor route and back preserves unrelated query state', async ({
   page,
   organizationApi,
@@ -300,7 +304,8 @@ test('people remain UUID-distinct, referenced deletion lists groups, and unrefer
   await page.getByRole('button', { name: '인물 관리' }).click();
   await expect(page.getByRole('heading', { name: '인물 관리', exact: true })).toBeVisible();
 
-  const referencedPerson = page.locator('[data-person-id="33333333-3333-4333-8333-333333333333"]');
+  const peopleDirectory = getPeopleDirectory(page);
+  const referencedPerson = peopleDirectory.locator('[data-person-id="33333333-3333-4333-8333-333333333333"]');
   await expect(referencedPerson.getByRole('button', { name: /김테스트.*기본 소속.*인물 삭제/ })).toBeVisible();
   await Promise.all([
     page.waitForEvent('dialog').then(async (dialog) => {
@@ -314,13 +319,13 @@ test('people remain UUID-distinct, referenced deletion lists groups, and unrefer
   await expect(referencedPerson).toBeVisible();
 
   const addPerson = async (affiliation) => {
-    await page.getByLabel('새 인물 이름').fill('동명이인');
-    await page.getByLabel('새 인물 소속').fill(affiliation);
-    await page.getByRole('button', { name: '인물 추가' }).click();
+    await peopleDirectory.getByLabel('새 인물 이름').fill('동명이인');
+    await peopleDirectory.getByLabel('새 인물 소속').fill(affiliation);
+    await peopleDirectory.getByRole('button', { name: '인물 추가' }).click();
   };
   await addPerson('첫 번째 소속');
   await addPerson('두 번째 소속');
-  const duplicateCards = page.locator('[data-person-id]').filter({ hasText: '동명이인' });
+  const duplicateCards = peopleDirectory.locator('[data-person-id]').filter({ hasText: '동명이인' });
   await expect(duplicateCards).toHaveCount(2);
   const duplicateIds = await duplicateCards.evaluateAll((cards) => cards.map((card) => card.dataset.personId));
   expect(duplicateIds[0]).toMatch(UUID_V4_PATTERN);
@@ -335,7 +340,7 @@ test('people remain UUID-distinct, referenced deletion lists groups, and unrefer
     .toEqual(expect.arrayContaining(duplicateIds));
 
   await page.getByRole('button', { name: '인물 관리' }).click();
-  const unreferencedPerson = page.locator(`[data-person-id="${duplicateIds[1]}"]`);
+  const unreferencedPerson = peopleDirectory.locator(`[data-person-id="${duplicateIds[1]}"]`);
   await Promise.all([
     page.waitForEvent('dialog').then(async (dialog) => {
       expect(dialog.type()).toBe('confirm');
@@ -344,7 +349,40 @@ test('people remain UUID-distinct, referenced deletion lists groups, and unrefer
     unreferencedPerson.getByRole('button', { name: '인물 삭제' }).click(),
   ]);
   await expect(unreferencedPerson).toHaveCount(0);
-  await expect(page.locator(`[data-person-id="${duplicateIds[0]}"]`)).toBeVisible();
+  await expect(peopleDirectory.locator(`[data-person-id="${duplicateIds[0]}"]`)).toBeVisible();
+  expect(organizationApi.getPutRequests()).toEqual([]);
+});
+
+test('deleting a selected unreferenced person clears the hidden membership selection', async ({
+  page,
+  organizationApi,
+}) => {
+  await openOrganizationEditor(page, organizationApi);
+  await page.getByRole('button', { name: '인물 관리' }).click();
+  const peopleDirectory = getPeopleDirectory(page);
+  await peopleDirectory.getByLabel('새 인물 이름').fill('삭제할 미연결 인물');
+  await peopleDirectory.getByLabel('새 인물 소속').fill('임시 소속');
+  await peopleDirectory.getByRole('button', { name: '인물 추가' }).click();
+  const person = peopleDirectory.locator('[data-person-id]').filter({ hasText: '삭제할 미연결 인물' });
+  const personId = await person.getAttribute('data-person-id');
+
+  await page.getByRole('button', { name: '조직 편집으로 돌아가기' }).click();
+  const memberships = page.getByRole('region', { name: '운영위원회 구성원 편집' });
+  const existingPersonSelect = memberships.getByLabel('기존 인물');
+  const connectButton = memberships.getByRole('button', { name: '기존 인물 연결' });
+  await existingPersonSelect.selectOption(personId);
+  await expect(connectButton).toBeEnabled();
+
+  await page.getByRole('button', { name: '인물 관리' }).click();
+  await Promise.all([
+    page.waitForEvent('dialog').then((dialog) => dialog.accept()),
+    person.getByRole('button', { name: '인물 삭제' }).click(),
+  ]);
+  await page.getByRole('button', { name: '조직 편집으로 돌아가기' }).click();
+
+  await expect(existingPersonSelect).toHaveValue('');
+  await expect(connectButton).toBeDisabled();
+  await expect(memberships.locator('[data-membership-id]')).toHaveCount(1);
   expect(organizationApi.getPutRequests()).toEqual([]);
 });
 
@@ -354,10 +392,11 @@ test('a created person joins two groups with distinct roles and memberships move
 }) => {
   await openOrganizationEditor(page, organizationApi);
   await page.getByRole('button', { name: '인물 관리' }).click();
-  await page.getByLabel('새 인물 이름').fill('새 연결 인물');
-  await page.getByLabel('새 인물 소속').fill('새 기본 소속');
-  await page.getByRole('button', { name: '인물 추가' }).click();
-  const createdPerson = page.locator('[data-person-id]').filter({ hasText: '새 연결 인물' });
+  const peopleDirectory = getPeopleDirectory(page);
+  await peopleDirectory.getByLabel('새 인물 이름').fill('새 연결 인물');
+  await peopleDirectory.getByLabel('새 인물 소속').fill('새 기본 소속');
+  await peopleDirectory.getByRole('button', { name: '인물 추가' }).click();
+  const createdPerson = peopleDirectory.locator('[data-person-id]').filter({ hasText: '새 연결 인물' });
   const personId = await createdPerson.getAttribute('data-person-id');
   expect(personId).toMatch(UUID_V4_PATTERN);
   await page.getByRole('button', { name: '조직 편집으로 돌아가기' }).click();
@@ -444,7 +483,7 @@ test('tri-state affiliation and disabled people use the shared unsaved public pr
   await expect(previewTrigger).toBeFocused();
 
   await page.getByRole('button', { name: '인물 관리' }).click();
-  const person = page.locator('[data-person-id="33333333-3333-4333-8333-333333333333"]');
+  const person = getPeopleDirectory(page).locator('[data-person-id="33333333-3333-4333-8333-333333333333"]');
   await person.getByRole('checkbox', { name: '공개' }).uncheck();
   await expect(person.getByText('비공개', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: '조직 편집으로 돌아가기' }).click();
@@ -488,6 +527,28 @@ test('custom affiliation toggles restore the last real value without persisting 
   expect(organizationApi.getPutRequests()).toEqual([]);
 });
 
+test('custom affiliation memory survives a people-panel round trip', async ({
+  page,
+  organizationApi,
+}) => {
+  await openOrganizationEditor(page, organizationApi);
+  const tree = page.getByRole('tree', { name: '조직 그룹 편집' });
+  await tree.getByRole('button', { name: '숲교육분과 이름이 길어도 줄바꿈됩니다 선택' }).click();
+  let memberships = page.getByRole('region', { name: '숲교육분과 이름이 길어도 줄바꿈됩니다 구성원 편집' });
+  let connection = memberships.locator('[data-person-id="44444444-4444-4444-8444-444444444444"]');
+
+  await expect(connection.getByRole('textbox', { name: /이테스트이름이길어도줄바꿈됩니다.*다른 소속/ })).toHaveValue('별도 소속 문구');
+  await connection.getByRole('radio', { name: /이테스트이름이길어도줄바꿈됩니다.*소속 숨김/ }).check();
+  await page.getByRole('button', { name: '인물 관리' }).click();
+  await page.getByRole('button', { name: '조직 편집으로 돌아가기' }).click();
+
+  memberships = page.getByRole('region', { name: '숲교육분과 이름이 길어도 줄바꿈됩니다 구성원 편집' });
+  connection = memberships.locator('[data-person-id="44444444-4444-4444-8444-444444444444"]');
+  await connection.getByRole('radio', { name: /이테스트이름이길어도줄바꿈됩니다.*다른 소속 입력/ }).check();
+  await expect(connection.getByRole('textbox', { name: /이테스트이름이길어도줄바꿈됩니다.*다른 소속/ })).toHaveValue('별도 소속 문구');
+  expect(organizationApi.getPutRequests()).toEqual([]);
+});
+
 test('accepting a newer server snapshot clears discarded custom affiliation memory', async ({
   page,
   organizationApi,
@@ -512,6 +573,39 @@ test('accepting a newer server snapshot clears discarded custom affiliation memo
   await connection.getByRole('radio', { name: /김테스트.*다른 소속 입력/ }).check();
   await expect(connection.getByRole('textbox', { name: /김테스트.*다른 소속/ })).toHaveValue('기본 소속');
   await expect(connection.getByRole('textbox', { name: /김테스트.*다른 소속/ })).not.toHaveValue('폐기할 로컬 소속');
+  expect(organizationApi.getPutRequests()).toEqual([]);
+});
+
+test('drift-only background refetch preserves custom memory until the snapshot is accepted', async ({
+  page,
+  organizationApi,
+}) => {
+  await openOrganizationEditor(page, organizationApi);
+  const membershipRegion = page.getByRole('region', { name: '운영위원회 구성원 편집' });
+  const connection = membershipRegion.locator('[data-person-id="33333333-3333-4333-8333-333333333333"]');
+  const customRadio = connection.getByRole('radio', { name: /김테스트.*다른 소속 입력/ });
+  const hideRadio = connection.getByRole('radio', { name: /김테스트.*소속 숨김/ });
+
+  await customRadio.check();
+  await connection.getByRole('textbox', { name: /김테스트.*다른 소속/ }).fill('background에서 유지할 소속');
+  await hideRadio.check();
+
+  organizationApi.setOrganization(copyOrganization({ legacyContentDrift: true }));
+  await page.getByRole('button', { name: '서버 변경 확인' }).click();
+  await expect(page.getByRole('alert')).toContainText('전환 상태가 바뀌었습니다');
+
+  await customRadio.check();
+  await expect(connection.getByRole('textbox', { name: /김테스트.*다른 소속/ })).toHaveValue('background에서 유지할 소속');
+  await hideRadio.check();
+
+  await Promise.all([
+    page.waitForEvent('dialog').then((dialog) => dialog.accept()),
+    page.getByRole('button', { name: '최신 내용 불러오기' }).click(),
+  ]);
+  await expect(connection.getByRole('radio', { name: /김테스트.*기본 소속 사용/ })).toBeChecked();
+  await customRadio.check();
+  await expect(connection.getByRole('textbox', { name: /김테스트.*다른 소속/ })).toHaveValue('기본 소속');
+  await expect(connection.getByRole('textbox', { name: /김테스트.*다른 소속/ })).not.toHaveValue('background에서 유지할 소속');
   expect(organizationApi.getPutRequests()).toEqual([]);
 });
 
@@ -633,9 +727,10 @@ test('mobile people, membership, and preview surfaces are stacked, touch-sized, 
   expect(membershipCardBoxes.every((box, index) => index === 0 || box.y >= membershipCardBoxes[index - 1].y + membershipCardBoxes[index - 1].height)).toBe(true);
 
   await page.getByRole('button', { name: '인물 관리' }).click();
-  const newPersonName = page.getByLabel('새 인물 이름');
-  const newPersonAffiliation = page.getByLabel('새 인물 소속');
-  const addPersonButton = page.getByRole('button', { name: '인물 추가' });
+  const peopleDirectory = getPeopleDirectory(page);
+  const newPersonName = peopleDirectory.getByLabel('새 인물 이름');
+  const newPersonAffiliation = peopleDirectory.getByLabel('새 인물 소속');
+  const addPersonButton = peopleDirectory.getByRole('button', { name: '인물 추가' });
   const peopleFormBoxes = await Promise.all([
     newPersonName.locator('xpath=ancestor::label[1]').boundingBox(),
     newPersonAffiliation.locator('xpath=ancestor::label[1]').boundingBox(),
@@ -643,7 +738,7 @@ test('mobile people, membership, and preview surfaces are stacked, touch-sized, 
   ]);
   expect(Math.max(...peopleFormBoxes.map(({ x }) => x)) - Math.min(...peopleFormBoxes.map(({ x }) => x))).toBeLessThanOrEqual(1);
   expect(peopleFormBoxes.every((box, index) => index === 0 || box.y >= peopleFormBoxes[index - 1].y + peopleFormBoxes[index - 1].height)).toBe(true);
-  const peopleCards = page.locator('[data-person-id]');
+  const peopleCards = peopleDirectory.locator('[data-person-id]');
   const peopleBoxes = await peopleCards.evaluateAll((cards) => cards.map((card) => {
     const { x, y, width, height } = card.getBoundingClientRect();
     return { x, y, width, height };
@@ -667,6 +762,12 @@ test('mobile people, membership, and preview surfaces are stacked, touch-sized, 
   await expect(closePreview).toBeFocused();
   await page.keyboard.press('Shift+Tab');
   const previewGroupButtons = dialog.getByRole('navigation', { name: '저장 전 미리보기 그룹' }).getByRole('button');
+  const previewGroupBoxes = await previewGroupButtons.evaluateAll((buttons) => buttons.map((button) => {
+    const { y, height } = button.getBoundingClientRect();
+    return { y, height };
+  }));
+  expect(previewGroupBoxes).toHaveLength(2);
+  expect(previewGroupBoxes.every((box, index) => index === 0 || box.y >= previewGroupBoxes[index - 1].y + previewGroupBoxes[index - 1].height)).toBe(true);
   await expect(previewGroupButtons.last()).toBeFocused();
   await page.keyboard.press('Tab');
   await expect(closePreview).toBeFocused();

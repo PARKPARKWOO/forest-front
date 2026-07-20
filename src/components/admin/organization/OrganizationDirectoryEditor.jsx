@@ -234,7 +234,7 @@ export default function OrganizationDirectoryEditor({ onBack }) {
   const addExistingMembership = (personId) => {
     if (!selectedGroup || !personId) return;
     setDraft((current) => {
-      if (current.memberships.some((membership) => (
+      if (!current.people.some(({ id }) => id === personId) || current.memberships.some((membership) => (
         membership.groupId === selectedGroup.id && membership.personId === personId
       ))) return current;
       return {
@@ -345,7 +345,7 @@ export default function OrganizationDirectoryEditor({ onBack }) {
         </div>
       )}
 
-      {panel === 'people' ? (
+      {panel === 'people' && (
         <OrganizationPeopleDirectory
           people={draft.people}
           memberships={membershipsWithGroupNames}
@@ -355,50 +355,49 @@ export default function OrganizationDirectoryEditor({ onBack }) {
           onDelete={deletePerson}
           onBack={() => setPanel('groups')}
         />
-      ) : (
-        <>
-          <div className="grid min-w-0 grid-cols-1 gap-6 xl:grid-cols-[minmax(20rem,0.9fr)_minmax(24rem,1.1fr)]">
-            <OrganizationGroupTree
-              groups={draft.groups}
-              selectedGroupId={selectedGroupId}
-              onSelect={setSelectedGroupId}
-              onAddRoot={() => addGroup(null)}
-              onAddChild={addGroup}
-              onMove={(groupId, direction) => setDraft((current) => moveGroup(current, groupId, direction))}
-              onToggleEnabled={(groupId) => setDraft((current) => ({
-                ...current,
-                groups: current.groups.map((group) => (
-                  group.id === groupId ? { ...group, enabled: !group.enabled } : group
-                )),
-              }))}
-              onDelete={deleteGroup}
-            />
-            <OrganizationGroupForm
-              group={selectedGroup}
-              parentOptions={parentOptions}
-              errors={selectedErrors}
-              onChange={changeSelectedGroup}
-            />
-          </div>
-          <OrganizationMembershipEditor
-            key={`${acceptedServerSnapshot.revision}:${acceptedServerSnapshot.legacyContentFingerprint}`}
-            group={selectedGroup}
-            memberships={selectedMemberships}
-            people={peopleWithLinks}
-            errors={membershipErrors}
-            onAddExisting={addExistingMembership}
-            onCreateAndAdd={createAndAddMembership}
-            onChange={changeMembership}
-            onMove={(membershipId, direction) => setDraft((current) => (
-              moveMembership(current, selectedGroup.id, membershipId, direction)
-            ))}
-            onRemove={(membershipId) => setDraft((current) => ({
-              ...current,
-              memberships: current.memberships.filter(({ id }) => id !== membershipId),
-            }))}
-          />
-        </>
       )}
+      <div hidden={panel === 'people'} className="min-w-0 space-y-6">
+        <div className="grid min-w-0 grid-cols-1 gap-6 xl:grid-cols-[minmax(20rem,0.9fr)_minmax(24rem,1.1fr)]">
+          <OrganizationGroupTree
+            groups={draft.groups}
+            selectedGroupId={selectedGroupId}
+            onSelect={setSelectedGroupId}
+            onAddRoot={() => addGroup(null)}
+            onAddChild={addGroup}
+            onMove={(groupId, direction) => setDraft((current) => moveGroup(current, groupId, direction))}
+            onToggleEnabled={(groupId) => setDraft((current) => ({
+              ...current,
+              groups: current.groups.map((group) => (
+                group.id === groupId ? { ...group, enabled: !group.enabled } : group
+              )),
+            }))}
+            onDelete={deleteGroup}
+          />
+          <OrganizationGroupForm
+            group={selectedGroup}
+            parentOptions={parentOptions}
+            errors={selectedErrors}
+            onChange={changeSelectedGroup}
+          />
+        </div>
+        <OrganizationMembershipEditor
+          key={`${acceptedServerSnapshot.revision}:${acceptedServerSnapshot.legacyContentFingerprint}:${acceptedServerSnapshot.legacyContentDrift}`}
+          group={selectedGroup}
+          memberships={selectedMemberships}
+          people={peopleWithLinks}
+          errors={membershipErrors}
+          onAddExisting={addExistingMembership}
+          onCreateAndAdd={createAndAddMembership}
+          onChange={changeMembership}
+          onMove={(membershipId, direction) => setDraft((current) => (
+            moveMembership(current, selectedGroup.id, membershipId, direction)
+          ))}
+          onRemove={(membershipId) => setDraft((current) => ({
+            ...current,
+            memberships: current.memberships.filter(({ id }) => id !== membershipId),
+          }))}
+        />
+      </div>
 
       {previewOpen && <OrganizationDirectoryPreview draft={draft} onClose={() => setPreviewOpen(false)} />}
     </div>
