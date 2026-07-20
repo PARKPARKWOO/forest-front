@@ -164,8 +164,11 @@ export default function OrganizationDirectoryEditor({ onBack }) {
 
   const dirty = useMemo(() => (
     Boolean(draft && acceptedServerSnapshot)
-    && stableSerialize(draft) !== stableSerialize(cloneEditableSnapshot(acceptedServerSnapshot))
-  ), [acceptedServerSnapshot, draft]);
+    && (
+      stableSerialize(draft) !== stableSerialize(cloneEditableSnapshot(acceptedServerSnapshot))
+      || pendingCustomMembershipIds.size > 0
+    )
+  ), [acceptedServerSnapshot, draft, pendingCustomMembershipIds]);
   useUnsavedChanges(dirty);
 
   const latestServerSnapshot = organizationQuery.data;

@@ -130,9 +130,8 @@ export default function AdminDashboard() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [activeMenu, setActiveMenu] = useState(() => (
-    getInitialAdminMenu(searchParams.get('section'), hasMaxAccess)
-  ));
+  const requestedMenu = searchParams.get('section');
+  const activeMenu = getInitialAdminMenu(requestedMenu, hasMaxAccess);
   const [selectedProgramId, setSelectedProgramId] = useState(null);
   const [supportersPage, setSupportersPage] = useState(0);
   const [supportersSize] = useState(10);
@@ -159,22 +158,20 @@ export default function AdminDashboard() {
 
   const selectAdminMenu = (menu) => {
     const nextMenu = getInitialAdminMenu(menu, hasMaxAccess);
-    setActiveMenu(nextMenu);
     setSelectedProgramId(null);
     setFormBuilderLoadError('');
     programFormRequestRef.current += 1;
     setOpeningProgramFormId(null);
-    setSearchParams({ section: nextMenu }, { replace: true });
+    setSearchParams({ section: nextMenu });
   };
 
   useEffect(() => {
-    if (!hasMaxAccess && (activeMenu === 'categories' || activeMenu === 'users')) {
-      selectAdminMenu('programs');
-    }
-  // selectAdminMenu intentionally depends on current local state and is only
-  // needed when a refreshed session loses MAX access.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeMenu, hasMaxAccess]);
+    if (hasMaxAccess || !MAX_ONLY_ADMIN_MENUS.has(requestedMenu)) return;
+    const next = new URLSearchParams(searchParams);
+    next.set('section', 'programs');
+    next.delete('item');
+    setSearchParams(next, { replace: true });
+  }, [hasMaxAccess, requestedMenu, searchParams, setSearchParams]);
 
   // 카테고리 목록 조회
   const { data: categories, isLoading: categoriesLoading } = useQuery({

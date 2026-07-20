@@ -16,7 +16,7 @@ export default function OrganizationMemberList({ group, peopleById, memberships 
   }
 
   return (
-    <ul aria-label={`${group.name} 구성원`} className="mt-6 grid min-w-0 gap-4 sm:grid-cols-2">
+    <ul aria-label={`${group.name} 구성원`} className="mt-6 grid min-w-0 gap-4">
       {[...memberships].sort(byMembershipOrder).map((membership) => {
         const person = peopleById.get(membership.personId);
         if (!person) return null;

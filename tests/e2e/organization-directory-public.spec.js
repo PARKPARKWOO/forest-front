@@ -319,6 +319,8 @@ test('group controls keep responsive columns, keyboard focus, vertical reflow, a
   expect(focusStyle.height).toBeGreaterThanOrEqual(48);
   await childButton.press('Enter');
   await expect(childButton).toBeFocused();
+  const memberList = page.getByRole('list', { name: '숲교육분과 이름이 길어도 줄바꿈됩니다 구성원' });
+  expect((await memberList.evaluate((node) => getComputedStyle(node).gridTemplateColumns)).split(' ')).toHaveLength(1);
   await expect(page.getByRole('heading', { name: '숲교육분과 이름이 길어도 줄바꿈됩니다', level: 2 })).not.toBeFocused();
 });
 

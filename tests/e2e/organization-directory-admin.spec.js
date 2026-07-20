@@ -67,6 +67,36 @@ test('the people row opens a reloadable editor route and back preserves unrelate
   await expect.poll(() => new URL(page.url()).searchParams.get('campaign')).toBe('forest');
 });
 
+test('non-MAX administrators canonicalize only restricted menu URLs and preserve unrelated query state', async ({
+  page,
+  organizationApi,
+}) => {
+  organizationApi.setUser(ADMIN_USER_RESPONSE);
+  await page.route('**/api/v1/program/apply/counts?**', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ data: { 'program-1': 0 } }),
+    });
+  });
+
+  for (const restrictedSection of ['categories', 'users']) {
+    await page.goto(`/admin?section=${restrictedSection}&item=people&campaign=forest`);
+    await expect(page.getByRole('heading', { name: '프로그램 관리', level: 1 })).toBeVisible();
+    await expect.poll(() => new URL(page.url()).searchParams.get('section')).toBe('programs');
+    await expect.poll(() => new URL(page.url()).searchParams.get('item')).toBeNull();
+    await expect.poll(() => new URL(page.url()).searchParams.get('campaign')).toBe('forest');
+  }
+
+  await page.goto('/admin?campaign=forest');
+  await expect(page.getByRole('heading', { name: '프로그램 관리', level: 1 })).toBeVisible();
+  await expect.poll(() => new URL(page.url()).searchParams.get('section')).toBeNull();
+
+  await page.goto('/admin?section=unknown&campaign=forest');
+  await expect(page.getByRole('heading', { name: '프로그램 관리', level: 1 })).toBeVisible();
+  await expect.poll(() => new URL(page.url()).searchParams.get('section')).toBe('unknown');
+});
+
 test('group hierarchy uses list semantics and exposes keyboard selection on the selection button', async ({
   page,
   organizationApi,
@@ -291,6 +321,50 @@ test('dirty editor navigation requires explicit confirmation', async ({ page, or
   ]);
   await expect(page.getByRole('heading', { name: '소개(정적 카테고리) 편집' })).toBeVisible();
   await expect.poll(() => new URL(page.url()).searchParams.get('campaign')).toBe('forest');
+});
+
+test('dirty sidebar navigation keeps the editor mounted when dismissed and leaves only after acceptance', async ({
+  page,
+  organizationApi,
+}) => {
+  await openOrganizationEditor(page, organizationApi, '/admin?section=intro&campaign=forest');
+  const nameInput = page.getByLabel('그룹 이름');
+  const introMenu = page.getByRole('button', { name: '소개글 관리', exact: true });
+  const mailMenu = page.getByRole('button', { name: '메일 발송', exact: true });
+  await nameInput.fill('사이드바 이탈 전에 남아야 하는 이름');
+
+  await Promise.all([
+    page.waitForEvent('dialog').then(async (dialog) => {
+      expect(dialog.type()).toBe('confirm');
+      expect(dialog.message()).toContain('저장하지 않은 변경사항');
+      await dialog.dismiss();
+    }),
+    mailMenu.click(),
+  ]);
+
+  await expect(page.getByRole('heading', { name: '함께하는이들 조직도 관리' })).toBeVisible();
+  await expect(nameInput).toHaveValue('사이드바 이탈 전에 남아야 하는 이름');
+  await expect(introMenu).toHaveAttribute('aria-current', 'page');
+  await expect(mailMenu).not.toHaveAttribute('aria-current');
+  await expect.poll(() => new URL(page.url()).searchParams.get('section')).toBe('intro');
+  await expect.poll(() => new URL(page.url()).searchParams.get('item')).toBe('people');
+  await expect.poll(() => new URL(page.url()).searchParams.get('campaign')).toBe('forest');
+
+  await Promise.all([
+    page.waitForEvent('dialog').then((dialog) => dialog.accept()),
+    mailMenu.click(),
+  ]);
+
+  await expect(page.getByRole('heading', { name: '메일 발송', level: 1 })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '함께하는이들 조직도 관리' })).toHaveCount(0);
+  await expect(mailMenu).toHaveAttribute('aria-current', 'page');
+  await expect.poll(() => new URL(page.url()).searchParams.get('section')).toBe('mail');
+
+  await page.goBack();
+  await expect(page.getByRole('heading', { name: '함께하는이들 조직도 관리' })).toBeVisible();
+  await expect(introMenu).toHaveAttribute('aria-current', 'page');
+  await expect.poll(() => new URL(page.url()).searchParams.get('section')).toBe('intro');
+  await expect.poll(() => new URL(page.url()).searchParams.get('item')).toBe('people');
 });
 
 test('background refetch keeps a dirty draft until the administrator accepts the latest revision', async ({
@@ -613,6 +687,54 @@ test('custom affiliation toggles restore the last real value without persisting 
   await dialog.getByRole('button', { name: '숲교육분과 이름이 길어도 줄바꿈됩니다' }).click();
   await expect(dialog.getByText('별도 소속 문구', { exact: true })).toBeVisible();
   await expect(dialog.getByText('다른 소속', { exact: true })).toHaveCount(0);
+  expect(organizationApi.getPutRequests()).toEqual([]);
+});
+
+test('an empty custom-affiliation choice remains a guarded unsaved change', async ({
+  page,
+  organizationApi,
+}) => {
+  organizationApi.setOrganization(copyOrganization({
+    memberships: organizationFixture.memberships.map((membership) => (
+      membership.id === '77777777-7777-4777-8777-777777777777'
+        ? { ...membership, affiliationOverride: null }
+        : { ...membership }
+    )),
+  }));
+  await openOrganizationEditor(page, organizationApi);
+  await getGroupList(page)
+    .getByRole('button', { name: '숲교육분과 이름이 길어도 줄바꿈됩니다 선택' })
+    .click();
+
+  const connection = page
+    .getByRole('region', { name: '숲교육분과 이름이 길어도 줄바꿈됩니다 구성원 편집' })
+    .locator('[data-person-id="44444444-4444-4444-8444-444444444444"]');
+  const customMode = connection.getByRole('radio', {
+    name: /이테스트이름이길어도줄바꿈됩니다.*다른 소속 입력/,
+  });
+  await customMode.check();
+
+  await expect(connection.getByRole('textbox', {
+    name: /이테스트이름이길어도줄바꿈됩니다.*다른 소속/,
+  })).toHaveValue('');
+  await expect(connection).toContainText('다른 소속을 입력해 주세요');
+  await expect(page.getByRole('status').filter({ hasText: '저장하지 않은 변경사항 있음' }))
+    .toBeVisible();
+  await expect(page.getByRole('button', { name: '변경사항 저장' })).toBeEnabled();
+
+  const beforeUnloadWasPrevented = await page.evaluate(() => {
+    const event = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(event);
+    return event.defaultPrevented;
+  });
+  expect(beforeUnloadWasPrevented).toBe(true);
+
+  await Promise.all([
+    page.waitForEvent('dialog').then((dialog) => dialog.dismiss()),
+    page.getByRole('button', { name: '소개글 목록으로 돌아가기' }).click(),
+  ]);
+  await expect(page.getByRole('heading', { name: '함께하는이들 조직도 관리' })).toBeVisible();
+  await expect(customMode).toBeChecked();
   expect(organizationApi.getPutRequests()).toEqual([]);
 });
 
