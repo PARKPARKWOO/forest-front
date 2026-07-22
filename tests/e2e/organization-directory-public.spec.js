@@ -279,6 +279,8 @@ test('group selection changes only the directory detail while preserving URL his
   allowAnonymousRequest(pageQuality);
   allowAnonymousRequest(pageQuality);
   await page.goto('/intro/greeting');
+  await expect(page.getByRole('heading', { name: '인사말', level: 1 })).toBeVisible();
+  await page.waitForLoadState('networkidle');
   await page.goto('/intro/people?campaign=forest#directory');
 
   await expect(page.getByRole('heading', { name: '운영위원회', level: 2 })).toBeVisible();
