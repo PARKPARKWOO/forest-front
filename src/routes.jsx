@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { createBrowserRouter } from 'react-router-dom';
 import App from './App';
 import UserHome from './pages/user/UserHome';
@@ -26,11 +27,25 @@ import AuthenticatedRoute from './components/AuthenticatedRoute';
 import UserManagement from './pages/admin/UserManagement';
 import NotFoundPage from './pages/NotFoundPage';
 
+const DesignSystemCatalog = import.meta.env.DEV && import.meta.env.VITE_DRAFT_MODE === 'true'
+  ? lazy(() => import('./design-system/catalog/DesignSystemCatalog'))
+  : null;
+
+const designSystemRoutes = DesignSystemCatalog ? [{
+  path: '__design-system',
+  element: (
+    <Suspense fallback={<p role="status">디자인 시스템을 불러오고 있습니다.</p>}>
+      <DesignSystemCatalog />
+    </Suspense>
+  ),
+}] : [];
+
 const router = createBrowserRouter([
   {
     path: '/',
     element: <App />,
     children: [
+      ...designSystemRoutes,
       { index: true, element: <UserHome /> },
       { path: 'login', element: <Login /> },
       { path: 'intro', element: <Intro /> },
