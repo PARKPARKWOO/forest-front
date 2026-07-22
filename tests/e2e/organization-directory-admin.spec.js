@@ -30,6 +30,11 @@ async function openOrganizationEditor(page, organizationApi, url = '/admin?secti
   await expect(page.getByRole('heading', { name: '함께하는이들 조직도 관리' })).toBeVisible();
 }
 
+async function waitForProgramsAdminToSettle(page) {
+  await expect(page.getByRole('heading', { name: '프로그램 관리', level: 1 })).toBeVisible();
+  await page.waitForLoadState('networkidle');
+}
+
 const getPeopleDirectory = (page) => (
   page.getByRole('heading', { name: '인물 관리', exact: true }).locator('xpath=ancestor::section[1]')
 );
@@ -82,15 +87,15 @@ test('non-MAX administrators canonicalize only restricted menu URLs and preserve
 
   for (const restrictedSection of ['categories', 'users']) {
     await page.goto(`/admin?section=${restrictedSection}&item=people&campaign=forest`);
-    await expect(page.getByRole('heading', { name: '프로그램 관리', level: 1 })).toBeVisible();
     await expect.poll(() => new URL(page.url()).searchParams.get('section')).toBe('programs');
     await expect.poll(() => new URL(page.url()).searchParams.get('item')).toBeNull();
     await expect.poll(() => new URL(page.url()).searchParams.get('campaign')).toBe('forest');
+    await waitForProgramsAdminToSettle(page);
   }
 
   await page.goto('/admin?campaign=forest');
-  await expect(page.getByRole('heading', { name: '프로그램 관리', level: 1 })).toBeVisible();
   await expect.poll(() => new URL(page.url()).searchParams.get('section')).toBeNull();
+  await waitForProgramsAdminToSettle(page);
 
   await page.goto('/admin?section=unknown&campaign=forest');
   await expect(page.getByRole('heading', { name: '프로그램 관리', level: 1 })).toBeVisible();
@@ -954,13 +959,22 @@ test('mobile people, membership, and preview surfaces are stacked, touch-sized, 
   const newPersonName = peopleDirectory.getByLabel('새 인물 이름');
   const newPersonAffiliation = peopleDirectory.getByLabel('새 인물 소속');
   const addPersonButton = peopleDirectory.getByRole('button', { name: '인물 추가' });
-  const peopleFormBoxes = await Promise.all([
-    newPersonName.locator('xpath=ancestor::label[1]').boundingBox(),
-    newPersonAffiliation.locator('xpath=ancestor::label[1]').boundingBox(),
-    addPersonButton.boundingBox(),
-  ]);
+  const peopleFormControls = [
+    newPersonName.locator('xpath=ancestor::label[1]'),
+    newPersonAffiliation.locator('xpath=ancestor::label[1]'),
+    addPersonButton,
+  ];
+  const peopleFormBoxes = await Promise.all(peopleFormControls.map((control) => control.boundingBox()));
   expect(Math.max(...peopleFormBoxes.map(({ x }) => x)) - Math.min(...peopleFormBoxes.map(({ x }) => x))).toBeLessThanOrEqual(1);
-  expect(peopleFormBoxes.every((box, index) => index === 0 || box.y >= peopleFormBoxes[index - 1].y + peopleFormBoxes[index - 1].height)).toBe(true);
+  await expect.poll(async () => {
+    const boxes = await Promise.all(peopleFormControls.map((control) => control.boundingBox()));
+    return boxes.every((box, index) => {
+      if (box === null) return false;
+      if (index === 0) return true;
+      const previousBox = boxes[index - 1];
+      return previousBox !== null && box.y >= previousBox.y + previousBox.height;
+    });
+  }).toBe(true);
   const peopleCards = peopleDirectory.locator('[data-person-id]');
   const peopleBoxes = await peopleCards.evaluateAll((cards) => cards.map((card) => {
     const { x, y, width, height } = card.getBoundingClientRect();
