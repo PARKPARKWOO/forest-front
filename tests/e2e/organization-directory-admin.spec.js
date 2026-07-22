@@ -181,6 +181,39 @@ test('preview deployment blocks every mutation before the network and keeps the 
 
   expect(globalErrorCode).toBe('FOREST_MUTATIONS_DISABLED');
   expect(representativeMutationRouteCount).toBe(0);
+
+  let authRevokeRouteCount = 0;
+  await page.route('https://auth.platformholder.site/api/v1/auth/token/revoke', async (route) => {
+    authRevokeRouteCount += 1;
+    const corsHeaders = {
+      'access-control-allow-origin': 'http://127.0.0.1:3000',
+      'access-control-allow-credentials': 'true',
+      'access-control-allow-headers': 'Content-Type',
+      'access-control-allow-methods': 'POST, OPTIONS',
+    };
+    if (route.request().method() === 'OPTIONS') {
+      await route.fulfill({ status: 204, headers: corsHeaders });
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      headers: corsHeaders,
+      body: JSON.stringify({ data: 'should not be reached' }),
+    });
+  });
+  const authRevokeErrorCode = await page.evaluate(async () => {
+    const { revokeToken } = await import('/src/services/userService.js');
+    try {
+      await revokeToken();
+      return null;
+    } catch (error) {
+      return error.code;
+    }
+  });
+
+  expect(authRevokeErrorCode).toBe('FOREST_MUTATIONS_DISABLED');
+  expect(authRevokeRouteCount).toBe(0);
   await expect(page).toHaveURL(editorUrl);
 });
 
