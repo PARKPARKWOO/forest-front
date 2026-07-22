@@ -60,3 +60,19 @@ test('form and status primitives connect labels, errors, and non-color text', as
     await expect(page.getByRole('heading', { name: stateTitle })).toBeVisible();
   }
 });
+
+test('AccessibleDialog traps focus, closes with Escape, restores focus, and locks scrolling', async ({ page, pageQuality }) => {
+  await openCatalog(page, pageQuality);
+  const trigger = page.getByRole('button', { name: '대화상자 열기' });
+  await trigger.click();
+  const dialog = page.getByRole('dialog', { name: '변경사항 확인' });
+  const close = dialog.getByRole('button', { name: '대화상자 닫기' });
+  await expect(close).toBeFocused();
+  await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe('hidden');
+  await page.keyboard.press('Shift+Tab');
+  expect(await dialog.evaluate((element) => element.contains(document.activeElement))).toBe(true);
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
+  await expect(trigger).toBeFocused();
+  await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe('');
+});

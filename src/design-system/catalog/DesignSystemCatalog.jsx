@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import AsyncState from '../primitives/AsyncState';
+import AccessibleDialog from '../primitives/AccessibleDialog';
 import ActionLink from '../primitives/ActionLink';
 import Button from '../primitives/Button';
 import FormField from '../primitives/FormField';
@@ -9,6 +10,7 @@ import Surface from '../patterns/Surface';
 
 export default function DesignSystemCatalog() {
   const [groupName, setGroupName] = useState('');
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   return (
     <div className="mx-auto w-full max-w-6xl space-y-10 px-4 py-10 sm:px-6" data-design-system-catalog="forest-v1">
@@ -27,6 +29,7 @@ export default function DesignSystemCatalog() {
           <Button variant="secondary">보조 행동</Button>
           <Button variant="quiet">조용한 행동</Button>
           <Button variant="danger">위험 행동</Button>
+          <Button variant="secondary" onClick={() => setDialogOpen(true)}>대화상자 열기</Button>
           <Button isPending pendingLabel="저장 중…">저장</Button>
           <Button disabled>사용 불가</Button>
           <span className="rounded-forest-control bg-forest-strong p-forest-1">
@@ -37,6 +40,16 @@ export default function DesignSystemCatalog() {
           <ActionLink to="/programs/participate">프로그램 보기</ActionLink>
         </div>
       </section>
+
+      <AccessibleDialog
+        isOpen={dialogOpen}
+        title="변경사항 확인"
+        description="저장하기 전에 내용을 확인해 주세요."
+        onClose={() => setDialogOpen(false)}
+        closeLabel="대화상자 닫기"
+      >
+        <p className="text-forest-body text-forest-text-primary">대화상자 본문입니다.</p>
+      </AccessibleDialog>
 
       <Surface aria-labelledby="catalog-forms">
         <h2 id="catalog-forms" className="text-forest-heading-3 font-bold text-forest-text-primary">폼과 상태</h2>

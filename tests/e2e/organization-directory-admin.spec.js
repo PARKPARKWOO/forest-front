@@ -2,6 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { test, expect } from './fixtures/organizationTest.js';
 import {
   copyOrganization,
+  legacyPeopleHtml,
   organizationFixture,
   organizationGroupIds,
 } from './fixtures/organizationDirectoryData.js';
@@ -41,6 +42,36 @@ const getPeopleDirectory = (page) => (
 const getGroupList = (page) => page.getByRole('list', { name: '조직 그룹 편집' });
 const getGroupItem = (page, selectButtonName) => getGroupList(page).locator('[data-group-id]').filter({
   has: page.getByRole('button', { name: selectButtonName }),
+});
+
+test('save confirmation resists backdrop dismissal and preserves the explicit save path', async ({
+  page,
+  organizationApi,
+}, testInfo) => {
+  test.skip(testInfo.config.metadata.organizationPreviewMode, 'normal write-enabled regression only');
+  organizationApi.setOrganization(copyOrganization({ configured: false }));
+  organizationApi.setLegacyHtml(legacyPeopleHtml);
+  await openOrganizationEditor(page, organizationApi);
+
+  await page.getByLabel('그룹 이름').fill('저장 확인용 이름');
+  const saveTrigger = page.getByRole('button', { name: '변경사항 저장' });
+  await expect(saveTrigger).toBeEnabled();
+  await saveTrigger.click();
+
+  let dialog = page.getByRole('dialog', { name: '기존 함께하는이들 내용 전환 확인' });
+  await expect(dialog.getByRole('button', { name: '취소' })).toBeFocused();
+  await dialog.locator('xpath=..').click({ position: { x: 2, y: 2 } });
+  await expect(dialog).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
+  await expect(saveTrigger).toBeFocused();
+
+  await saveTrigger.click();
+  dialog = page.getByRole('dialog', { name: '기존 함께하는이들 내용 전환 확인' });
+  organizationApi.expectPutCount(1);
+  await dialog.getByRole('button', { name: '확인하고 저장' }).click();
+  await expect(page.locator('[data-save-feedback]')).toContainText('조직도를 저장했습니다');
+  expect(organizationApi.getPutRequests()).toHaveLength(1);
 });
 
 test('the people row opens a reloadable editor route and back preserves unrelated query state', async ({

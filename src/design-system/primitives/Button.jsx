@@ -1,6 +1,7 @@
+import { forwardRef } from 'react';
 import { getActionControlClassName } from './actionControlStyles';
 
-export default function Button({
+const Button = forwardRef(function Button({
   variant = 'primary',
   size = 'md',
   isPending = false,
@@ -10,10 +11,11 @@ export default function Button({
   className = '',
   children,
   ...props
-}) {
+}, ref) {
   return (
     <button
       {...props}
+      ref={ref}
       type={type}
       disabled={disabled || isPending}
       aria-busy={isPending || undefined}
@@ -22,4 +24,6 @@ export default function Button({
       {isPending ? pendingLabel : children}
     </button>
   );
-}
+});
+
+export default Button;
