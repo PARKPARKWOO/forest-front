@@ -264,27 +264,40 @@ test('empty member and empty group collections have distinct visible states', as
   await expect(page.getByRole('navigation', { name: '조직 선택' })).toHaveCount(0);
 });
 
-test('stable group selection survives reload and back while invalid values self-correct without focus movement', async ({ page, organizationApi, pageQuality }) => {
-  await openPeople(page, organizationApi, {
-    url: `/intro/people?campaign=forest&group=${organizationGroupIds.child}`,
-  });
-  await expect(page.getByRole('heading', { name: '숲교육분과 이름이 길어도 줄바꿈됩니다', level: 2 })).toBeVisible();
-  allowAnonymousRequest(pageQuality);
-  await page.reload();
-  await expect(page).toHaveURL(new RegExp(`campaign=forest&group=${organizationGroupIds.child}`));
+test('legacy group query is ignored without rewriting the requested URL', async ({ page, organizationApi }) => {
+  const requestedUrl = `/intro/people?campaign=forest&group=${organizationGroupIds.child}`;
+  await openPeople(page, organizationApi, { url: requestedUrl });
 
-  await page.getByRole('button', { name: '운영위원회' }).click();
-  await expect(page).toHaveURL(new RegExp(`group=${organizationGroupIds.root}`));
-  await page.getByRole('button', { name: '숲교육분과 이름이 길어도 줄바꿈됩니다' }).click();
-  await page.goBack();
-  await expect(page).toHaveURL(new RegExp(`campaign=forest&group=${organizationGroupIds.root}`));
+  await expect(page.getByRole('button', { name: '운영위원회' })).toHaveAttribute('aria-current', 'true');
   await expect(page.getByRole('heading', { name: '운영위원회', level: 2 })).toBeVisible();
-  await page.waitForLoadState('networkidle');
+  await expect(page).toHaveURL(new RegExp(`campaign=forest&group=${organizationGroupIds.child}$`));
+});
 
+test('group selection changes only the directory detail while preserving URL history scroll and focus', async ({ page, organizationApi, pageQuality }) => {
+  organizationApi.setOrganization(organizationFixture);
+  organizationApi.setLegacyHtml(emptyLegacyPeopleHtml);
   allowAnonymousRequest(pageQuality);
-  await page.goto('/intro/people?campaign=forest&group=99999999-9999-4999-8999-999999999999');
-  await expect(page).toHaveURL(new RegExp(`campaign=forest&group=${organizationGroupIds.root}`));
-  await expect(page.getByRole('heading', { name: '운영위원회', level: 2 })).not.toBeFocused();
+  allowAnonymousRequest(pageQuality);
+  await page.goto('/intro/greeting');
+  await page.goto('/intro/people?campaign=forest#directory');
+
+  await expect(page.getByRole('heading', { name: '운영위원회', level: 2 })).toBeVisible();
+  const childButton = page.getByRole('button', { name: '숲교육분과 이름이 길어도 줄바꿈됩니다' });
+  await childButton.scrollIntoViewIfNeeded();
+  const originalUrl = page.url();
+  const originalScrollY = await page.evaluate(() => window.scrollY);
+
+  await childButton.click();
+
+  await expect(childButton).toHaveAttribute('aria-current', 'true');
+  await expect(childButton).toBeFocused();
+  await expect(page.getByRole('heading', { name: '숲교육분과 이름이 길어도 줄바꿈됩니다', level: 2 })).toBeVisible();
+  await expect(page.locator('section[aria-labelledby^="organization-group-"]').getByText('구성원 2명')).toBeVisible();
+  expect(page.url()).toBe(originalUrl);
+  expect(await page.evaluate(() => window.scrollY)).toBe(originalScrollY);
+
+  await page.goBack();
+  await expect(page).toHaveURL(/\/intro\/greeting$/);
 });
 
 test('group controls keep responsive columns, keyboard focus, vertical reflow, and document width', async ({ page, organizationApi }) => {
@@ -317,11 +330,26 @@ test('group controls keep responsive columns, keyboard focus, vertical reflow, a
   expect(focusStyle.style).not.toBe('none');
   expect(Number.parseFloat(focusStyle.width)).toBeGreaterThanOrEqual(4);
   expect(focusStyle.height).toBeGreaterThanOrEqual(48);
+  const keyboardUrl = page.url();
+  const keyboardScrollY = await page.evaluate(() => window.scrollY);
   await childButton.press('Enter');
+  await expect(page.getByRole('heading', { name: '숲교육분과 이름이 길어도 줄바꿈됩니다', level: 2 })).toBeVisible();
+  expect(page.url()).toBe(keyboardUrl);
+  expect(await page.evaluate(() => window.scrollY)).toBe(keyboardScrollY);
   await expect(childButton).toBeFocused();
   const memberList = page.getByRole('list', { name: '숲교육분과 이름이 길어도 줄바꿈됩니다 구성원' });
   expect((await memberList.evaluate((node) => getComputedStyle(node).gridTemplateColumns)).split(' ')).toHaveLength(1);
   await expect(page.getByRole('heading', { name: '숲교육분과 이름이 길어도 줄바꿈됩니다', level: 2 })).not.toBeFocused();
+
+  const rootButton = page.getByRole('button', { name: '운영위원회' });
+  await rootButton.focus();
+  const spaceUrl = page.url();
+  const spaceScrollY = await page.evaluate(() => window.scrollY);
+  await rootButton.press('Space');
+  await expect(page.getByRole('heading', { name: '운영위원회', level: 2 })).toBeVisible();
+  expect(page.url()).toBe(spaceUrl);
+  expect(await page.evaluate(() => window.scrollY)).toBe(spaceScrollY);
+  await expect(rootButton).toBeFocused();
 });
 
 test('public organization directory has no critical or serious axe findings', async ({ page, organizationApi }) => {

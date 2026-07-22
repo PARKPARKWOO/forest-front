@@ -1,6 +1,6 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useParams, Link, useSearchParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import logo from '../../assets/logo.png';
 import AsyncState from '../../components/AsyncState';
 import LegacyOrganizationDirectory from '../../components/organization/LegacyOrganizationDirectory';
@@ -22,7 +22,6 @@ const querySourceStatus = (query) => {
 
 export default function Intro() {
   const { subCategory } = useParams();
-  const [searchParams, setSearchParams] = useSearchParams();
 
   const subCategories = [
     { id: 'greeting', name: '인사말', path: '/intro/greeting' },
@@ -36,6 +35,7 @@ export default function Intro() {
   const isPeoplePage = activeSubCategory === 'people';
   const activeSubCategoryName = subCategories.find((item) => item.id === activeSubCategory)?.name || '소개';
   const activeContentKey = activeSubCategory ? `intro-${activeSubCategory}` : null;
+  const [selectedGroupId, setSelectedGroupId] = useState(null);
 
   const introStaticContentQuery = useQuery({
     queryKey: ['staticContent', activeContentKey],
@@ -70,23 +70,24 @@ export default function Intro() {
     legacyStatus: querySourceStatus(introStaticContentQuery),
     hasLegacy: hasLegacyPeopleContent,
   });
-  const requestedGroupId = searchParams.get('group');
-  const selectedGroupId = useMemo(
-    () => resolveSelectedGroupId(organizationQuery.data?.groups, requestedGroupId),
-    [organizationQuery.data?.groups, requestedGroupId],
+  const resolvedSelectedGroupId = useMemo(
+    () => resolveSelectedGroupId(organizationQuery.data?.groups, selectedGroupId),
+    [organizationQuery.data?.groups, selectedGroupId],
   );
 
   useEffect(() => {
-    if (!isPeoplePage || peopleSource !== 'organization' || !selectedGroupId || requestedGroupId === selectedGroupId) return;
-    const next = new URLSearchParams(searchParams);
-    next.set('group', selectedGroupId);
-    setSearchParams(next, { replace: true });
-  }, [isPeoplePage, peopleSource, requestedGroupId, searchParams, selectedGroupId, setSearchParams]);
+    if (!isPeoplePage) {
+      setSelectedGroupId(null);
+      return;
+    }
+    if (peopleSource !== 'organization') return;
+    setSelectedGroupId((current) => (
+      current === resolvedSelectedGroupId ? current : resolvedSelectedGroupId ?? null
+    ));
+  }, [isPeoplePage, peopleSource, resolvedSelectedGroupId]);
 
   const selectOrganizationGroup = (groupId) => {
-    const next = new URLSearchParams(searchParams);
-    next.set('group', groupId);
-    setSearchParams(next);
+    setSelectedGroupId(groupId);
   };
 
   const retryPeopleSource = () => {
@@ -131,7 +132,7 @@ export default function Intro() {
     return (
       <OrganizationDirectory
         snapshot={organizationQuery.data}
-        selectedGroupId={selectedGroupId}
+        selectedGroupId={resolvedSelectedGroupId}
         onSelectGroup={selectOrganizationGroup}
         ariaLabel="조직 선택"
       />
