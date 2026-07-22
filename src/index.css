@@ -1,15 +1,8 @@
+@import "./design-system/tokens/tokens.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-:root {
-  --color-brand-primary: #166534;
-  --color-brand-strong: #14532d;
-  --color-brand-surface: #f8faf5;
-  --color-accent: #b45309;
-  --color-border-subtle: #dbe5d8;
-  --color-focus-ring: #166534;
-}
 
 @layer base {
   html {
@@ -19,11 +12,11 @@
   body {
     min-width: 320px;
     margin: 0;
-    background: #ffffff;
-    color: #1f2937;
+    background: var(--forest-color-surface-page);
+    color: var(--forest-color-text-primary);
     font-family: Pretendard, "Noto Sans KR", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    font-size: 18px;
-    line-height: 1.7;
+    font-size: var(--forest-font-body-size);
+    line-height: var(--forest-line-height-body);
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -37,7 +30,7 @@
   }
 
   :focus-visible {
-    outline: 3px solid var(--color-focus-ring);
+    outline: var(--forest-focus-width) solid var(--forest-color-focus-ring);
     outline-offset: 3px;
   }
 }
@@ -50,8 +43,8 @@
     z-index: 100;
     transform: translateY(-200%);
     border-radius: 0.5rem;
-    background: var(--color-brand-strong);
-    color: #fff;
+    background: var(--forest-color-brand-strong);
+    color: var(--forest-color-text-inverse);
     padding: 0.75rem 1rem;
   }
 
@@ -60,8 +53,8 @@
   }
 
   .accessible-touch-target {
-    min-width: 3rem;
-    min-height: 3rem;
+    min-width: var(--forest-icon-control-size);
+    min-height: var(--forest-control-min-height);
   }
 }
 

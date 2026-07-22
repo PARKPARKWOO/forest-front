@@ -1,0 +1,57 @@
+:root {
+  --forest-color-brand-primary: #166534;
+  --forest-color-brand-strong: #14532d;
+  --forest-color-brand-surface: #f8faf5;
+  --forest-color-accent: #b45309;
+
+  --forest-color-text-primary: #1f2937;
+  --forest-color-text-muted: #4b5563;
+  --forest-color-text-inverse: #ffffff;
+
+  --forest-color-surface-page: #fffdf8;
+  --forest-color-surface-card: #ffffff;
+  --forest-color-surface-raised: #f8faf5;
+  --forest-color-surface-inverse-hover: rgba(255, 255, 255, 0.12);
+  --forest-color-surface-scrim: rgba(0, 0, 0, 0.60);
+  --forest-color-border-subtle: #dbe5d8;
+  --forest-color-border-strong: #6b7f68;
+  --forest-color-focus-ring: #14532d;
+
+  --forest-color-success-surface: #f0fdf4;
+  --forest-color-success-border: #86efac;
+  --forest-color-success-text: #14532d;
+  --forest-color-warning-surface: #fffbeb;
+  --forest-color-warning-border: #fcd34d;
+  --forest-color-warning-text: #92400e;
+  --forest-color-danger-surface: #fef2f2;
+  --forest-color-danger-border: #fca5a5;
+  --forest-color-danger-text: #991b1b;
+  --forest-color-info-surface: #eff6ff;
+  --forest-color-info-border: #93c5fd;
+  --forest-color-info-text: #1e3a8a;
+
+  --forest-font-body-size: 1.125rem;
+  --forest-font-admin-size: 1rem;
+  --forest-font-label-size: 1rem;
+  --forest-font-supporting-size: 1rem;
+  --forest-font-heading-1-size: 2.5rem;
+  --forest-font-heading-2-size: 2rem;
+  --forest-font-heading-3-size: 1.5rem;
+  --forest-line-height-body: 1.7;
+  --forest-line-height-heading: 1.25;
+  --forest-control-min-height: 3rem;
+  --forest-icon-control-size: 3rem;
+  --forest-focus-width: 4px;
+
+  --forest-space-1: 0.25rem;
+  --forest-space-2: 0.5rem;
+  --forest-space-3: 0.75rem;
+  --forest-space-4: 1rem;
+  --forest-space-6: 1.5rem;
+  --forest-space-8: 2rem;
+
+  --forest-radius-control: 0.75rem;
+  --forest-radius-card: 1rem;
+  --forest-radius-dialog: 1rem;
+  --forest-panel-padding: 1.5rem;
+}
