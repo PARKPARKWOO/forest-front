@@ -1,8 +1,15 @@
+import { useState } from 'react';
+import AsyncState from '../primitives/AsyncState';
 import ActionLink from '../primitives/ActionLink';
 import Button from '../primitives/Button';
+import FormField from '../primitives/FormField';
 import IconButton from '../primitives/IconButton';
+import StatusBadge from '../primitives/StatusBadge';
+import Surface from '../patterns/Surface';
 
 export default function DesignSystemCatalog() {
+  const [groupName, setGroupName] = useState('');
+
   return (
     <div className="mx-auto w-full max-w-6xl space-y-10 px-4 py-10 sm:px-6" data-design-system-catalog="forest-v1">
       <header>
@@ -28,6 +35,34 @@ export default function DesignSystemCatalog() {
           <IconButton label="항목 닫기">×</IconButton>
           <IconButton label="항목 삭제" variant="danger">×</IconButton>
           <ActionLink to="/programs/participate">프로그램 보기</ActionLink>
+        </div>
+      </section>
+
+      <Surface aria-labelledby="catalog-forms">
+        <h2 id="catalog-forms" className="text-forest-heading-3 font-bold text-forest-text-primary">폼과 상태</h2>
+        <div className="mt-5 grid gap-6 md:grid-cols-2">
+          <FormField id="catalog-group-name" label="그룹 이름" error="그룹 이름을 입력해 주세요." required>
+            {(controlProps) => (
+              <input {...controlProps} value={groupName} onChange={(event) => setGroupName(event.target.value)} />
+            )}
+          </FormField>
+          <div className="flex flex-wrap items-start gap-3">
+            <StatusBadge>확인 전</StatusBadge>
+            <StatusBadge tone="success">접수 중</StatusBadge>
+            <StatusBadge tone="warning">저장하지 않은 변경</StatusBadge>
+            <StatusBadge tone="danger">확인 필요</StatusBadge>
+            <StatusBadge tone="info">안내</StatusBadge>
+          </div>
+        </div>
+      </Surface>
+
+      <section aria-labelledby="catalog-async-states">
+        <h2 id="catalog-async-states" className="text-forest-heading-3 font-bold text-forest-text-primary">비동기 상태</h2>
+        <div className="mt-forest-4 grid gap-forest-4 lg:grid-cols-2">
+          <AsyncState status="loading" />
+          <AsyncState status="empty" />
+          <AsyncState status="error" onRetry={() => {}} />
+          <AsyncState status="forbidden" />
         </div>
       </section>
     </div>

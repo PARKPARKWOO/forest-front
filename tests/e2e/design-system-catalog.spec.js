@@ -45,3 +45,18 @@ test('action primitives expose stable variants, pending state, and 48px targets'
   expect(inverseFocus.outlineColor).not.toBe(inverseFocus.containerBackgroundColor);
   expect(inverseFocus.outlineColor).toBe('rgb(255, 255, 255)');
 });
+
+test('form and status primitives connect labels, errors, and non-color text', async ({ page, pageQuality }) => {
+  await openCatalog(page, pageQuality);
+  const input = page.getByRole('textbox', { name: '그룹 이름' });
+  await expect(input).toHaveAttribute('aria-invalid', 'true');
+  await expect(input).toHaveAttribute('aria-describedby', /catalog-group-name-error/);
+  await expect(page.locator('#catalog-group-name-error')).toHaveText('그룹 이름을 입력해 주세요.');
+  expect((await input.boundingBox()).height).toBeGreaterThanOrEqual(48);
+  for (const status of ['확인 전', '접수 중', '저장하지 않은 변경', '확인 필요', '안내']) {
+    await expect(page.getByText(status, { exact: true })).toBeVisible();
+  }
+  for (const stateTitle of ['내용을 불러오고 있습니다', '등록된 내용이 없습니다', '내용을 불러오지 못했습니다', '접근 권한이 없습니다']) {
+    await expect(page.getByRole('heading', { name: stateTitle })).toBeVisible();
+  }
+});
