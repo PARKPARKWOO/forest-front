@@ -18,7 +18,8 @@ export const getActionControlClassName = ({
   className = '',
 } = {}) => [
   'inline-flex items-center justify-center rounded-forest-control font-bold',
-  'focus-visible:outline focus-visible:outline-forest focus-visible:outline-offset-2 focus-visible:outline-forest-focus',
+  'focus-visible:outline focus-visible:outline-forest focus-visible:outline-offset-2',
+  variant === 'inverseQuiet' ? 'focus-visible:outline-forest-text-inverse' : 'focus-visible:outline-forest-focus',
   'disabled:cursor-not-allowed disabled:opacity-60',
   variants[variant] ?? variants.primary,
   sizes[size] ?? sizes.md,

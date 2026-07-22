@@ -35,4 +35,13 @@ test('action primitives expose stable variants, pending state, and 48px targets'
   await primary.focus();
   const outlineWidth = await primary.evaluate((node) => Number.parseFloat(getComputedStyle(node).outlineWidth));
   expect(outlineWidth).toBeGreaterThanOrEqual(4);
+
+  const inverse = page.getByRole('button', { name: '역상 행동' });
+  await inverse.focus();
+  const inverseFocus = await inverse.evaluate((node) => ({
+    outlineColor: getComputedStyle(node).outlineColor,
+    containerBackgroundColor: getComputedStyle(node.parentElement).backgroundColor,
+  }));
+  expect(inverseFocus.outlineColor).not.toBe(inverseFocus.containerBackgroundColor);
+  expect(inverseFocus.outlineColor).toBe('rgb(255, 255, 255)');
 });
