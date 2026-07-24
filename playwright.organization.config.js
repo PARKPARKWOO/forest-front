@@ -10,7 +10,7 @@ export default defineConfig({
     ...baseConfig.metadata,
     organizationPreviewMode: previewMode,
   },
-  testMatch: /organization-directory-.*\.spec\.js/,
+  testMatch: /(?:organization-directory-.*|home-hero-admin-save)\.spec\.js/,
   webServer: {
     ...baseConfig.webServer,
     command: previewMode ? 'npm run draft:organization-preview' : 'npm run draft:organization',

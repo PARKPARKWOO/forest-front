@@ -1,6 +1,7 @@
 import { expect } from '@playwright/test';
 import { installPublicApiMocks } from './mockForestApi.js';
 import { organizationFixture } from '../fixtures/organizationDirectoryData.js';
+import { publicHomeData } from '../fixtures/publicHomeData.js';
 
 export async function installOrganizationApiMocks(page) {
   let organization = organizationFixture;
@@ -19,6 +20,11 @@ export async function installOrganizationApiMocks(page) {
   let deferredPutResponseGate = null;
   let nextLegacyGate = null;
   let deferredLegacyGate = null;
+  let homeBanner = structuredClone(publicHomeData.banner);
+  const homeBannerPutRequests = [];
+  let expectedHomeBannerPutCount = 0;
+  let nextHomeBannerPutResponseGate = null;
+  let deferredHomeBannerPutResponseGate = null;
   const failures = new Map();
   const requests = [];
   const unhandled = [];
@@ -27,11 +33,42 @@ export async function installOrganizationApiMocks(page) {
   const publicApi = await installPublicApiMocks(page, {
     organization,
     staticContents: { 'intro-people': null },
+    banner: homeBanner,
   });
   const setPublicOrganization = (next) => {
     const { legacyContentFingerprint: _managedOnly, ...publicOrganization } = next;
     publicApi.setData({ organization: publicOrganization });
   };
+
+  await page.route(/\/api\/v1\/home-banner(?:[?#].*)?$/, async (route) => {
+    const request = route.request();
+    const method = request.method();
+    requests.push(`${method} /home-banner`);
+    const forcedStatus = failures.get('/home-banner');
+    if (forcedStatus) {
+      return route.fulfill({
+        status: forcedStatus,
+        contentType: 'application/json',
+        body: JSON.stringify({ message: 'forced organization test failure: /home-banner' }),
+      });
+    }
+    if (method === 'GET') {
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ data: homeBanner }) });
+    }
+    if (method === 'PUT') {
+      const payload = request.postDataJSON();
+      homeBannerPutRequests.push(payload);
+      homeBanner = { ...homeBanner, ...payload };
+      if (nextHomeBannerPutResponseGate) {
+        const gate = nextHomeBannerPutResponseGate;
+        nextHomeBannerPutResponseGate = null;
+        await gate.promise;
+      }
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ data: homeBanner }) });
+    }
+    unhandled.push(`${method} /home-banner`);
+    return route.fulfill({ status: 405, contentType: 'application/json', body: JSON.stringify({ message: 'method not allowed' }) });
+  });
 
   await page.route(/\/api\/v1\/static-content\/intro-people(?:[?#].*)?$/, async (route) => {
     const request = route.request();
@@ -244,8 +281,30 @@ export async function installOrganizationApiMocks(page) {
     setUser(response) {
       userResponse = response;
     },
+    setHomeBanner(next) {
+      homeBanner = structuredClone(next);
+      publicApi.setData({ banner: homeBanner });
+    },
+    deferNextHomeBannerPutResponse() {
+      if (nextHomeBannerPutResponseGate) throw new Error('a home banner PUT response is already deferred');
+      let release;
+      const promise = new Promise((resolve) => { release = resolve; });
+      nextHomeBannerPutResponseGate = { promise, release };
+      deferredHomeBannerPutResponseGate = nextHomeBannerPutResponseGate;
+    },
+    releaseDeferredHomeBannerPutResponse() {
+      if (!deferredHomeBannerPutResponseGate) throw new Error('no deferred home banner PUT response');
+      deferredHomeBannerPutResponseGate.release();
+      deferredHomeBannerPutResponseGate = null;
+    },
+    expectHomeBannerPutCount(count) {
+      expectedHomeBannerPutCount = count;
+    },
+    getHomeBannerPutRequests() {
+      return [...homeBannerPutRequests];
+    },
     fail(path, status = 500) {
-      if (path === '/users' || path === '/organization/manage' || path === '/static-content/intro-people') failures.set(path, status);
+      if (path === '/users' || path === '/organization/manage' || path === '/static-content/intro-people' || path === '/home-banner') failures.set(path, status);
       else publicApi.fail(path, status);
     },
     recover(path) {
@@ -265,6 +324,8 @@ export async function installOrganizationApiMocks(page) {
       publicApi.assertHandled();
       expect(unhandled, unhandled.join('\n')).toEqual([]);
       expect(putRequests, 'unexpected organization PUT request count').toHaveLength(expectedPutCount);
+      expect(homeBannerPutRequests, 'unexpected home banner PUT request count')
+        .toHaveLength(expectedHomeBannerPutCount);
     },
   };
 }

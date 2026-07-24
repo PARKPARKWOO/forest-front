@@ -19,7 +19,7 @@
     "test:e2e:organization:preview": "FOREST_E2E_PREVIEW=true playwright test --config=playwright.organization.config.js tests/e2e/organization-directory-admin.spec.js",
     "test:e2e:public": "playwright test tests/e2e/public-home.spec.js tests/e2e/public-home-states.spec.js",
     "test:e2e:public:functional": "playwright test tests/e2e/public-home.spec.js tests/e2e/public-home-states.spec.js --grep-invert 'reviewed responsive baseline'",
-    "test:e2e:design-system": "playwright test tests/e2e/design-system-catalog.spec.js",
+    "test:e2e:design-system": "playwright test tests/e2e/design-system-catalog.spec.js tests/e2e/home-hero-parity.spec.js",
     "test:e2e:public:update": "playwright test tests/e2e/public-home.spec.js --update-snapshots"
   },
   "dependencies": {

@@ -5,7 +5,8 @@ import { fetchPrograms } from '../../services/programService';
 import { fetchPostsByCategory } from '../../services/postService';
 import { getNoticeList } from '../../services/noticeService';
 import { getHomeBanner } from '../../services/homeBannerService';
-import PublicHomeHero from '../../components/home/PublicHomeHero';
+import HomeHero from '../../features/home/HomeHero';
+import { normalizeHomeBanners } from '../../features/home/homeHeroModel';
 import HomeProgramSection from '../../components/home/HomeProgramSection';
 import HomeNoticeSection from '../../components/home/HomeNoticeSection';
 import HomeActivitySection from '../../components/home/HomeActivitySection';
@@ -16,23 +17,6 @@ import {
   selectActivePrograms,
   sortHomeNotices,
 } from '../../utils/homeContent';
-
-const DEFAULT_HOME_BANNER = {
-  badgeText: '2026 숲과 함께하는 시민 활동',
-  title: '전북생명의숲에 오신 것을 환영합니다',
-  description: '숲을 통해 생명의 가치를 전하고 지속가능한 미래를 만들어갑니다. 함께 참여하고 소통하며 더 나은 환경을 만들어보세요.',
-  backgroundImageUrl: '/draft/forest-hero-placeholder.svg',
-  sideImageUrl: '/draft/forest-hero-placeholder.svg',
-  titleColor: '#FFFFFF',
-  descriptionColor: '#ECFDF5',
-  badgeTextColor: '#ECFDF5',
-  primaryButtonText: '소개 보기',
-  primaryButtonLink: '/intro',
-  secondaryButtonText: '프로그램 참여',
-  secondaryButtonLink: '/programs/participate',
-  sideTitle: '이번 달 추천 프로그램',
-  sideDescription: '숲해설가 양성교육 · 시민 자원봉사 모집 중',
-};
 
 export default function UserHome() {
   const {
@@ -122,16 +106,7 @@ export default function UserHome() {
     !newsLoading && !Array.isArray(newsPosts)
   );
 
-  const homeBanners = useMemo(() => {
-    const banners = homeBannerData?.banners;
-    if (Array.isArray(banners) && banners.length > 0) {
-      return banners;
-    }
-    if (homeBannerData?.content) {
-      return [homeBannerData.content];
-    }
-    return [DEFAULT_HOME_BANNER];
-  }, [homeBannerData]);
+  const homeBanners = useMemo(() => normalizeHomeBanners(homeBannerData), [homeBannerData]);
 
   const activePrograms = selectActivePrograms(programContents);
   const sortedNotices = sortHomeNotices(noticeContents);
@@ -160,7 +135,7 @@ export default function UserHome() {
   return (
     <div className="w-full py-2 md:py-4">
       <div className="mb-12">
-        <PublicHomeHero banners={homeBanners} />
+        <HomeHero banners={homeBanners} />
       </div>
       <HomeProgramSection
         programs={activePrograms}

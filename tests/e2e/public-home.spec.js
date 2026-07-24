@@ -44,6 +44,7 @@ test('hero makes program participation primary and never auto-advances', async (
   await page.waitForTimeout(5500);
   await expect(heading).toHaveText(/숲을 지키는/);
   await expect(page.getByRole('link', { name: '프로그램 참여' }).first()).toHaveAttribute('href', '/programs/participate');
+  await expect(page.getByRole('group', { name: '대표 배너 선택' })).toBeVisible();
   await page.getByRole('button', { name: '다음 배너' }).click();
   await expect(heading).toHaveText('두 번째 배너');
 });

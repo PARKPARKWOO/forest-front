@@ -22,10 +22,21 @@ import 'react-quill/dist/quill.snow.css';
 import UserManagement from './UserManagement';
 import ProgramFormBuilder from '../../components/program/ProgramFormBuilder';
 import ProgramApplyDetailModal from '../../components/program/ProgramApplyDetailModal';
-import HomeBannerHero from '../../components/HomeBannerHero';
 import { useAuth } from '../../contexts/AuthContext';
 import AsyncState from '../../components/AsyncState';
 import OrganizationDirectoryEditor from '../../components/admin/organization/OrganizationDirectoryEditor';
+import HomeHero from '../../features/home/HomeHero';
+import {
+  HOME_HERO_DEFAULT,
+  createHomeBannerUpdatePayload,
+  normalizeHomeBanners,
+  resetHomeHeroVisibleFields,
+  validateHomeHeroBanners,
+} from '../../features/home/homeHeroModel';
+import Button from '../../design-system/primitives/Button';
+import FormField from '../../design-system/primitives/FormField';
+import StatusBadge from '../../design-system/primitives/StatusBadge';
+import Surface from '../../design-system/patterns/Surface';
 
 // 카테고리 뱃지 헬퍼 함수
 const getCategoryBadge = (category) => {
@@ -55,26 +66,16 @@ const INTRO_CONTENT_ITEMS = [
   { key: 'intro-location', label: '오시는 길', path: '/intro/location' },
 ];
 
-const HOME_BANNER_DEFAULT = {
-  badgeText: '2026 숲과 함께하는 시민 활동',
-  title: '전북생명의숲에 오신 것을 환영합니다',
-  description:
-    '숲을 통해 생명의 가치를 전하고 지속가능한 미래를 만들어갑니다. 함께 참여하고 소통하며 더 나은 환경을 만들어보세요.',
-  backgroundImageUrl:
-    'https://images.unsplash.com/photo-1542273917363-3b1817f69a2d?auto=format&fit=crop&w=1600&q=80',
-  sideImageUrl:
-    'https://images.unsplash.com/photo-1472396961693-142e6e269027?auto=format&fit=crop&w=1200&q=80',
-  titleColor: '#FFFFFF',
-  descriptionColor: '#ECFDF5',
-  badgeTextColor: '#ECFDF5',
-  primaryButtonText: '소개 보기',
-  primaryButtonLink: '/intro',
-  secondaryButtonText: '프로그램 참여',
-  secondaryButtonLink: '/programs',
-  sideTitle: '이번 달 추천 프로그램',
-  sideDescription: '숲해설가 양성교육 · 시민 자원봉사 모집 중',
-};
-const HOME_BANNER_DEFAULT_SLIDE_SECONDS = 5;
+const homeBannerTextFields = [
+  ['home-banner-badge-text', '배지 문구', 'badgeText'],
+  ['home-banner-title', '제목', 'title'],
+];
+const homeBannerActionFields = [
+  ['home-banner-primary-button-text', '버튼 A 문구', 'primaryButtonText'],
+  ['home-banner-primary-button-link', '버튼 A 링크', 'primaryButtonLink'],
+  ['home-banner-secondary-button-text', '버튼 B 문구', 'secondaryButtonText'],
+  ['home-banner-secondary-button-link', '버튼 B 링크', 'secondaryButtonLink'],
+];
 const ADMIN_MENU_KEYS = new Set([
   'categories',
   'programs',
@@ -146,15 +147,15 @@ export default function AdminDashboard() {
   const [selectedIntroItem, setSelectedIntroItem] = useState(null);
   const [introDraft, setIntroDraft] = useState('');
   const [showIntroModal, setShowIntroModal] = useState(false);
-  const [homeBanners, setHomeBanners] = useState([HOME_BANNER_DEFAULT]);
+  const [homeBanners, setHomeBanners] = useState([HOME_HERO_DEFAULT]);
   const [selectedHomeBannerIndex, setSelectedHomeBannerIndex] = useState(0);
-  const [homeBannerAutoSlideSeconds, setHomeBannerAutoSlideSeconds] = useState(HOME_BANNER_DEFAULT_SLIDE_SECONDS);
+  const [homeBannerFieldErrors, setHomeBannerFieldErrors] = useState([]);
   const [uploadingBannerField, setUploadingBannerField] = useState(null);
   const [openingProgramFormId, setOpeningProgramFormId] = useState(null);
   const [formBuilderLoadError, setFormBuilderLoadError] = useState('');
   const introQuillRef = useRef(null);
   const programFormRequestRef = useRef(0);
-  const homeBannerForm = homeBanners[selectedHomeBannerIndex] || HOME_BANNER_DEFAULT;
+  const homeBannerForm = homeBanners[selectedHomeBannerIndex] || HOME_HERO_DEFAULT;
 
   const selectAdminMenu = (menu) => {
     const nextMenu = getInitialAdminMenu(menu, hasMaxAccess);
@@ -261,10 +262,17 @@ export default function AdminDashboard() {
     enabled: activeMenu === 'intro',
   });
 
-  const { data: homeBannerData, isLoading: homeBannerLoading } = useQuery({
+  const {
+    data: homeBannerData,
+    isLoading: homeBannerLoading,
+    isError: homeBannerError,
+    isFetching: homeBannerFetching,
+    refetch: refetchHomeBanner,
+  } = useQuery({
     queryKey: ['homeBanner', 'admin'],
     queryFn: getHomeBanner,
     enabled: activeMenu === 'homeBanner',
+    retry: false,
   });
 
   // 후원신청 완료 처리
@@ -409,10 +417,11 @@ export default function AdminDashboard() {
   };
 
   const handleHomeBannerFieldChange = (field, value) => {
-    setHomeBanners((prev) => prev.map((banner, index) => (
-      index === selectedHomeBannerIndex
-        ? { ...banner, [field]: value }
-        : banner
+    setHomeBanners((current) => current.map((banner, index) => (
+      index === selectedHomeBannerIndex ? { ...banner, [field]: value } : banner
+    )));
+    setHomeBannerFieldErrors((current) => current.map((errors, index) => (
+      index === selectedHomeBannerIndex ? { ...errors, [field]: undefined } : errors
     )));
   };
 
@@ -436,18 +445,24 @@ export default function AdminDashboard() {
   };
 
   const handleSaveHomeBanner = () => {
-    saveHomeBanner({
-      banners: homeBanners,
-      autoSlideSeconds: homeBannerAutoSlideSeconds,
-    });
+    if (homeBannerLoading || homeBannerError) return;
+    const validation = validateHomeHeroBanners(homeBanners);
+    const firstInvalidIndex = validation.findIndex((errors) => Object.keys(errors).length > 0);
+    setHomeBannerFieldErrors(validation);
+    if (firstInvalidIndex >= 0) {
+      setSelectedHomeBannerIndex(firstInvalidIndex);
+      return;
+    }
+    saveHomeBanner(createHomeBannerUpdatePayload(homeBanners));
   };
 
   const handleAddHomeBanner = () => {
     const nextBanner = {
-      ...HOME_BANNER_DEFAULT,
-      title: `${HOME_BANNER_DEFAULT.title} ${homeBanners.length + 1}`,
+      ...HOME_HERO_DEFAULT,
+      title: `${HOME_HERO_DEFAULT.title} ${homeBanners.length + 1}`,
     };
     setHomeBanners((prev) => [...prev, nextBanner]);
+    setHomeBannerFieldErrors((current) => [...current, {}]);
     setSelectedHomeBannerIndex(homeBanners.length);
   };
 
@@ -457,35 +472,24 @@ export default function AdminDashboard() {
       return;
     }
     setHomeBanners((prev) => prev.filter((_, index) => index !== selectedHomeBannerIndex));
+    setHomeBannerFieldErrors((current) => current.filter((_, index) => index !== selectedHomeBannerIndex));
     setSelectedHomeBannerIndex((prev) => Math.max(0, prev - 1));
   };
 
   const handleApplyDefaultHomeBanner = () => {
-    setHomeBanners((prev) => prev.map((banner, index) => (
-      index === selectedHomeBannerIndex
-        ? { ...HOME_BANNER_DEFAULT, title: banner.title || HOME_BANNER_DEFAULT.title }
-        : banner
+    setHomeBannerFieldErrors((current) => current.map((errors, index) => (
+      index === selectedHomeBannerIndex ? {} : errors
+    )));
+    setHomeBanners((current) => current.map((banner, index) => (
+      index === selectedHomeBannerIndex ? resetHomeHeroVisibleFields(banner) : banner
     )));
   };
 
   useEffect(() => {
-    const banners = homeBannerData?.banners?.length
-      ? homeBannerData.banners
-      : homeBannerData?.content
-        ? [homeBannerData.content]
-        : [HOME_BANNER_DEFAULT];
-
-    setHomeBanners(banners.map((banner) => ({
-      ...HOME_BANNER_DEFAULT,
-      ...banner,
-    })));
+    const nextBanners = normalizeHomeBanners(homeBannerData);
+    setHomeBanners(nextBanners);
+    setHomeBannerFieldErrors(nextBanners.map(() => ({})));
     setSelectedHomeBannerIndex(0);
-    setHomeBannerAutoSlideSeconds(
-      Math.min(
-        30,
-        Math.max(2, Number(homeBannerData?.autoSlideSeconds) || HOME_BANNER_DEFAULT_SLIDE_SECONDS),
-      )
-    );
   }, [homeBannerData]);
 
   const introEditorModules = useMemo(() => ({
@@ -1139,292 +1143,113 @@ export default function AdminDashboard() {
 
         {/* 홈 배너 관리 */}
         {activeMenu === 'homeBanner' && (
-          <div className="space-y-6">
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-                <div>
-                  <h3 className="text-lg font-medium">홈 화면 메인 배너 편집</h3>
-                  <p className="text-sm text-gray-500 mt-1">
-                    텍스트, 버튼, 색상, 이미지를 수정하면 홈 첫 화면에 즉시 반영됩니다.
-                  </p>
+          homeBannerLoading ? (
+            <AsyncState status="loading" title="홈 배너를 불러오고 있습니다" />
+          ) : homeBannerError ? (
+            <AsyncState
+              status="error"
+              title="홈 배너를 불러오지 못했습니다"
+              description="기존 운영 값을 보호하기 위해 편집을 중단했습니다. 다시 불러온 뒤 수정해 주세요."
+              onRetry={() => refetchHomeBanner()}
+              isRetrying={homeBannerFetching}
+            />
+          ) : (
+            <div className="space-y-forest-6">
+              <Surface aria-labelledby="home-banner-editor-title">
+                <div className="flex flex-col gap-forest-4 md:flex-row md:items-start md:justify-between">
+                  <div>
+                    <h3 id="home-banner-editor-title" className="text-forest-heading-3 font-bold text-forest-text-primary">홈 화면 메인 배너 편집</h3>
+                    <p className="mt-forest-2 text-forest-supporting text-forest-text-muted">
+                      문구, 버튼, 배경 이미지를 수정하면 아래 실제 공개 화면 미리보기에 반영됩니다.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-forest-2">
+                    <Button variant="secondary" onClick={handleApplyDefaultHomeBanner}>현재 배너 초기화</Button>
+                    <Button variant="secondary" onClick={handleAddHomeBanner}>배너 추가</Button>
+                    <Button variant="danger" onClick={handleRemoveCurrentHomeBanner}>현재 배너 삭제</Button>
+                    <Button aria-label="저장" onClick={handleSaveHomeBanner} isPending={isSavingHomeBanner}
+                      disabled={homeBannerLoading} pendingLabel="저장 중…">저장</Button>
+                  </div>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    onClick={handleApplyDefaultHomeBanner}
-                    className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50"
-                  >
-                    현재 배너 초기화
-                  </button>
-                  <button
-                    onClick={handleAddHomeBanner}
-                    className="px-4 py-2 rounded-md border border-blue-300 text-blue-700 hover:bg-blue-50"
-                  >
-                    배너 추가
-                  </button>
-                  <button
-                    onClick={handleRemoveCurrentHomeBanner}
-                    className="px-4 py-2 rounded-md border border-red-300 text-red-700 hover:bg-red-50"
-                  >
-                    현재 배너 삭제
-                  </button>
-                  <button
-                    onClick={handleSaveHomeBanner}
-                    disabled={homeBannerLoading || isSavingHomeBanner}
-                    className="px-4 py-2 rounded-md bg-green-600 text-white hover:bg-green-700 disabled:bg-gray-400"
-                  >
-                    {isSavingHomeBanner ? '저장 중...' : '저장'}
-                  </button>
-                </div>
-              </div>
 
-              {!homeBannerLoading && (
-                <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-100 space-y-4">
-                  <div className="flex flex-wrap items-center gap-2">
-                    {homeBanners.map((_, index) => (
-                      <button
-                        key={`home-banner-tab-${index}`}
-                        onClick={() => setSelectedHomeBannerIndex(index)}
-                        className={`px-3 py-1.5 rounded-full text-sm font-medium ${
-                          selectedHomeBannerIndex === index
-                            ? 'bg-green-600 text-white'
-                            : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-100'
-                        }`}
-                      >
-                        배너 {index + 1}
-                      </button>
+                <div className="mt-forest-6 flex flex-wrap gap-forest-2">
+                  {homeBanners.map((_, index) => (
+                    <Button
+                      key={`home-banner-tab-${index}`}
+                      variant={selectedHomeBannerIndex === index ? 'primary' : 'secondary'}
+                      aria-pressed={selectedHomeBannerIndex === index}
+                      onClick={() => setSelectedHomeBannerIndex(index)}
+                    >
+                      배너 {index + 1}
+                    </Button>
+                  ))}
+                </div>
+
+                <div className="mt-forest-6 space-y-forest-6">
+                  <div className="grid gap-forest-4 md:grid-cols-2">
+                    {homeBannerTextFields.map(([id, label, field]) => (
+                      <FormField key={field} id={id} label={label}
+                        error={homeBannerFieldErrors[selectedHomeBannerIndex]?.[field]} required>
+                        {(controlProps) => (
+                          <input {...controlProps} aria-label={label} type="text" value={homeBannerForm[field]}
+                            onChange={(event) => handleHomeBannerFieldChange(field, event.target.value)} />
+                        )}
+                      </FormField>
                     ))}
                   </div>
-                  <div className="max-w-xs">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">자동 전환 간격(초)</label>
-                    <input
-                      type="number"
-                      min={2}
-                      max={30}
-                      value={homeBannerAutoSlideSeconds}
-                      onChange={(e) => {
-                        const value = Number(e.target.value);
-                        if (Number.isNaN(value)) return;
-                        setHomeBannerAutoSlideSeconds(Math.min(30, Math.max(2, value)));
-                      }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">홈 화면에서 배너가 자동으로 넘어가는 시간입니다.</p>
-                  </div>
-                </div>
-              )}
 
-              {homeBannerLoading ? (
-                <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-green-500 mx-auto"></div>
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">배지 문구</label>
-                      <input
-                        type="text"
-                        value={homeBannerForm.badgeText}
-                        onChange={(e) => handleHomeBannerFieldChange('badgeText', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">제목</label>
-                      <input
-                        type="text"
-                        value={homeBannerForm.title}
-                        onChange={(e) => handleHomeBannerFieldChange('title', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                      />
-                    </div>
-                  </div>
+                  <FormField id="home-banner-description" label="설명 문구"
+                    error={homeBannerFieldErrors[selectedHomeBannerIndex]?.description} required>
+                    {(controlProps) => (
+                      <textarea {...controlProps} aria-label="설명 문구" rows={3} value={homeBannerForm.description}
+                        onChange={(event) => handleHomeBannerFieldChange('description', event.target.value)} />
+                    )}
+                  </FormField>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">설명 문구</label>
-                    <textarea
-                      value={homeBannerForm.description}
-                      onChange={(e) => handleHomeBannerFieldChange('description', e.target.value)}
-                      rows={3}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                    />
-                  </div>
+                  <fieldset aria-describedby="home-banner-action-priority">
+                    <legend className="text-forest-label font-bold text-forest-text-primary">공개 화면 버튼</legend>
+                    <p id="home-banner-action-priority" className="mt-forest-2 text-forest-supporting text-forest-text-muted">
+                      버튼 A와 B 중 프로그램 페이지로 연결되는 버튼은 공개 화면에서 먼저 표시됩니다.
+                    </p>
+                    <div className="mt-forest-4 grid gap-forest-4 md:grid-cols-2">
+                      {homeBannerActionFields.map(([id, label, field]) => (
+                        <FormField key={field} id={id} label={label}
+                          error={homeBannerFieldErrors[selectedHomeBannerIndex]?.[field]} required>
+                          {(controlProps) => (
+                            <input {...controlProps} aria-label={label} type="text" value={homeBannerForm[field]}
+                              onChange={(event) => handleHomeBannerFieldChange(field, event.target.value)} />
+                          )}
+                        </FormField>
+                      ))}
+                    </div>
+                  </fieldset>
 
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">주 버튼 텍스트</label>
-                      <input
-                        type="text"
-                        value={homeBannerForm.primaryButtonText}
-                        onChange={(e) => handleHomeBannerFieldChange('primaryButtonText', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">주 버튼 링크</label>
-                      <input
-                        type="text"
-                        value={homeBannerForm.primaryButtonLink}
-                        onChange={(e) => handleHomeBannerFieldChange('primaryButtonLink', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">보조 버튼 텍스트</label>
-                      <input
-                        type="text"
-                        value={homeBannerForm.secondaryButtonText}
-                        onChange={(e) => handleHomeBannerFieldChange('secondaryButtonText', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">보조 버튼 링크</label>
-                      <input
-                        type="text"
-                        value={homeBannerForm.secondaryButtonLink}
-                        onChange={(e) => handleHomeBannerFieldChange('secondaryButtonLink', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid md:grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">배지 색상</label>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="color"
-                          value={homeBannerForm.badgeTextColor}
-                          onChange={(e) => handleHomeBannerFieldChange('badgeTextColor', e.target.value)}
-                          className="h-10 w-14 border border-gray-300 rounded"
-                        />
-                        <input
-                          type="text"
-                          value={homeBannerForm.badgeTextColor}
-                          onChange={(e) => handleHomeBannerFieldChange('badgeTextColor', e.target.value)}
-                          className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">제목 색상</label>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="color"
-                          value={homeBannerForm.titleColor}
-                          onChange={(e) => handleHomeBannerFieldChange('titleColor', e.target.value)}
-                          className="h-10 w-14 border border-gray-300 rounded"
-                        />
-                        <input
-                          type="text"
-                          value={homeBannerForm.titleColor}
-                          onChange={(e) => handleHomeBannerFieldChange('titleColor', e.target.value)}
-                          className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">설명 색상</label>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="color"
-                          value={homeBannerForm.descriptionColor}
-                          onChange={(e) => handleHomeBannerFieldChange('descriptionColor', e.target.value)}
-                          className="h-10 w-14 border border-gray-300 rounded"
-                        />
-                        <input
-                          type="text"
-                          value={homeBannerForm.descriptionColor}
-                          onChange={(e) => handleHomeBannerFieldChange('descriptionColor', e.target.value)}
-                          className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid lg:grid-cols-2 gap-6">
-                    <div className="space-y-3">
-                      <label className="block text-sm font-medium text-gray-700">배경 이미지</label>
-                      <input
-                        type="text"
-                        value={homeBannerForm.backgroundImageUrl}
-                        onChange={(e) => handleHomeBannerFieldChange('backgroundImageUrl', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                      />
-                      <label className="inline-flex items-center px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-md text-sm text-gray-700 cursor-pointer">
-                        이미지 업로드
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={(e) => handleHomeBannerImageUpload('backgroundImageUrl', e)}
-                        />
-                      </label>
-                      {uploadingBannerField === 'backgroundImageUrl' && (
-                        <p className="text-xs text-gray-500">배경 이미지 업로드 중...</p>
+                  <div className="space-y-forest-3">
+                    <FormField id="home-banner-background-image" label="배경 이미지"
+                      error={homeBannerFieldErrors[selectedHomeBannerIndex]?.backgroundImageUrl} required>
+                      {(controlProps) => (
+                        <input {...controlProps} aria-label="배경 이미지" type="text" value={homeBannerForm.backgroundImageUrl}
+                          onChange={(event) => handleHomeBannerFieldChange('backgroundImageUrl', event.target.value)} />
                       )}
-                    </div>
-                    <div className="space-y-3">
-                      <label className="block text-sm font-medium text-gray-700">우측 카드 이미지</label>
-                      <input
-                        type="text"
-                        value={homeBannerForm.sideImageUrl}
-                        onChange={(e) => handleHomeBannerFieldChange('sideImageUrl', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                      />
-                      <label className="inline-flex items-center px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-md text-sm text-gray-700 cursor-pointer">
-                        이미지 업로드
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={(e) => handleHomeBannerImageUpload('sideImageUrl', e)}
-                        />
-                      </label>
-                      {uploadingBannerField === 'sideImageUrl' && (
-                        <p className="text-xs text-gray-500">우측 이미지 업로드 중...</p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">우측 카드 제목</label>
-                      <input
-                        type="text"
-                        value={homeBannerForm.sideTitle}
-                        onChange={(e) => handleHomeBannerFieldChange('sideTitle', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">우측 카드 설명</label>
-                      <input
-                        type="text"
-                        value={homeBannerForm.sideDescription}
-                        onChange={(e) => handleHomeBannerFieldChange('sideDescription', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                      />
-                    </div>
+                    </FormField>
+                    <label className="inline-flex min-h-forest-control cursor-pointer items-center rounded-forest-control border border-forest-border-strong bg-forest-surface-raised px-forest-4 font-bold text-forest-strong focus-within:outline focus-within:outline-forest focus-within:outline-offset-2 focus-within:outline-forest-focus">
+                      이미지 업로드
+                      <input type="file" accept="image/*" className="sr-only"
+                        onChange={(event) => handleHomeBannerImageUpload('backgroundImageUrl', event)} />
+                    </label>
+                    {uploadingBannerField === 'backgroundImageUrl' && (
+                      <StatusBadge tone="info">배경 이미지 업로드 중…</StatusBadge>
+                    )}
                   </div>
                 </div>
-              )}
+              </Surface>
+
+              <Surface aria-labelledby="home-banner-preview-title">
+                <h4 id="home-banner-preview-title" className="mb-forest-4 text-forest-heading-3 font-bold text-forest-text-primary">실제 공개 화면 미리보기</h4>
+                <HomeHero banners={[homeBannerForm]} isPreview headingLevel={2} />
+              </Surface>
             </div>
-
-            {!homeBannerLoading && (
-              <div className="bg-white rounded-lg shadow p-6">
-                <h4 className="text-lg font-medium mb-4">미리보기</h4>
-                <HomeBannerHero
-                  banner={{
-                    ...HOME_BANNER_DEFAULT,
-                    ...homeBannerForm,
-                  }}
-                  isPreview
-                />
-              </div>
-            )}
-          </div>
+          )
         )}
 
         {/* 메일 발송 폼 */}
