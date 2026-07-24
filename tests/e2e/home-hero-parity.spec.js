@@ -38,7 +38,10 @@ const readHeroSignature = (hero) => hero.evaluate((root) => ({
   badge: root.querySelector('[data-hero-part="badge"]')?.textContent.trim(),
   title: root.querySelector('[data-hero-part="title"]')?.textContent.trim(),
   description: root.querySelector('[data-hero-part="description"]')?.textContent.trim(),
-  actions: [...root.querySelectorAll('[data-hero-part="actions"] a')].map((link) => link.textContent.trim()),
+  actions: [...root.querySelectorAll('[data-hero-action]')].map((action) => ({
+    text: action.textContent.trim(),
+    className: action.className,
+  })),
   surfaceClass: root.querySelector('[data-hero-part="surface"]')?.className,
   titleClass: root.querySelector('[data-hero-part="title"]')?.className,
 }));
@@ -49,16 +52,20 @@ test('admin preview and public home use the same Hero content, order, and visual
   await page.goto('/admin?section=homeBanner');
   const adminHero = page.locator('[data-component="home-hero"]');
   await expect(adminHero).toBeVisible();
+  await expect(adminHero.locator('a, [href]')).toHaveCount(0);
   const adminSignature = await readHeroSignature(adminHero);
 
   await page.goto('/');
   const publicHero = page.locator('[data-component="home-hero"]');
   await expect(publicHero).toBeVisible();
+  await expect(publicHero.locator('[data-hero-action]')).toHaveCount(2);
+  await expect(publicHero.locator('[data-hero-action]').nth(0)).toHaveAttribute('href', '/programs/participate');
+  await expect(publicHero.locator('[data-hero-action]').nth(1)).toHaveAttribute('href', '/intro');
   const publicSignature = await readHeroSignature(publicHero);
 
   expect(adminSignature).toEqual(publicSignature);
   expect(publicSignature.title).toBe('API에서 받은 공유 Hero 제목');
-  expect(publicSignature.actions).toEqual(['프로그램 참여', '단체 소개']);
+  expect(publicSignature.actions.map(({ text }) => text)).toEqual(['프로그램 참여', '단체 소개']);
 });
 
 test('admin editor exposes only fields rendered by the public Hero', async ({ page, organizationApi }) => {
@@ -118,4 +125,25 @@ test('admin home banner load failure blocks editing and offers a safe retry', as
   organizationApi.recover('/home-banner');
   await error.getByRole('button', { name: '다시 시도' }).click();
   await expect(page.getByRole('region', { name: '홈 화면 메인 배너 편집' })).toBeVisible();
+});
+
+test('admin treats an unusable successful Home Banner response as a hard load failure', async ({ page, organizationApi }) => {
+  organizationApi.setUser(ADMIN_USER_RESPONSE);
+  organizationApi.setHomeBanner(null);
+
+  await page.goto('/admin?section=homeBanner');
+  const error = page.getByRole('alert');
+  await expect(error.getByRole('heading', { name: '홈 배너를 불러오지 못했습니다' })).toBeVisible();
+  await expect(page.getByRole('region', { name: '홈 화면 메인 배너 편집' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '저장', exact: true })).toHaveCount(0);
+});
+
+test('admin keeps an explicitly empty banner collection as a valid editable contract', async ({ page, organizationApi }) => {
+  organizationApi.setUser(ADMIN_USER_RESPONSE);
+  organizationApi.setHomeBanner({ banners: [] });
+
+  await page.goto('/admin?section=homeBanner');
+  const editor = page.getByRole('region', { name: '홈 화면 메인 배너 편집' });
+  await expect(editor).toBeVisible();
+  await expect(editor.getByLabel('제목', { exact: true })).toHaveValue('숲을 지키는 가장 가까운 방법');
 });

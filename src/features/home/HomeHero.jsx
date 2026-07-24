@@ -1,6 +1,7 @@
 import { useEffect, useId, useMemo, useState } from 'react';
 import ActionLink from '../../design-system/primitives/ActionLink';
 import Button from '../../design-system/primitives/Button';
+import { getActionControlClassName } from '../../design-system/primitives/actionControlStyles';
 import {
   createHeroImageCandidates,
   normalizeHomeBanners,
@@ -50,8 +51,14 @@ export default function HomeHero({ banners = [], isPreview = false, headingLevel
     ...(isExternalLink(link)
       ? { href: link, target: '_blank', rel: 'noopener noreferrer' }
       : { to: link }),
-    ...(isPreview ? { onClick: (event) => event.preventDefault(), 'aria-disabled': 'true', tabIndex: -1 } : {}),
   });
+  const renderAction = (action, variant = 'primary') => (
+    isPreview ? (
+      <span data-hero-action className={getActionControlClassName({ variant, size: 'lg' })}>{action.text}</span>
+    ) : (
+      <ActionLink data-hero-action {...actionProps(action.link)} variant={variant}>{action.text}</ActionLink>
+    )
+  );
 
   return (
     <div data-component="home-hero">
@@ -64,8 +71,8 @@ export default function HomeHero({ banners = [], isPreview = false, headingLevel
             <Heading id={titleId} data-hero-part="title" className="mt-4 text-forest-heading-1 font-bold">{banner.title}</Heading>
             {banner.description && <p data-hero-part="description" className="mt-5 text-forest-body text-forest-text-inverse">{banner.description}</p>}
             <div data-hero-part="actions" className="mt-8 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
-              <ActionLink {...actionProps(primary.link)}>{primary.text}</ActionLink>
-              {secondary && <ActionLink {...actionProps(secondary.link)} variant="inverseQuiet">{secondary.text}</ActionLink>}
+              {renderAction(primary)}
+              {secondary && renderAction(secondary, 'inverseQuiet')}
             </div>
           </div>
         </div>

@@ -101,6 +101,17 @@ const getRequestErrorMessage = (error, fallback) => (
   error?.response?.data?.message || fallback
 );
 
+const getManagedHomeBanner = async () => {
+  const data = await getHomeBanner();
+  const hasBannerCollection = data && typeof data === 'object' && Array.isArray(data.banners);
+  const hasLegacyContent = data && typeof data === 'object'
+    && data.content && typeof data.content === 'object' && !Array.isArray(data.content);
+  if (!hasBannerCollection && !hasLegacyContent) {
+    throw new Error('Home Banner response is missing a usable content shape');
+  }
+  return data;
+};
+
 const getProgramApplyCountLabel = ({
   count,
   isError,
@@ -270,7 +281,7 @@ export default function AdminDashboard() {
     refetch: refetchHomeBanner,
   } = useQuery({
     queryKey: ['homeBanner', 'admin'],
-    queryFn: getHomeBanner,
+    queryFn: getManagedHomeBanner,
     enabled: activeMenu === 'homeBanner',
     retry: false,
   });

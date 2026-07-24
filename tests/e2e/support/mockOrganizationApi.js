@@ -44,6 +44,8 @@ export async function installOrganizationApiMocks(page) {
     const request = route.request();
     const method = request.method();
     requests.push(`${method} /home-banner`);
+    const payload = method === 'PUT' ? request.postDataJSON() : null;
+    if (method === 'PUT') homeBannerPutRequests.push(payload);
     const forcedStatus = failures.get('/home-banner');
     if (forcedStatus) {
       return route.fulfill({
@@ -56,8 +58,6 @@ export async function installOrganizationApiMocks(page) {
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ data: homeBanner }) });
     }
     if (method === 'PUT') {
-      const payload = request.postDataJSON();
-      homeBannerPutRequests.push(payload);
       homeBanner = { ...homeBanner, ...payload };
       if (nextHomeBannerPutResponseGate) {
         const gate = nextHomeBannerPutResponseGate;
