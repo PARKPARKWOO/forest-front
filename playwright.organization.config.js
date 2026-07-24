@@ -11,6 +11,13 @@ export default defineConfig({
     organizationPreviewMode: previewMode,
   },
   testMatch: /(?:organization-directory-.*|home-hero-admin-save)\.spec\.js/,
+  use: {
+    ...baseConfig.use,
+    contextOptions: {
+      ...baseConfig.use?.contextOptions,
+      reducedMotion: 'reduce',
+    },
+  },
   webServer: {
     ...baseConfig.webServer,
     command: previewMode ? 'npm run draft:organization-preview' : 'npm run draft:organization',
