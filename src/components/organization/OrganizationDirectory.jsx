@@ -12,9 +12,9 @@ export default function OrganizationDirectory({
 
   if (!selected) {
     return (
-      <div className="rounded-2xl border border-green-200 bg-white px-5 py-10 text-center" role="status">
-        <h2 className="text-2xl font-bold text-green-900">현재 공개된 조직 정보가 없습니다</h2>
-        <p className="mt-3 text-lg text-gray-700">조직 정보가 등록되면 이곳에서 확인하실 수 있습니다.</p>
+      <div className="rounded-2xl border border-forest-border-subtle bg-forest-surface-card px-5 py-10 text-center" role="status">
+        <h2 className="text-2xl font-bold text-forest-strong">현재 공개된 조직 정보가 없습니다</h2>
+        <p className="mt-3 text-lg text-forest-text-muted">조직 정보가 등록되면 이곳에서 확인하실 수 있습니다.</p>
       </div>
     );
   }
@@ -35,19 +35,19 @@ export default function OrganizationDirectory({
               key={group.id}
               type="button"
               aria-current={group.id === selectedGroupId ? 'true' : undefined}
-              className={`accessible-touch-target min-w-0 break-words rounded-xl border-2 border-l-8 px-4 py-3 text-left text-lg font-bold focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-green-800 ${depth > 0 ? 'ms-3' : ''} ${group.id === selectedGroupId ? 'border-green-800 bg-green-50 text-green-950' : 'border-green-200 border-l-transparent bg-white text-green-900'}`}
+              className={`accessible-touch-target min-w-0 break-words rounded-xl border-2 border-l-8 px-4 py-3 text-left text-lg font-bold focus-visible:outline focus-visible:outline-forest focus-visible:outline-offset-2 focus-visible:outline-forest-focus ${depth > 0 ? 'ms-3' : ''} ${group.id === selectedGroupId ? 'border-forest-strong bg-forest-surface text-forest-text-primary' : 'border-forest-border-subtle border-l-transparent bg-forest-surface-card text-forest-strong'}`}
               onClick={() => onSelectGroup(group.id)}
             >
               {group.name}
             </button>
           ))}
         </nav>
-        <section aria-labelledby={`organization-group-${selected.id}`} className="min-w-0 rounded-2xl border border-green-200 bg-white p-5 sm:p-7">
-          <h2 id={`organization-group-${selected.id}`} className="break-words text-2xl font-bold text-green-900">{selected.name}</h2>
+        <section aria-labelledby={`organization-group-${selected.id}`} className="min-w-0 rounded-2xl border border-forest-border-subtle bg-forest-surface-card p-5 sm:p-7">
+          <h2 id={`organization-group-${selected.id}`} className="break-words text-2xl font-bold text-forest-strong">{selected.name}</h2>
           {selectedDescription && (
-            <p className="mt-3 break-words text-lg leading-relaxed text-gray-700">{selectedDescription}</p>
+            <p className="mt-3 break-words text-lg leading-relaxed text-forest-text-muted">{selectedDescription}</p>
           )}
-          <p className="mt-3 text-lg font-semibold text-gray-700">구성원 {selectedMemberships.length}명</p>
+          <p className="mt-3 text-lg font-semibold text-forest-text-muted">구성원 {selectedMemberships.length}명</p>
           <OrganizationMemberList group={selected} peopleById={peopleById} memberships={selectedMemberships} />
         </section>
       </div>

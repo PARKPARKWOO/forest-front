@@ -317,6 +317,12 @@ test('group controls keep responsive columns, keyboard focus, vertical reflow, a
   await page.setViewportSize({ width: 320, height: 844 });
   expect((await navigation.evaluate((node) => getComputedStyle(node).gridTemplateColumns)).split(' ')).toHaveLength(1);
 
+  const focusRing = await page.getByRole('button', { name: '운영위원회' }).evaluate((node) => {
+    node.focus();
+    return Number.parseFloat(getComputedStyle(node).outlineWidth);
+  });
+  expect(focusRing).toBeGreaterThanOrEqual(4);
+
   await page.setViewportSize({ width: 720, height: 900 });
   const navBox = await navigation.boundingBox();
   const detailBox = await page.locator('section[aria-labelledby^="organization-group-"]').boundingBox();

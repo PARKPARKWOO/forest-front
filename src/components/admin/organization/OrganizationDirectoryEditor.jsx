@@ -839,7 +839,7 @@ export default function OrganizationDirectoryEditor({ onBack }) {
         />
       )}
       <div hidden={panel === 'people'} className="min-w-0 space-y-6">
-        <div className="grid min-w-0 grid-cols-1 gap-6 xl:grid-cols-[minmax(20rem,0.9fr)_minmax(24rem,1.1fr)]">
+        <div data-component="organization-group-editor" className="grid min-w-0 grid-cols-1 gap-6 xl:grid-cols-[minmax(20rem,0.9fr)_minmax(24rem,1.1fr)]">
           <OrganizationGroupTree
             groups={draft.groups}
             selectedGroupId={selectedGroupId}

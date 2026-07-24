@@ -252,6 +252,10 @@ test('group edits stay in an unsaved preview and only move siblings', async ({ p
   await openOrganizationEditor(page, organizationApi);
   const tree = getGroupList(page);
 
+  for (const control of [page.getByLabel('그룹 이름'), page.getByLabel('그룹 설명'), page.getByLabel('상위 그룹')]) {
+    expect((await control.boundingBox()).height).toBeGreaterThanOrEqual(48);
+  }
+
   await page.getByRole('button', { name: '최상위 조직 추가' }).click();
   const createdRoot = getGroupItem(page, /새 조직.*선택/);
   const rootId = await createdRoot.getAttribute('data-group-id');
