@@ -261,5 +261,13 @@ test('public draft matches the reviewed responsive baseline', async ({ page, for
   pageQuality.allowConsoleError(ANONYMOUS_403, USERS_API_URL);
   await page.goto('/');
   await waitForPublicHomeReady(page);
-  await expect(page).toHaveScreenshot(`forest-public-home-${testInfo.project.name}.png`, { fullPage: true, animations: 'disabled' });
+  if (process.env.FOREST_VISUAL_REVIEW === 'true') {
+    await page.screenshot({
+      path: testInfo.outputPath('forest-public-home-review.png'),
+      fullPage: true,
+      animations: 'disabled',
+    });
+    return;
+  }
+  await expect(page).toHaveScreenshot('forest-public-home.png', { fullPage: true, animations: 'disabled' });
 });

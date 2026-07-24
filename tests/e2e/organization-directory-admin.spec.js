@@ -1079,3 +1079,41 @@ test('mobile people, membership, and preview surfaces are stacked, touch-sized, 
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   expect(organizationApi.getPutRequests()).toEqual([]);
 });
+
+test('admin organization group editor matches the reviewed responsive baseline', async ({ page, organizationApi }, testInfo) => {
+  test.skip(testInfo.config.metadata.organizationPreviewMode, 'normal organization visual baseline only');
+  await openOrganizationEditor(page, organizationApi);
+  const groupEditor = page.locator('[data-component="organization-group-editor"]');
+  await expect(groupEditor).toBeVisible();
+  // Locator screenshots may scroll the editor beneath the fixed public shell header.
+  // Hide only that out-of-scope overlay so every viewport captures the full editor.
+  await page.addStyleTag({ content: 'header.fixed { visibility: hidden !important; }' });
+  if (process.env.FOREST_VISUAL_REVIEW === 'true') {
+    await groupEditor.screenshot({
+      path: testInfo.outputPath('forest-organization-admin-editor-review.png'),
+      animations: 'disabled',
+    });
+    return;
+  }
+  await expect(groupEditor).toHaveScreenshot('forest-organization-admin-editor.png', {
+    animations: 'disabled',
+  });
+});
+
+test('admin organization preview matches the reviewed responsive baseline', async ({ page, organizationApi }, testInfo) => {
+  test.skip(testInfo.config.metadata.organizationPreviewMode, 'normal organization visual baseline only');
+  await openOrganizationEditor(page, organizationApi);
+  await page.getByRole('button', { name: '저장 전 미리보기' }).click();
+  const dialog = page.getByRole('dialog', { name: '저장 전 조직도 미리보기' });
+  await expect(dialog).toBeVisible();
+  if (process.env.FOREST_VISUAL_REVIEW === 'true') {
+    await dialog.screenshot({
+      path: testInfo.outputPath('forest-organization-admin-preview-review.png'),
+      animations: 'disabled',
+    });
+    return;
+  }
+  await expect(dialog).toHaveScreenshot('forest-organization-admin-preview.png', {
+    animations: 'disabled',
+  });
+});

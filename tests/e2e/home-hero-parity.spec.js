@@ -147,3 +147,21 @@ test('admin keeps an explicitly empty banner collection as a valid editable cont
   await expect(editor).toBeVisible();
   await expect(editor.getByLabel('제목', { exact: true })).toHaveValue('숲을 지키는 가장 가까운 방법');
 });
+
+test('admin home Hero preview matches the reviewed responsive baseline', async ({ page, organizationApi }, testInfo) => {
+  organizationApi.setHomeBanner(HERO_FIXTURE);
+  organizationApi.setUser(ADMIN_USER_RESPONSE);
+  await page.goto('/admin?section=homeBanner');
+  const preview = page.locator('[data-component="home-hero"]');
+  await expect(preview).toBeVisible();
+  if (process.env.FOREST_VISUAL_REVIEW === 'true') {
+    await preview.screenshot({
+      path: testInfo.outputPath('forest-home-hero-admin-preview-review.png'),
+      animations: 'disabled',
+    });
+    return;
+  }
+  await expect(preview).toHaveScreenshot('forest-home-hero-admin-preview.png', {
+    animations: 'disabled',
+  });
+});

@@ -367,3 +367,20 @@ test('public organization directory has no critical or serious axe findings', as
   const serious = results.violations.filter(({ impact }) => impact === 'critical' || impact === 'serious');
   expect(serious).toEqual([]);
 });
+
+test('public organization matches the reviewed responsive baseline', async ({ page, organizationApi }, testInfo) => {
+  test.skip(testInfo.config.metadata.organizationPreviewMode, 'normal organization visual baseline only');
+  await openPeople(page, organizationApi);
+  await expectStructuredDirectory(page);
+  const directory = page.getByRole('navigation', { name: '조직 선택' }).locator('xpath=..');
+  if (process.env.FOREST_VISUAL_REVIEW === 'true') {
+    await directory.screenshot({
+      path: testInfo.outputPath('forest-organization-public-review.png'),
+      animations: 'disabled',
+    });
+    return;
+  }
+  await expect(directory).toHaveScreenshot('forest-organization-public.png', {
+    animations: 'disabled',
+  });
+});

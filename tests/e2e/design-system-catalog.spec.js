@@ -76,3 +76,39 @@ test('AccessibleDialog traps focus, closes with Escape, restores focus, and lock
   await expect(trigger).toBeFocused();
   await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe('');
 });
+
+test('catalog has no critical or serious axe findings', async ({ page, pageQuality }) => {
+  await openCatalog(page, pageQuality);
+  const results = await new AxeBuilder({ page }).analyze();
+  expect(results.violations.filter(({ impact }) => ['critical', 'serious'].includes(impact))).toEqual([]);
+});
+
+test('catalog reflows at 720 CSS pixels and honors reduced motion', async ({ page, pageQuality }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'desktop 200% equivalent only');
+  await page.setViewportSize({ width: 720, height: 900 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await openCatalog(page, pageQuality);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBe(true);
+  const motion = await page.locator('[aria-busy="true"] .animate-spin').evaluate((node) => ({
+    durationMs: Number.parseFloat(getComputedStyle(node).animationDuration) * 1000,
+    iterationCount: getComputedStyle(node).animationIterationCount,
+  }));
+  expect(motion.durationMs).toBeLessThanOrEqual(0.01);
+  expect(motion.iterationCount).toBe('1');
+});
+
+test('catalog matches the reviewed responsive baseline', async ({ page, pageQuality }, testInfo) => {
+  await openCatalog(page, pageQuality);
+  if (process.env.FOREST_VISUAL_REVIEW === 'true') {
+    await page.screenshot({
+      path: testInfo.outputPath('forest-design-system-review.png'),
+      fullPage: true,
+      animations: 'disabled',
+    });
+    return;
+  }
+  await expect(page).toHaveScreenshot('forest-design-system.png', {
+    fullPage: true,
+    animations: 'disabled',
+  });
+});
