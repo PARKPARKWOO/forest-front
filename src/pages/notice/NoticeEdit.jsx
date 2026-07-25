@@ -8,6 +8,7 @@ import { uploadImage } from '../../services/postService';
 import { normalizeListMarkup } from '../../utils/editorContent';
 import { useAuth } from '../../contexts/AuthContext';
 import AsyncState from '../../components/AsyncState';
+import HashtagHints from '../../components/editor/HashtagHints';
 
 const getNoticeUpdateErrorMessage = (error) => {
   const status = error?.response?.status;
@@ -291,6 +292,7 @@ export default function NoticeEdit() {
               modules={modules}
               className="h-[450px]"
             />
+            <HashtagHints content={content} />
           </div>
           <div className="h-24" />
         </div>

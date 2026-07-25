@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../contexts/AuthContext';
-import { deletePost, fetchPostsByCategory } from '../../services/postService';
+import { deletePost, fetchPostsByCategory, searchPosts } from '../../services/postService';
 import AsyncState from '../../components/AsyncState';
 import { extractPostThumbnail, HOME_IMAGE_FALLBACK } from '../../utils/homeContent';
 
@@ -13,6 +13,11 @@ export default function News() {
   const { isAdmin } = useAuth();
   const queryClient = useQueryClient();
   const [activitiesPage, setActivitiesPage] = useState(1);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTag = searchParams.get('tag')?.trim() || '';
+  const activeQuery = searchParams.get('q')?.trim() || '';
+  const [searchDraft, setSearchDraft] = useState(activeQuery);
+  const isFiltering = Boolean(activeTag || activeQuery);
 
   const subCategories = [
     { id: 'notice', name: '공지사항', path: '/news/notice' },
@@ -35,22 +40,41 @@ export default function News() {
     !activitiesLoading && !Array.isArray(activitiesPosts)
   );
 
-  const activitiesTotalPages = Math.max(
-    1,
-    Math.ceil((Array.isArray(activitiesPosts) ? activitiesPosts.length : 0) / ACTIVITIES_PAGE_SIZE),
-  );
+  // 태그·검색이 걸리면 서버 검색 결과로 목록을 대체한다.
+  const searchQuery = useQuery({
+    queryKey: ['postSearch', activeQuery, activeTag],
+    queryFn: () => searchPosts({ query: activeQuery, tag: activeTag, page: 1, size: 100 }),
+    enabled: subCategory === 'activities' && isFiltering,
+  });
+
+  const listedPosts = useMemo(() => (
+    isFiltering
+      ? (searchQuery.data?.contents ?? [])
+      : (Array.isArray(activitiesPosts) ? activitiesPosts : [])
+  ), [isFiltering, searchQuery.data, activitiesPosts]);
+  const listLoading = isFiltering ? searchQuery.isPending : activitiesLoading;
+  const listUnavailable = isFiltering ? searchQuery.isError : activitiesUnavailable;
+
+  const submitSearch = (event) => {
+    event.preventDefault();
+    const next = new URLSearchParams(searchParams);
+    next.delete('tag');
+    const keyword = searchDraft.trim();
+    if (keyword) next.set('q', keyword);
+    else next.delete('q');
+    setSearchParams(next);
+    setActivitiesPage(1);
+  };
+
+  const activitiesTotalPages = Math.max(1, Math.ceil(listedPosts.length / ACTIVITIES_PAGE_SIZE));
   // 글이 지워져 마지막 페이지가 사라지면 남아 있는 마지막 페이지로 내린다.
   useEffect(() => {
     setActivitiesPage((current) => Math.min(current, activitiesTotalPages));
   }, [activitiesTotalPages]);
-  const pagedActivities = useMemo(() => (
-    Array.isArray(activitiesPosts)
-      ? activitiesPosts.slice(
-        (activitiesPage - 1) * ACTIVITIES_PAGE_SIZE,
-        activitiesPage * ACTIVITIES_PAGE_SIZE,
-      )
-      : []
-  ), [activitiesPosts, activitiesPage]);
+  const pagedActivities = useMemo(() => listedPosts.slice(
+    (activitiesPage - 1) * ACTIVITIES_PAGE_SIZE,
+    activitiesPage * ACTIVITIES_PAGE_SIZE,
+  ), [listedPosts, activitiesPage]);
 
   const { mutate: removePost, isPending: isDeletingPost } = useMutation({
     mutationFn: (postId) => deletePost('0', postId),
@@ -102,18 +126,51 @@ export default function News() {
                 )}
               </div>
               
+              <form onSubmit={submitSearch} className="flex flex-wrap items-center gap-2" role="search">
+                <label htmlFor="activities-search" className="sr-only">게시글 검색</label>
+                <input
+                  id="activities-search"
+                  type="search"
+                  value={searchDraft}
+                  onChange={(event) => setSearchDraft(event.target.value)}
+                  placeholder="제목, 내용, 해시태그로 검색"
+                  className="accessible-touch-target min-w-0 flex-1 rounded-md border border-gray-300 px-4 py-2 text-base focus:border-green-500 focus:outline-none focus:ring-green-500"
+                />
+                <button
+                  type="submit"
+                  className="accessible-touch-target rounded-md bg-green-600 px-5 py-2 text-base font-medium text-white transition-colors duration-200 hover:bg-green-700"
+                >
+                  검색
+                </button>
+              </form>
+
+              {activeTag && (
+                <div className="flex flex-wrap items-center gap-3" data-testid="activities-tag-filter">
+                  <span className="inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-base font-semibold text-green-800">
+                    #{activeTag}
+                  </span>
+                  <span className="text-base text-gray-600">태그의 게시글만 보고 있습니다.</span>
+                  <Link
+                    to="/news/activities"
+                    className="accessible-touch-target text-base font-medium text-green-700 underline underline-offset-4"
+                  >
+                    태그 필터 해제
+                  </Link>
+                </div>
+              )}
+
               {/* 게시글 목록 */}
               <div className="bg-white rounded-lg shadow-sm">
                 <div className="p-6">
                   <h3 className="text-xl font-semibold text-gray-800 mb-6">활동 게시글</h3>
                   
-                  {activitiesLoading ? (
+                  {listLoading ? (
                     <AsyncState
                       status="loading"
                       title="활동 게시글을 불러오고 있습니다"
                       className="border-0 shadow-none"
                     />
-                  ) : activitiesUnavailable ? (
+                  ) : listUnavailable ? (
                     <AsyncState
                       status="error"
                       title="활동 게시글을 불러오지 못했습니다"
@@ -122,7 +179,7 @@ export default function News() {
                       isRetrying={activitiesFetching}
                       className="border-red-100 shadow-none"
                     />
-                  ) : activitiesPosts.length > 0 ? (
+                  ) : listedPosts.length > 0 ? (
                     <>
                       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                         {pagedActivities.map((post) => (
@@ -203,6 +260,20 @@ export default function News() {
                         </div>
                       )}
                     </>
+                  ) : activeTag ? (
+                    <AsyncState
+                      status="empty"
+                      title="해당 태그의 게시글이 없습니다"
+                      description="다른 태그를 고르거나 필터를 해제해 주세요."
+                      className="border-0 shadow-none"
+                    />
+                  ) : activeQuery ? (
+                    <AsyncState
+                      status="empty"
+                      title="검색 결과가 없습니다"
+                      description="다른 낱말로 다시 검색해 보세요."
+                      className="border-0 shadow-none"
+                    />
                   ) : (
                     <AsyncState
                       status="empty"

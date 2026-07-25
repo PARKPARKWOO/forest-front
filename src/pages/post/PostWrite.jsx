@@ -6,6 +6,7 @@ import { fetchCategoryById } from '../../services/categoryService';
 import { normalizeListMarkup } from '../../utils/editorContent';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
+import HashtagHints from '../../components/editor/HashtagHints';
 
 export default function PostWrite() {
   const { categoryId } = useParams();
@@ -232,6 +233,7 @@ export default function PostWrite() {
                   modules={modules}
                   className="h-[450px]"
                 />
+                <HashtagHints content={content} />
               </div>
             </div>
 

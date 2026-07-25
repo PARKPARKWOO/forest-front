@@ -75,3 +75,12 @@ export const uploadImage = async (file) => {
     throw error;
   }
 };
+
+// 제목·본문·해시태그 통합 검색
+export const searchPosts = async ({ query, tag, page = 1, size = 9 }) => {
+  const params = { page, size };
+  if (query) params.q = query;
+  if (tag) params.tag = tag;
+  const response = await axiosInstance.get('/posts/search', { params });
+  return response.data?.data ?? { contents: [], hasNextPage: false, totalCount: 0 };
+};

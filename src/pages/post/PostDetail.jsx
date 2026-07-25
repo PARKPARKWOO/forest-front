@@ -6,6 +6,7 @@ import { fetchCategoryById } from '../../services/categoryService';
 import { useAuth } from '../../contexts/AuthContext';
 import ImageModal from '../../components/ImageModal';
 import { sanitizeRichText } from '../../utils/editorContent';
+import { linkifyHashtags } from '../../utils/hashtag';
 import { extractImageUrlsFromHtml, mergeUniqueUrls } from '../../utils/contentUtils';
 import AsyncState from '../../components/AsyncState';
 
@@ -69,7 +70,11 @@ export default function PostDetail() {
     </div>
   );
 
-  const postContent = useMemo(() => sanitizeRichText(post?.content || ''), [post?.content]);
+  // 저장본에는 사용자가 친 `#단어` 가 그대로 있고, 링크는 읽는 시점에만 만든다.
+  const postContent = useMemo(
+    () => linkifyHashtags(sanitizeRichText(post?.content || '')),
+    [post?.content],
+  );
   const galleryImages = useMemo(() => {
     const inlineImages = extractImageUrlsFromHtml(postContent);
     return mergeUniqueUrls(inlineImages, post?.images || []);
@@ -116,19 +121,29 @@ export default function PostDetail() {
       }
     };
 
+    // 본문 HTML 안의 해시태그 링크는 라우터를 거치지 않아 전체 새로고침이 된다.
+    const handleHashtagClick = (e) => {
+      const anchor = e.target.closest?.('a[data-hashtag]');
+      if (!anchor || e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+      e.preventDefault();
+      navigate(anchor.getAttribute('href'));
+    };
+
     const images = contentElement.querySelectorAll('img');
     images.forEach((img) => {
       img.style.cursor = 'pointer';
     });
 
     contentElement.addEventListener('click', handleImageClick);
+    contentElement.addEventListener('click', handleHashtagClick);
 
     return () => {
       if (contentElement) {
         contentElement.removeEventListener('click', handleImageClick);
+        contentElement.removeEventListener('click', handleHashtagClick);
       }
     };
-  }, [handleOpenImage, postContent]);
+  }, [handleOpenImage, navigate, postContent]);
 
   if (!finalCategoryId || !postId) {
     return (

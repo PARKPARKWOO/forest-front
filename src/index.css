@@ -36,6 +36,19 @@
 }
 
 @layer components {
+  /* 본문 안에서 생성되는 해시태그 링크. dangerouslySetInnerHTML 로 들어와 클래스로만 스타일한다. */
+  .forest-hashtag {
+    font-weight: 700;
+    color: var(--forest-color-brand-strong);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .forest-hashtag:focus-visible {
+    outline: var(--forest-focus-width) solid var(--forest-color-focus-ring);
+    outline-offset: 2px;
+  }
+
   .skip-link {
     position: fixed;
     left: 1rem;

@@ -7,6 +7,7 @@ import { createNotice } from '../../services/noticeService';
 import { uploadImage } from '../../services/postService';
 import { normalizeListMarkup } from '../../utils/editorContent';
 import { useAuth } from '../../contexts/AuthContext';
+import HashtagHints from '../../components/editor/HashtagHints';
 
 export default function NoticeWrite() {
   const navigate = useNavigate();
@@ -187,6 +188,7 @@ export default function NoticeWrite() {
               modules={modules}
               className="h-[450px]"
             />
+            <HashtagHints content={content} />
           </div>
           <div className="h-24" />
         </div>

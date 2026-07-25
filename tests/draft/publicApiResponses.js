@@ -1,4 +1,5 @@
 import { publicHomeData } from '../e2e/fixtures/publicHomeData.js';
+import { extractHashtags as extractDraftHashtags } from '../../src/utils/hashtag.js';
 
 export function resolvePublicDraftResponse(method, rawUrl, overrides = {}) {
   const data = { ...publicHomeData, ...overrides };
@@ -31,6 +32,31 @@ export function resolvePublicDraftResponse(method, rawUrl, overrides = {}) {
     return notice
       ? { status: 200, body: { data: notice } }
       : { status: 404, body: { message: 'notice not found' } };
+  }
+  if (path === '/posts/search') {
+    const query = (url.searchParams.get('q') || '').trim().toLowerCase();
+    const tag = (url.searchParams.get('tag') || '').trim();
+    const page = Number(url.searchParams.get('page') || 1);
+    const size = Number(url.searchParams.get('size') || 9);
+    const pool = [...(data.activities || []), ...Object.values(data.boardPosts || {}).flat()];
+    const hasTag = (post, wanted) => extractDraftHashtags(post.content).includes(wanted);
+    const matched = (!query && !tag) ? [] : pool.filter((post) => {
+      if (tag) return hasTag(post, tag);
+      return String(post.title || '').toLowerCase().includes(query)
+        || String(post.content || '').toLowerCase().includes(query)
+        || hasTag(post, query);
+    });
+    const from = (page - 1) * size;
+    return {
+      status: 200,
+      body: {
+        data: {
+          contents: matched.slice(from, from + size),
+          hasNextPage: from + size < matched.length,
+          totalCount: matched.length,
+        },
+      },
+    };
   }
   if (path === '/posts/0') {
     return { status: 200, body: { data: { contents: data.activities, hasNextPage: false, totalCount: 0 } } };

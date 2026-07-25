@@ -6,6 +6,7 @@ import 'react-quill/dist/quill.snow.css';
 import { fetchPostById, updatePost, uploadImage } from '../../services/postService';
 import { normalizeListMarkup } from '../../utils/editorContent';
 import { useAuth } from '../../contexts/AuthContext';
+import HashtagHints from '../../components/editor/HashtagHints';
 
 export default function PostEdit() {
   const { categoryId, postId } = useParams();
@@ -180,6 +181,7 @@ export default function PostEdit() {
               modules={modules}
               className="h-[450px]"
             />
+            <HashtagHints content={content} />
           </div>
           <div className="h-24" />
         </div>
