@@ -148,7 +148,7 @@ test('home presents the approved task order and only available program facts', a
   const headings = await page.locator('main h2').allTextContents();
   expect(headings.slice(0, 4)).toEqual([
     '진행 중인 프로그램',
-    '중요 공지',
+    '공지사항',
     '최근 활동과 소식',
     '함께 참여하기',
   ]);
@@ -208,6 +208,42 @@ test('home links arrive at the three approved existing destinations', async ({ p
   await expect(page).toHaveURL(/\/news\/activities$/);
   await expect(page.getByRole('heading', { level: 1, name: '전북생명의숲 활동보기' })).toBeVisible();
   await expect(page.getByText('시민과 함께한 전북 숲 돌봄 활동')).toBeVisible();
+});
+
+test('home notice section is labelled 공지사항 and lifts important notices with a badge', async ({ page, forestApi, pageQuality }) => {
+  pageQuality.allowConsoleError(ANONYMOUS_403, USERS_API_URL);
+  pageQuality.allowConsoleError(ANONYMOUS_403, USERS_API_URL);
+  forestApi.setData({
+    notices: [
+      {
+        id: 'notice-plain',
+        title: '일반 공지 최신글',
+        authorName: '전북생명의숲',
+        updatedAt: '2026-07-20T10:00:00',
+        dynamicFields: {},
+      },
+      {
+        id: 'notice-important',
+        title: '중요 표시된 예전글',
+        authorName: '전북생명의숲',
+        updatedAt: '2026-07-10T10:00:00',
+        dynamicFields: { important: true },
+      },
+    ],
+  });
+  await page.goto('/');
+  await waitForPublicShellReady(page);
+
+  await expect(page.getByRole('heading', { level: 2, name: '공지사항' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 2, name: '중요 공지' })).toHaveCount(0);
+
+  const notices = page.locator('section[aria-labelledby="home-notices-title"] li');
+  await expect(notices).toHaveCount(2);
+  // 중요 공지는 더 오래된 글이어도 최신 일반 공지보다 위에 온다.
+  await expect(notices.nth(0)).toContainText('중요 표시된 예전글');
+  await expect(notices.nth(0)).toContainText('[중요]');
+  await expect(notices.nth(1)).toContainText('일반 공지 최신글');
+  await expect(notices.nth(1)).not.toContainText('[중요]');
 });
 
 test('home activity photo and title both open the activity detail', async ({ page, forestApi, pageQuality }) => {
