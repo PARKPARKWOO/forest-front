@@ -24,6 +24,21 @@ test('program participation is the primary public action', () => {
   assert.equal(actions.secondary.link, '/intro');
 });
 
+test('configured program CTA is trimmed, rendered first, and keeps the other configured action', () => {
+  const actions = selectHomeHeroActions({
+    ...HOME_HERO_DEFAULT,
+    primaryButtonText: '  프로그램 신청  ',
+    primaryButtonLink: '  /programs/tree-care  ',
+    secondaryButtonText: '  후원 안내  ',
+    secondaryButtonLink: '  /donate  ',
+  });
+
+  assert.deepEqual(actions, {
+    primary: { text: '프로그램 신청', link: '/programs/tree-care' },
+    secondary: { text: '후원 안내', link: '/donate' },
+  });
+});
+
 test('empty API values normalize to one complete banner', () => {
   const [banner] = normalizeHomeBanners({ banners: [] });
   assert.equal(banner.title, HOME_HERO_DEFAULT.title);
@@ -59,6 +74,32 @@ test('blank editor fields are reported before the backend can replace them with 
     title: '제목을 입력해 주세요.',
     primaryButtonLink: '버튼 A 링크를 입력해 주세요.',
   }]);
+});
+
+test('editor validation connects a missing program CTA error to both link fields', () => {
+  const [errors] = validateHomeHeroBanners([{
+    ...HOME_HERO_DEFAULT,
+    primaryButtonLink: '  /intro  ',
+    secondaryButtonLink: ' /donate ',
+  }]);
+
+  assert.deepEqual(errors, {
+    primaryButtonLink: '버튼 A 또는 B 링크 중 하나는 /programs로 시작해야 합니다.',
+    secondaryButtonLink: '버튼 A 또는 B 링크 중 하나는 /programs로 시작해야 합니다.',
+  });
+});
+
+test('editor validation connects duplicate trimmed CTA errors to both link fields', () => {
+  const [errors] = validateHomeHeroBanners([{
+    ...HOME_HERO_DEFAULT,
+    primaryButtonLink: '  /programs/participate  ',
+    secondaryButtonLink: '/programs/participate',
+  }]);
+
+  assert.deepEqual(errors, {
+    primaryButtonLink: '버튼 A와 B 링크는 서로 달라야 합니다.',
+    secondaryButtonLink: '버튼 A와 B 링크는 서로 달라야 합니다.',
+  });
 });
 
 test('root-relative Hero images try the page origin, API origin, then the local fallback', () => {

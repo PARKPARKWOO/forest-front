@@ -68,6 +68,26 @@ test('admin preview and public home use the same Hero content, order, and visual
   expect(publicSignature.actions.map(({ text }) => text)).toEqual(['프로그램 참여', '단체 소개']);
 });
 
+test('admin Home Banner headings descend from the page while the public Hero remains level one', async ({ page, organizationApi }) => {
+  organizationApi.setHomeBanner(HERO_FIXTURE);
+  organizationApi.setUser(ADMIN_USER_RESPONSE);
+  await page.goto('/admin?section=homeBanner');
+
+  await expect(page.getByRole('heading', { level: 1, name: '홈배너 관리' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 2, name: '홈 화면 메인 배너 편집' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 2, name: '실제 공개 화면 미리보기' })).toBeVisible();
+  await expect(page.locator('[data-component="home-hero"]').getByRole('heading', {
+    level: 3,
+    name: 'API에서 받은 공유 Hero 제목',
+  })).toBeVisible();
+
+  await page.goto('/');
+  await expect(page.locator('[data-component="home-hero"]').getByRole('heading', {
+    level: 1,
+    name: 'API에서 받은 공유 Hero 제목',
+  })).toBeVisible();
+});
+
 test('admin editor exposes only fields rendered by the public Hero', async ({ page, organizationApi }) => {
   organizationApi.setHomeBanner(HERO_FIXTURE);
   organizationApi.setUser(ADMIN_USER_RESPONSE);

@@ -46,7 +46,8 @@ export const createHeroImageCandidates = (rawValue, { pageOrigin, apiOrigin }) =
 const configuredActions = (banner) => [
   { text: banner.primaryButtonText, link: banner.primaryButtonLink },
   { text: banner.secondaryButtonText, link: banner.secondaryButtonLink },
-].filter(({ text, link }) => typeof text === 'string' && text.trim() && typeof link === 'string' && link.trim());
+].filter(({ text, link }) => typeof text === 'string' && text.trim() && typeof link === 'string' && link.trim())
+  .map(({ text, link }) => ({ text: text.trim(), link: link.trim() }));
 
 export const selectHomeHeroActions = (banner) => {
   const actions = configuredActions(banner);
@@ -79,11 +80,27 @@ export const normalizeHomeBanners = (value) => {
 
 export const validateHomeHeroBanners = (banners) => {
   const source = Array.isArray(banners) && banners.length > 0 ? banners : [{}];
-  return source.map((banner) => Object.fromEntries(
-    Object.entries(HOME_HERO_VISIBLE_FIELDS).filter(([field]) => (
+  return source.map((banner) => {
+    const errors = Object.fromEntries(Object.entries(HOME_HERO_VISIBLE_FIELDS).filter(([field]) => (
       typeof banner?.[field] !== 'string' || !banner[field].trim()
-    )),
-  ));
+    )));
+    const primaryLink = typeof banner?.primaryButtonLink === 'string' ? banner.primaryButtonLink.trim() : '';
+    const secondaryLink = typeof banner?.secondaryButtonLink === 'string' ? banner.secondaryButtonLink.trim() : '';
+    if (primaryLink && secondaryLink) {
+      const linkErrors = [];
+      if (![primaryLink, secondaryLink].some((link) => link.startsWith('/programs'))) {
+        linkErrors.push('버튼 A 또는 B 링크 중 하나는 /programs로 시작해야 합니다.');
+      }
+      if (primaryLink === secondaryLink) {
+        linkErrors.push('버튼 A와 B 링크는 서로 달라야 합니다.');
+      }
+      if (linkErrors.length > 0) {
+        errors.primaryButtonLink = linkErrors.join(' ');
+        errors.secondaryButtonLink = linkErrors.join(' ');
+      }
+    }
+    return errors;
+  });
 };
 
 export const resetHomeHeroVisibleFields = (banner) => {

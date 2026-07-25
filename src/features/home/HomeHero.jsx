@@ -42,7 +42,7 @@ export default function HomeHero({ banners = [], isPreview = false, headingLevel
   const index = Math.min(requestedIndex, items.length - 1);
   const banner = items[index];
   const titleId = `${useId()}-title`;
-  const Heading = headingLevel === 2 ? 'h2' : 'h1';
+  const Heading = headingLevel === 3 ? 'h3' : headingLevel === 2 ? 'h2' : 'h1';
   const { primary, secondary } = selectHomeHeroActions(banner);
   const selectRelative = (offset) => setRequestedIndex((current) => (
     (Math.min(current, items.length - 1) + offset + items.length) % items.length
@@ -54,9 +54,9 @@ export default function HomeHero({ banners = [], isPreview = false, headingLevel
   });
   const renderAction = (action, variant = 'primary') => (
     isPreview ? (
-      <span data-hero-action className={getActionControlClassName({ variant, size: 'lg' })}>{action.text}</span>
+      <span data-hero-action className={getActionControlClassName({ variant, size: 'lg', focusTone: 'inverse' })}>{action.text}</span>
     ) : (
-      <ActionLink data-hero-action {...actionProps(action.link)} variant={variant}>{action.text}</ActionLink>
+      <ActionLink data-hero-action {...actionProps(action.link)} variant={variant} focusTone="inverse">{action.text}</ActionLink>
     )
   );
 

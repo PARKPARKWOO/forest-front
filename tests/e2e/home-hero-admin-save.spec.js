@@ -86,6 +86,33 @@ test('admin validates visible fields and sends one compatibility-safe Home Banne
   await expect(save).toHaveText('저장');
 });
 
+test('admin blocks Home Banner saves when CTA links lack a program path or are duplicates', async ({ page, organizationApi }) => {
+  organizationApi.setUser(ADMIN_USER_RESPONSE);
+  organizationApi.setHomeBanner({ banners: [EDITABLE_BANNER] });
+
+  await page.goto('/admin?section=homeBanner');
+  const editor = page.getByRole('region', { name: '홈 화면 메인 배너 편집' });
+  const save = editor.getByRole('button', { name: '저장', exact: true });
+  const buttonALink = editor.getByLabel('버튼 A 링크', { exact: true });
+  const buttonBLink = editor.getByLabel('버튼 B 링크', { exact: true });
+
+  await buttonALink.fill(' /intro ');
+  await buttonBLink.fill(' /donate ');
+  await save.click();
+  await expect(buttonALink).toHaveAttribute('aria-invalid', 'true');
+  await expect(buttonBLink).toHaveAttribute('aria-invalid', 'true');
+  await expect(editor.getByText('버튼 A 또는 B 링크 중 하나는 /programs로 시작해야 합니다.', { exact: true })).toHaveCount(2);
+  expect(organizationApi.getHomeBannerPutRequests()).toHaveLength(0);
+
+  await buttonALink.fill(' /programs/participate ');
+  await buttonBLink.fill('/programs/participate');
+  await save.click();
+  await expect(buttonALink).toHaveAttribute('aria-invalid', 'true');
+  await expect(buttonBLink).toHaveAttribute('aria-invalid', 'true');
+  await expect(editor.getByText('버튼 A와 B 링크는 서로 달라야 합니다.', { exact: true })).toHaveCount(2);
+  expect(organizationApi.getHomeBannerPutRequests()).toHaveLength(0);
+});
+
 test('admin keeps validation errors with their banners through selection and list edits', async ({ page, organizationApi }) => {
   organizationApi.setUser(ADMIN_USER_RESPONSE);
   organizationApi.setHomeBanner({

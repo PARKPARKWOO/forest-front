@@ -1169,7 +1169,7 @@ export default function AdminDashboard() {
               <Surface aria-labelledby="home-banner-editor-title">
                 <div className="flex flex-col gap-forest-4 md:flex-row md:items-start md:justify-between">
                   <div>
-                    <h3 id="home-banner-editor-title" className="text-forest-heading-3 font-bold text-forest-text-primary">홈 화면 메인 배너 편집</h3>
+                    <h2 id="home-banner-editor-title" className="text-forest-heading-3 font-bold text-forest-text-primary">홈 화면 메인 배너 편집</h2>
                     <p className="mt-forest-2 text-forest-supporting text-forest-text-muted">
                       문구, 버튼, 배경 이미지를 수정하면 아래 실제 공개 화면 미리보기에 반영됩니다.
                     </p>
@@ -1256,8 +1256,8 @@ export default function AdminDashboard() {
               </Surface>
 
               <Surface aria-labelledby="home-banner-preview-title">
-                <h4 id="home-banner-preview-title" className="mb-forest-4 text-forest-heading-3 font-bold text-forest-text-primary">실제 공개 화면 미리보기</h4>
-                <HomeHero banners={[homeBannerForm]} isPreview headingLevel={2} />
+                <h2 id="home-banner-preview-title" className="mb-forest-4 text-forest-heading-3 font-bold text-forest-text-primary">실제 공개 화면 미리보기</h2>
+                <HomeHero banners={[homeBannerForm]} isPreview headingLevel={3} />
               </Surface>
             </div>
           )

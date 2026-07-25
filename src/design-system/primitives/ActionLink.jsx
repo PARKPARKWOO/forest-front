@@ -6,11 +6,12 @@ export default function ActionLink({
   href,
   variant = 'primary',
   size = 'lg',
+  focusTone,
   className = '',
   children,
   ...props
 }) {
-  const classes = getActionControlClassName({ variant, size, className });
+  const classes = getActionControlClassName({ variant, size, focusTone, className });
   if (href) return <a href={href} className={classes} {...props}>{children}</a>;
   return <Link to={to} className={classes} {...props}>{children}</Link>;
 }

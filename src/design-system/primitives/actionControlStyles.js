@@ -12,14 +12,20 @@ const sizes = {
   icon: 'h-forest-icon-control w-forest-icon-control p-0 text-forest-body',
 };
 
+const focusTones = {
+  default: 'focus-visible:outline-forest-focus',
+  inverse: 'focus-visible:outline-forest-text-inverse',
+};
+
 export const getActionControlClassName = ({
   variant = 'primary',
   size = 'md',
+  focusTone = variant === 'inverseQuiet' ? 'inverse' : 'default',
   className = '',
 } = {}) => [
   'inline-flex items-center justify-center rounded-forest-control font-bold',
   'focus-visible:outline focus-visible:outline-forest focus-visible:outline-offset-2',
-  variant === 'inverseQuiet' ? 'focus-visible:outline-forest-text-inverse' : 'focus-visible:outline-forest-focus',
+  focusTones[focusTone] ?? focusTones.default,
   'disabled:cursor-not-allowed disabled:opacity-60',
   variants[variant] ?? variants.primary,
   sizes[size] ?? sizes.md,

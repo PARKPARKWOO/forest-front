@@ -27,6 +27,24 @@ test('draft exposes its boundary and uses the approved primary color', async ({ 
   expect((await cta.boundingBox()).height).toBeGreaterThanOrEqual(48);
 });
 
+test('dark Hero primary CTA uses a white four-pixel focus outline distinct from its background', async ({ page, pageQuality }) => {
+  pageQuality.allowConsoleError(ANONYMOUS_403, USERS_API_URL);
+  pageQuality.allowConsoleError(ANONYMOUS_403, USERS_API_URL);
+  await page.goto('/');
+  const hero = page.locator('[data-component="home-hero"]');
+  const primaryCta = hero.locator('[data-hero-action]').first();
+
+  await primaryCta.focus();
+  await expect(primaryCta).toBeFocused();
+  await expect(primaryCta).toHaveCSS('outline-color', 'rgb(255, 255, 255)');
+  expect(await primaryCta.evaluate((element) => Number.parseFloat(getComputedStyle(element).outlineWidth))).toBeGreaterThanOrEqual(4);
+  const colors = await hero.evaluate((root) => ({
+    outline: getComputedStyle(root.querySelector('[data-hero-action]')).outlineColor,
+    surface: getComputedStyle(root.querySelector('[data-hero-part="surface"]')).backgroundColor,
+  }));
+  expect(colors.outline).not.toBe(colors.surface);
+});
+
 test('hero makes program participation primary and never auto-advances', async ({ page, forestApi, pageQuality }) => {
   expect(pageQuality).toBeDefined();
   pageQuality.allowConsoleError(ANONYMOUS_403, USERS_API_URL);
