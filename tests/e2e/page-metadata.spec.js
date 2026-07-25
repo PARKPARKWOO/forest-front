@@ -93,3 +93,33 @@ test('metadata is replaced, not appended, when moving between pages', async ({ p
   await expect(page.locator('meta[property="og:title"]')).toHaveCount(1);
   expect(await canonical(page)).toBe(`${SITE_ORIGIN}/`);
 });
+
+test('a page without its own SEO block still keeps a canonical and its own title', async ({ page, forestApi, pageQuality }) => {
+  expect(forestApi).toBeDefined();
+  allowAnonymous(pageQuality, 2);
+  await page.goto('/news/activities');
+  await expect(page.getByRole('heading', { level: 1, name: '전북생명의숲 활동보기' })).toBeVisible();
+
+  // SPA 이동. 도착 화면은 자체 SEO 블록이 없다.
+  await page.getByRole('link', { name: '공지사항' }).first().click();
+  await expect(page.getByRole('heading', { level: 1, name: '공지사항' })).toBeVisible();
+
+  // Helmet 이 정적 태그를 걷어낸 뒤 대체가 없으면 캐노니컬이 0개가 되고 제목이 이전 화면에 남는다.
+  await expect(page.locator('link[rel="canonical"]')).toHaveCount(1);
+  expect(await canonical(page)).toBe(`${SITE_ORIGIN}/news/notice`);
+  expect(await meta(page, 'meta[property="og:url"]')).toBe(`${SITE_ORIGIN}/news/notice`);
+  await expect(page.locator('meta[name="description"]')).toHaveCount(1);
+  expect(await page.title()).not.toContain('활동보기');
+});
+
+test('every public route keeps exactly one canonical on direct entry', async ({ page, forestApi, pageQuality }) => {
+  expect(forestApi).toBeDefined();
+  const routes = ['/', '/intro/people', '/programs', '/news', '/news/notice', '/resources', '/donation', '/esg'];
+  allowAnonymous(pageQuality, routes.length);
+
+  for (const route of routes) {
+    await page.goto(route);
+    await expect(page.locator('link[rel="canonical"]'), `${route} canonical`).toHaveCount(1);
+    expect(await canonical(page), `${route} canonical 값`).toBe(`${SITE_ORIGIN}${route === '/' ? '/' : route}`);
+  }
+});
