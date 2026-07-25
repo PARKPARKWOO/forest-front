@@ -88,3 +88,33 @@ test('a single page of activities hides the pagination controls', async ({ page,
   await expect(page.getByRole('button', { name: '다음' })).toHaveCount(0);
   await expect(page.getByTestId('activities-page-status')).toHaveCount(0);
 });
+
+test('the activity grid gets a wider container than the text-only news screen', async ({ page, forestApi, pageQuality }) => {
+  allowAnonymous(pageQuality);
+  allowAnonymous(pageQuality);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await openActivities(page, forestApi, 6);
+
+  const activitiesWidth = await page.getByTestId('news-container').evaluate((el) => el.getBoundingClientRect().width);
+  const cardWidth = await page.getByRole('article').first().evaluate((el) => el.getBoundingClientRect().width);
+
+  // /news/notice 는 별도 컴포넌트라 같은 News 화면인 소식 인덱스와 비교한다.
+  await page.goto('/news');
+  await expect(page.getByRole('heading', { level: 1, name: '소식' })).toBeVisible();
+  const noticeWidth = await page.getByTestId('news-container').evaluate((el) => el.getBoundingClientRect().width);
+
+  // 카드 격자는 넓게, 글 위주 화면은 읽기 좋은 폭으로 남긴다.
+  expect(activitiesWidth).toBeGreaterThan(noticeWidth);
+  expect(cardWidth).toBeGreaterThan(340);
+});
+
+test('the wider activity grid still fits every viewport without sideways scrolling', async ({ page, forestApi, pageQuality }) => {
+  allowAnonymous(pageQuality);
+  await openActivities(page, forestApi, 6);
+
+  for (const width of [320, 390, 768, 1024, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    const overflows = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
+    expect(overflows, `document overflows at ${width}px`).toBe(false);
+  }
+});

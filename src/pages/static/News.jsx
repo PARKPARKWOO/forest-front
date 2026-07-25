@@ -318,7 +318,11 @@ export default function News() {
   const { title, content } = getContent();
 
   return (
-    <div className="max-w-4xl mx-auto py-8 px-4">
+    // 카드 격자는 넓게 쓰고, 글 위주 화면은 읽기 좋은 폭으로 남긴다.
+    <div
+      data-testid="news-container"
+      className={`${subCategory === 'activities' ? 'max-w-7xl' : 'max-w-4xl'} mx-auto py-8 px-4`}
+    >
       {/* 하위 카테고리 네비게이션 */}
       <div className="mb-8">
         <div className="flex flex-wrap gap-2">
