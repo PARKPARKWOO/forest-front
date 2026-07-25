@@ -12,6 +12,7 @@ export default [
       globals: {
         ...globals.browser,
         __FOREST_MUTATIONS_ENABLED__: 'readonly',
+        __FOREST_SITE_ORIGIN__: 'readonly',
         __FOREST_ORGANIZATION_WRITES_ENABLED__: 'readonly',
       },
       parserOptions: {
