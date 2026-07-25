@@ -29,7 +29,7 @@ export default function OrganizationDirectory({
         {selected.name} 선택됨, 구성원 {selectedMemberships.length}명
       </p>
       <div className="grid gap-6 lg:grid-cols-[minmax(14rem,20rem)_minmax(0,1fr)]">
-        <nav aria-label={ariaLabel} className="grid grid-cols-2 gap-3 max-[320px]:grid-cols-1 lg:grid-cols-1">
+        <nav aria-label={ariaLabel} className="grid grid-cols-2 content-start gap-3 self-start max-[320px]:grid-cols-1 lg:grid-cols-1">
           {groups.map(({ group, depth }) => (
             <button
               key={group.id}

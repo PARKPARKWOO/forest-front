@@ -51,6 +51,28 @@ async function expectLegacyDirectory(page) {
   await expect(page.getByText('기존 화면만 보입니다.')).toBeVisible();
 }
 
+const testUuid = (prefix, index) => `${prefix}${String(index).padStart(4, '0')}-0000-4000-8000-000000000000`;
+
+function organizationWithCrowdedRootGroup(memberCount) {
+  const people = Array.from({ length: memberCount }, (_, index) => ({
+    id: testUuid('9abc', index),
+    name: `구성원${index + 1}`,
+    affiliation: `소속${index + 1}`,
+    enabled: true,
+  }));
+  return copyOrganization({
+    people,
+    memberships: people.map((person, index) => ({
+      id: testUuid('abcd', index),
+      groupId: organizationGroupIds.root,
+      personId: person.id,
+      roleLabel: `역할${index + 1}`,
+      affiliationOverride: null,
+      displayOrder: (index + 1) * 10,
+    })),
+  });
+}
+
 test.beforeEach(async ({ pageQuality }) => {
   allowAnonymousRequest(pageQuality);
 });
@@ -358,6 +380,30 @@ test('group controls keep responsive columns, keyboard focus, vertical reflow, a
   expect(page.url()).toBe(spaceUrl);
   expect(await page.evaluate(() => window.scrollY)).toBe(spaceScrollY);
   await expect(rootButton).toBeFocused();
+});
+
+test('group controls keep their own height when the selected detail is much taller', async ({ page, organizationApi }) => {
+  await openPeople(page, organizationApi, { organization: organizationWithCrowdedRootGroup(16) });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await expectStructuredDirectory(page);
+
+  const metrics = await page.getByRole('navigation', { name: '조직 선택' }).evaluate((navigation) => {
+    const detail = navigation.parentElement.querySelector('section[aria-labelledby^="organization-group-"]');
+    return {
+      navigationHeight: navigation.getBoundingClientRect().height,
+      detailHeight: detail.getBoundingClientRect().height,
+      buttonHeights: [...navigation.querySelectorAll('button')]
+        .map((button) => button.getBoundingClientRect().height),
+    };
+  });
+
+  expect(metrics.detailHeight, 'the crowded detail column must dominate the row height').toBeGreaterThan(1200);
+  expect(metrics.navigationHeight, 'the group column must not stretch to the detail height')
+    .toBeLessThan(metrics.detailHeight / 2);
+  for (const [index, height] of metrics.buttonHeights.entries()) {
+    expect(height, `group control ${index} is below the touch target`).toBeGreaterThanOrEqual(48);
+    expect(height, `group control ${index} stretched to fill the taller detail column`).toBeLessThanOrEqual(120);
+  }
 });
 
 test('public organization directory has no critical or serious axe findings', async ({ page, organizationApi }) => {
