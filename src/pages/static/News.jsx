@@ -1,13 +1,18 @@
+import { useEffect, useMemo, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../contexts/AuthContext';
 import { deletePost, fetchPostsByCategory } from '../../services/postService';
 import AsyncState from '../../components/AsyncState';
+import { extractPostThumbnail, HOME_IMAGE_FALLBACK } from '../../utils/homeContent';
+
+const ACTIVITIES_PAGE_SIZE = 9;
 
 export default function News() {
   const { subCategory } = useParams();
   const { isAdmin } = useAuth();
   const queryClient = useQueryClient();
+  const [activitiesPage, setActivitiesPage] = useState(1);
 
   const subCategories = [
     { id: 'notice', name: '공지사항', path: '/news/notice' },
@@ -29,6 +34,23 @@ export default function News() {
   const activitiesUnavailable = activitiesError || (
     !activitiesLoading && !Array.isArray(activitiesPosts)
   );
+
+  const activitiesTotalPages = Math.max(
+    1,
+    Math.ceil((Array.isArray(activitiesPosts) ? activitiesPosts.length : 0) / ACTIVITIES_PAGE_SIZE),
+  );
+  // 글이 지워져 마지막 페이지가 사라지면 남아 있는 마지막 페이지로 내린다.
+  useEffect(() => {
+    setActivitiesPage((current) => Math.min(current, activitiesTotalPages));
+  }, [activitiesTotalPages]);
+  const pagedActivities = useMemo(() => (
+    Array.isArray(activitiesPosts)
+      ? activitiesPosts.slice(
+        (activitiesPage - 1) * ACTIVITIES_PAGE_SIZE,
+        activitiesPage * ACTIVITIES_PAGE_SIZE,
+      )
+      : []
+  ), [activitiesPosts, activitiesPage]);
 
   const { mutate: removePost, isPending: isDeletingPost } = useMutation({
     mutationFn: (postId) => deletePost('0', postId),
@@ -101,25 +123,33 @@ export default function News() {
                       className="border-red-100 shadow-none"
                     />
                   ) : activitiesPosts.length > 0 ? (
-                    <div className="space-y-4">
-                      {activitiesPosts.map((post) => (
-                        <div key={post.id} className="border-b border-gray-200 pb-4 last:border-b-0">
-                          <div className="flex justify-between items-start">
-                            <div className="flex-1">
-                              <Link
-                                to={`/post/0/${post.id}`}
-                                className="text-lg font-medium text-gray-800 hover:text-green-600 transition-colors duration-200"
-                              >
-                                {post.title}
-                              </Link>
-                              <div className="mt-2 text-sm text-gray-500">
-                                <span>{post.authorName}</span>
-                                <span className="mx-2">•</span>
-                                <span>{new Date(post.updatedAt).toLocaleDateString()}</span>
+                    <>
+                      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                        {pagedActivities.map((post) => (
+                          <article
+                            key={post.id}
+                            aria-label={post.title}
+                            className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm focus-within:outline focus-within:outline-forest focus-within:outline-offset-2 focus-within:outline-forest-focus"
+                          >
+                            <Link to={`/post/0/${post.id}`} className="group block">
+                              <img
+                                className="aspect-[4/3] w-full object-cover"
+                                src={extractPostThumbnail(post) || HOME_IMAGE_FALLBACK}
+                                alt=""
+                              />
+                              <div className="p-4">
+                                <h4 className="line-clamp-2 text-lg font-semibold leading-snug text-gray-800 group-hover:text-green-700">
+                                  {post.title}
+                                </h4>
+                                <div className="mt-2 text-sm text-gray-500">
+                                  <span>{post.authorName}</span>
+                                  <span className="mx-2">•</span>
+                                  <span>{new Date(post.updatedAt).toLocaleDateString()}</span>
+                                </div>
                               </div>
-                            </div>
+                            </Link>
                             {isAdmin && (
-                              <div className="ml-4 flex items-center gap-2">
+                              <div className="flex items-center gap-2 border-t border-gray-100 px-4 py-2">
                                 <Link
                                   to={`/category/0/edit/${post.id}`}
                                   className="px-3 py-1 text-sm text-green-600 hover:text-green-800 hover:bg-green-50 rounded transition-colors duration-200"
@@ -139,10 +169,40 @@ export default function News() {
                                 </button>
                               </div>
                             )}
+                          </article>
+                        ))}
+                      </div>
+
+                      {activitiesTotalPages > 1 && (
+                        <div className="mt-8 flex justify-center">
+                          <div className="flex space-x-2">
+                            <button
+                              type="button"
+                              onClick={() => setActivitiesPage((prev) => Math.max(1, prev - 1))}
+                              disabled={activitiesPage === 1}
+                              className="accessible-touch-target px-4 py-2 text-base font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              이전
+                            </button>
+                            <span
+                              data-testid="activities-page-status"
+                              className="accessible-touch-target inline-flex items-center px-4 py-2 text-base font-medium text-gray-700 bg-white border border-gray-300 rounded-md"
+                              aria-live="polite"
+                            >
+                              {activitiesPage} / {activitiesTotalPages}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setActivitiesPage((prev) => Math.min(activitiesTotalPages, prev + 1))}
+                              disabled={activitiesPage === activitiesTotalPages}
+                              className="accessible-touch-target px-4 py-2 text-base font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              다음
+                            </button>
                           </div>
                         </div>
-                      ))}
-                    </div>
+                      )}
+                    </>
                   ) : (
                     <AsyncState
                       status="empty"
