@@ -210,6 +210,52 @@ test('home links arrive at the three approved existing destinations', async ({ p
   await expect(page.getByText('시민과 함께한 전북 숲 돌봄 활동')).toBeVisible();
 });
 
+test('home activity photo and title both open the activity detail', async ({ page, forestApi, pageQuality }) => {
+  expect(forestApi).toBeDefined();
+  pageQuality.allowConsoleError(ANONYMOUS_403, USERS_API_URL);
+  pageQuality.allowConsoleError(ANONYMOUS_403, USERS_API_URL);
+  pageQuality.allowConsoleError(ANONYMOUS_403, USERS_API_URL);
+  pageQuality.allowConsoleError(ANONYMOUS_403, USERS_API_URL);
+  const activityTitle = '시민과 함께한 전북 숲 돌봄 활동';
+
+  await page.goto('/');
+  await waitForPublicHomeReady(page);
+  await page.getByRole('article', { name: activityTitle }).locator('img').click();
+  await expect(page).toHaveURL(/\/post\/0\/activity-1$/);
+  await expect(page.getByRole('heading', { level: 1, name: activityTitle })).toBeVisible();
+
+  await page.goto('/');
+  await waitForPublicHomeReady(page);
+  await page.getByRole('article', { name: activityTitle })
+    .getByRole('heading', { name: activityTitle }).click();
+  await expect(page).toHaveURL(/\/post\/0\/activity-1$/);
+  await expect(page.getByRole('heading', { level: 1, name: activityTitle })).toBeVisible();
+});
+
+test('keyboard focus on an activity card paints a visible ring outside its clipped surface', async ({ page, forestApi, pageQuality }) => {
+  expect(forestApi).toBeDefined();
+  pageQuality.allowConsoleError(ANONYMOUS_403, USERS_API_URL);
+  pageQuality.allowConsoleError(ANONYMOUS_403, USERS_API_URL);
+  await page.goto('/');
+  await waitForPublicHomeReady(page);
+
+  const card = page.getByRole('article', { name: '시민과 함께한 전북 숲 돌봄 활동' });
+  await card.scrollIntoViewIfNeeded();
+  const box = await card.boundingBox();
+  // The ring is painted outside the card box, so the clip must be wider than the card itself.
+  const clip = { x: Math.max(0, box.x - 8), y: Math.max(0, box.y - 8), width: box.width + 16, height: box.height + 16 };
+
+  const unfocused = await page.screenshot({ clip, animations: 'disabled' });
+  await card.getByRole('link').focus();
+  await expect(card.getByRole('link')).toBeFocused();
+  const focused = await page.screenshot({ clip, animations: 'disabled' });
+
+  expect(
+    Buffer.compare(unfocused, focused),
+    'focusing the activity card painted no visible pixels: the focus ring is clipped away',
+  ).not.toBe(0);
+});
+
 test('home has no critical or serious axe findings', async ({ page, forestApi, pageQuality }) => {
   expect(forestApi).toBeDefined();
   expect(pageQuality).toBeDefined();
