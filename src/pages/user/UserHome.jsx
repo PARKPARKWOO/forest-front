@@ -17,6 +17,7 @@ import {
   selectActivePrograms,
   sortHomeNotices,
 } from '../../utils/homeContent';
+import SEO from '../../components/SEO';
 
 export default function UserHome() {
   const {
@@ -134,6 +135,7 @@ export default function UserHome() {
 
   return (
     <div className="w-full py-2 md:py-4">
+      <SEO path="/" />
       <div className="mb-12">
         <HomeHero banners={homeBanners} />
       </div>

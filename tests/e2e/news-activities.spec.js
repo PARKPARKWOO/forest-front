@@ -34,8 +34,10 @@ test('each activity row shows a thumbnail, falling back when the post has none',
 
   const first = cards.nth(0).locator('img');
   await expect(first).toHaveAttribute('src', '/draft/forest-hero-placeholder.svg?post=1');
-  // 실제로 그려진 이미지여야 한다 (깨진 이미지 아님).
-  expect(await first.evaluate((image) => image.naturalWidth)).toBeGreaterThan(0);
+  // 실제로 그려진 이미지여야 한다 (깨진 이미지 아님). 디코딩을 기다린다.
+  await expect
+    .poll(() => first.evaluate((image) => image.naturalWidth), { message: '썸네일이 로드되지 않았습니다' })
+    .toBeGreaterThan(0);
 
   await expect(cards.nth(2).locator('img')).toHaveAttribute('src', THUMBNAIL_FALLBACK);
 });

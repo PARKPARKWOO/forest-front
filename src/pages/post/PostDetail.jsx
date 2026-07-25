@@ -9,6 +9,9 @@ import { sanitizeRichText } from '../../utils/editorContent';
 import { linkifyHashtags } from '../../utils/hashtag';
 import { extractImageUrlsFromHtml, mergeUniqueUrls } from '../../utils/contentUtils';
 import AsyncState from '../../components/AsyncState';
+import SEO from '../../components/SEO';
+import { toMetaDescription } from '../../utils/metaContent';
+import { extractPostThumbnail } from '../../utils/homeContent';
 
 export default function PostDetail() {
   const { categoryId, postId } = useParams();
@@ -234,6 +237,14 @@ export default function PostDetail() {
   };
 
   return (
+    <>
+      <SEO
+      title={post.title}
+      description={toMetaDescription(post.content)}
+      image={extractPostThumbnail(post)}
+      path={`/post/${finalCategoryId}/${postId}`}
+      type="article"
+    />
     <div className="max-w-4xl mx-auto p-6">
       <div className="bg-white rounded-lg shadow-sm p-8">
         {postType === 'INFORMATION' && canManage && (
@@ -336,5 +347,6 @@ export default function PostDetail() {
         />
       )}
     </div>
+    </>
   );
-} 
+}

@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { deletePost, fetchPostsByCategory, searchPosts } from '../../services/postService';
 import AsyncState from '../../components/AsyncState';
 import { extractPostThumbnail, HOME_IMAGE_FALLBACK } from '../../utils/homeContent';
+import SEO from '../../components/SEO';
 
 const ACTIVITIES_PAGE_SIZE = 9;
 
@@ -319,6 +320,8 @@ export default function News() {
 
   return (
     // 카드 격자는 넓게 쓰고, 글 위주 화면은 읽기 좋은 폭으로 남긴다.
+    <>
+    <SEO title={title} path={subCategory ? `/news/${subCategory}` : '/news'} />
     <div
       data-testid="news-container"
       className={`${subCategory === 'activities' ? 'max-w-7xl' : 'max-w-4xl'} mx-auto py-8 px-4`}
@@ -347,5 +350,6 @@ export default function News() {
         {content}
       </div>
     </div>
+    </>
   );
 } 

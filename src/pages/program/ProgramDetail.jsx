@@ -5,6 +5,8 @@ import { getProgramStatusInfo } from '../../utils/programStatus';
 import { useAuth } from '../../contexts/AuthContext';
 import AsyncState from '../../components/AsyncState';
 import { sanitizeRichText } from '../../utils/editorContent';
+import SEO from '../../components/SEO';
+import { toMetaDescription } from '../../utils/metaContent';
 
 export default function ProgramDetail() {
   const { id } = useParams();
@@ -103,7 +105,14 @@ export default function ProgramDetail() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
+    <>
+      <SEO
+        title={program.title}
+        description={toMetaDescription(program.content)}
+        path={`/programs/detail/${id}`}
+        type="article"
+      />
+      <div className="max-w-4xl mx-auto p-6">
       <div className="bg-white rounded-lg shadow-sm p-8">
         <div className="flex justify-between items-start mb-6 gap-4">
           <h1 className="text-3xl font-bold text-gray-800">{program.title}</h1>
@@ -223,5 +232,6 @@ export default function ProgramDetail() {
         )}
       </div>
     </div>
+    </>
   );
 }

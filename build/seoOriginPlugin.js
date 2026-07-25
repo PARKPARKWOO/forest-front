@@ -14,9 +14,14 @@ const SEO_FILES = ['robots.txt', 'sitemap.xml', 'rss.xml'];
 export function seoOriginPlugin({ origin = SITE_ORIGIN } = {}) {
   return {
     name: 'forest-seo-origin',
+    // Vite 의 HTML asset 처리가 토큰을 상대경로로 보고 `/` 를 붙이므로 그보다 먼저 치환한다.
+    enforce: 'pre',
 
-    transformIndexHtml(html) {
-      return applySiteOrigin(html, origin);
+    transformIndexHtml: {
+      order: 'pre',
+      handler(html) {
+        return applySiteOrigin(html, origin);
+      },
     },
 
     configureServer(server) {
