@@ -1,26 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { deleteProgram, fetchProgramById } from '../../services/programService';
 import { getProgramStatusInfo } from '../../utils/programStatus';
-import { useEffect, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import ApplyProgramModal from '../../components/program/ApplyProgramModal';
 import AsyncState from '../../components/AsyncState';
 import { sanitizeRichText } from '../../utils/editorContent';
-import {
-  clearPendingNavigation,
-  readPendingNavigation,
-  savePendingNavigation,
-} from '../../utils/pendingNavigation';
 
 export default function ProgramDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { setShowLoginModal } = useOutletContext();
   const { isAuthenticated, isAdmin } = useAuth();
-  const [showApplyModal, setShowApplyModal] = useState(false);
-  const [resumeMessage, setResumeMessage] = useState('');
 
   const {
     data: program,
@@ -48,20 +38,6 @@ export default function ProgramDetail() {
   });
 
   const canManage = Boolean(program && isAuthenticated && isAdmin);
-
-  useEffect(() => {
-    if (!isAuthenticated || !program) return;
-
-    const pendingNavigation = readPendingNavigation();
-    const shouldResumeApplication = pendingNavigation?.action === 'apply-program'
-      && String(pendingNavigation.programId) === String(id);
-
-    if (shouldResumeApplication) {
-      clearPendingNavigation();
-      setResumeMessage('로그인이 완료되어 신청서를 다시 열었습니다. 저장된 입력 내용이 있으면 복원됩니다.');
-      setShowApplyModal(true);
-    }
-  }, [id, isAuthenticated, program]);
 
   const handleDelete = () => {
     if (!window.confirm('정말 삭제하시겠습니까?')) {
@@ -95,26 +71,6 @@ export default function ProgramDetail() {
   if (!program) {
     return <AsyncState status="empty" title="프로그램을 찾을 수 없습니다" />;
   }
-
-  const handleHomepageApplyClick = () => {
-    if (!isAuthenticated) {
-      savePendingNavigation({
-        returnTo: `/programs/detail/${id}`,
-        action: 'apply-program',
-        programId: id,
-      });
-      setShowLoginModal(true);
-      return;
-    }
-    setShowApplyModal(true);
-  };
-
-  const handleGoogleFormApplyClick = () => {
-    if (!program.applyUrl) {
-      return;
-    }
-    window.open(program.applyUrl, '_blank', 'noopener,noreferrer');
-  };
 
   // 날짜/시간 포맷팅 함수
   const formatDateTime = (dateString) => {
@@ -249,53 +205,23 @@ export default function ProgramDetail() {
 
         {program.status === 'IN_PROGRESS' && (
           <div className="mt-8">
-            {resumeMessage && (
-              <p
-                className="mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-base text-green-900"
-                role="status"
-                aria-live="polite"
+            {program.applyUrl ? (
+              <a
+                href={program.applyUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="accessible-touch-target mx-auto flex w-full max-w-2xl items-center justify-center rounded-md bg-blue-600 px-6 py-3 text-lg font-medium text-white transition-colors duration-200 hover:bg-blue-700 focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-blue-900"
               >
-                {resumeMessage}
+                구글폼으로 신청하기
+              </a>
+            ) : (
+              <p className="mx-auto max-w-2xl rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-center text-base text-gray-700" role="status">
+                신청 링크가 아직 등록되지 않았습니다. 준비되는 대로 이곳에 안내드리겠습니다.
               </p>
             )}
-            <div className="mx-auto w-full max-w-2xl grid grid-cols-1 md:grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={handleGoogleFormApplyClick}
-                disabled={!program.applyUrl}
-                className={`px-6 py-3 rounded-md transition-colors duration-200 text-lg font-medium ${
-                  program.applyUrl
-                    ? 'bg-blue-600 text-white hover:bg-blue-700'
-                    : 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                }`}
-              >
-                구글폼 신청하기
-              </button>
-              <button
-                type="button"
-                onClick={handleHomepageApplyClick}
-                className="px-6 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 
-                  transition-colors duration-200 text-lg font-medium"
-              >
-                홈페이지에서 신청하기
-              </button>
-            </div>
           </div>
         )}
-
-        {program.status === 'IN_PROGRESS' && !program.applyUrl && (
-          <p className="mt-3 text-center text-base text-gray-600">
-            현재 구글폼 링크가 등록되지 않아 홈페이지 신청만 가능합니다.
-          </p>
-        )}
       </div>
-
-      {showApplyModal && (
-        <ApplyProgramModal
-          programId={program.id}
-          onClose={() => setShowApplyModal(false)}
-        />
-      )}
     </div>
   );
-} 
+}

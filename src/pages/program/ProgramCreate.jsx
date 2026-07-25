@@ -220,15 +220,19 @@ export default function ProgramCreate() {
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            외부 신청 링크 (선택, 구글폼 등)
+            구글폼 신청 링크 (필수)
           </label>
           <input
             type="url"
+            required
             value={formData.applyUrl}
             onChange={(e) => setFormData({ ...formData, applyUrl: e.target.value })}
-            placeholder="https://forms.google.com/..."
+            placeholder="https://forms.gle/..."
             className="w-full px-3 py-2 border border-gray-300 rounded-md"
           />
+          <p className="mt-1 text-sm text-gray-600">
+            신청은 구글폼으로만 받습니다. 링크가 없으면 상세 화면에 신청 수단이 표시되지 않습니다.
+          </p>
         </div>
 
         <div>
