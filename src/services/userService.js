@@ -1,5 +1,5 @@
 import axiosInstance from '../axiosInstance';
-import { FOREST_MUTATIONS_ENABLED } from '../config/organizationDeployment';
+import authSessionClient from '../authSessionClient';
 
 export const createAuthority = async (level, authority) => {
   try {
@@ -58,21 +58,5 @@ export const updateUserRole = async (targetId, authorityId) => {
 // (P0-#2 / P2 정리: 토큰 manual handling 제거)
 
 export const revokeToken = async () => {
-  if (!FOREST_MUTATIONS_ENABLED) {
-    const error = new Error('Forest mutations are disabled in this deployment.');
-    error.name = 'ForestMutationsDisabledError';
-    error.code = 'FOREST_MUTATIONS_DISABLED';
-    throw error;
-  }
-
-  // 토큰은 httpOnly 쿠키로 관리되므로 credentials: 'include' 만으로 충분.
-  const response = await fetch('https://auth.platformholder.site/api/v1/auth/token/revoke', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-  });
-  if (!response.ok) {
-    throw new Error(`revoke failed: ${response.status}`);
-  }
-  return response.json();
+  await authSessionClient.post('/auth/token/revoke');
 };

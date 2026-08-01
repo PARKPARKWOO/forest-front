@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { isForestMutationMethod } from '../build/organizationWritePolicy';
+import { API_BASE_URL } from './config/apiBaseUrl';
 import { FOREST_MUTATIONS_ENABLED } from './config/organizationDeployment';
 import {
   getCurrentInternalPath,
@@ -7,12 +8,8 @@ import {
   savePendingNavigation,
 } from './utils/pendingNavigation';
 
-const defaultApiBaseUrl = import.meta.env.DEV
-  ? 'http://localhost:8080/api/v1'
-  : 'https://forest.platformholder.site/api/v1';
-
 const axiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || defaultApiBaseUrl,
+  baseURL: API_BASE_URL,
   // 토큰 쿠키(httpOnly)는 브라우저가 자동 첨부. JS 가 토큰을 read/write 하지 않는다.
   // 게이트웨이가 access 만료 시 자동 회전(rotationToken)하므로 프론트는 reissue 수동 호출 X.
   withCredentials: true,

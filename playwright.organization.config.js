@@ -10,7 +10,7 @@ export default defineConfig({
     ...baseConfig.metadata,
     organizationPreviewMode: previewMode,
   },
-  testMatch: /(?:organization-directory-.*|home-hero-admin-save)\.spec\.js/,
+  testMatch: /(?:organization-directory-.*|home-hero-admin-save|auth-logout)\.spec\.js/,
   use: {
     ...baseConfig.use,
     contextOptions: {
