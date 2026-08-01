@@ -1,7 +1,7 @@
 # Forest 로그아웃 세션 클라이언트 설계
 
 - 작성일: 2026-08-01
-- 상태: 대화 설계 승인 완료, 문서 검토 대기
+- 상태: 대화 설계 승인 및 자체 검토 완료
 - 대상 저장소: `cms-react-project/`
 - 대상 기능: 데스크톱·모바일 명시적 로그아웃과 인증 상태 정리
 - 참고 구현: `find-my-pet-frontend/src/lib/auth.ts`, `find-my-pet-frontend/src/lib/api.ts`
@@ -83,6 +83,15 @@ Forest의 명시적 로그아웃은 `Layout.handleLogout()` → `AuthContext.log
 4. revoke 실패 시 세대 번호를 바꾸지 않아 현재 세션과 기존 폴링을 그대로 유지한다.
 
 따라서 로그아웃 전 시작된 200 응답은 사용자를 다시 로그인시키지 않고, 늦은 401/403도 불필요한 `/login` 이동을 만들지 않는다.
+
+### 4.5 현재 사용자 401 처리 책임
+
+일반 Axios 응답 interceptor는 현재 모든 401을 `AuthContext`보다 먼저 `/login` 이동으로 처리한다. 이 상태에서는 세대 번호가 늦은 `/users` 401을 무효화하더라도 interceptor의 이동 부작용이 이미 발생한다.
+
+- 정규화된 `GET /api/v1/users` 요청은 일반 Axios 401 navigation 대상에서 제외한다.
+- `/users`의 401/403 판정, pending-navigation 저장과 로그인 이동은 `AuthContext` 한 곳에서 담당한다.
+- `AuthContext`는 세대가 오래된 응답을 먼저 반환하므로 로그아웃 전 시작된 401/403은 저장이나 이동을 일으키지 않는다.
+- `/users` 이외 요청의 기존 401 navigation 동작은 유지한다.
 
 ## 5. 사용자 흐름과 오류 처리
 
