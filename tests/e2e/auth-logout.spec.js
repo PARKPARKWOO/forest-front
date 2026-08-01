@@ -278,3 +278,56 @@ for (const scenario of [
       .toHaveLength(completedUserRequestCount);
   });
 }
+
+test('a stale 403 cannot end the newer AuthContext session established after logout', async ({
+  page,
+  organizationApi,
+  pageQuality,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'single desktop AuthContext race contract');
+  pageQuality.allowConsoleError(API_403, USERS_API_URL);
+  pageQuality.allowConsoleError(API_403, USERS_API_URL);
+  pageQuality.allowConsoleError(API_403, USERS_API_URL);
+  await page.clock.install();
+  const posts = await installRevokeRoute(page, [{ status: 204 }]);
+  await page.goto('/');
+  await page.waitForLoadState('networkidle');
+
+  organizationApi.setUser(AUTHENTICATED_USER_RESPONSE);
+  await page.evaluate(async () => {
+    const { mountAuthContextHarness } = await import('/tests/e2e/support/authContextHarness.jsx');
+    window.__unmountAuthContextHarness = mountAuthContextHarness();
+  });
+  const session = page.getByTestId('auth-harness-session');
+  await expect(session).toHaveText('authenticated:logout-admin');
+
+  const userRequestStarted = organizationApi.deferNextUserGet({
+    status: 403,
+    body: { message: 'stale session forbidden' },
+  });
+  await page.clock.fastForward(60_000);
+  await userRequestStarted;
+
+  await page.getByTestId('auth-harness-logout').click();
+  await expect(session).toHaveText('signed-out');
+  organizationApi.setUser(AUTHENTICATED_USER_RESPONSE);
+  await page.getByTestId('auth-harness-login').click();
+  await expect(session).toHaveText('authenticated:logout-admin');
+
+  const delayedResponse = page.waitForResponse((response) => (
+    USERS_API_URL.test(response.url()) && response.status() === 403
+  ));
+  await organizationApi.releaseDeferredUserGet();
+  const response = await delayedResponse;
+  await response.finished();
+  await page.clock.fastForward(32);
+
+  await expect.poll(() => new URL(page.url()).pathname).toBe('/');
+  await expect(session).toHaveText('authenticated:logout-admin');
+  const pendingNavigation = await page.evaluate(async () => {
+    const { readPendingNavigation } = await import('/src/utils/pendingNavigation.js');
+    return readPendingNavigation();
+  });
+  expect(pendingNavigation).toBeNull();
+  expect(posts).toEqual([{ method: 'POST', postData: null }]);
+});
