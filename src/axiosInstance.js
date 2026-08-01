@@ -27,10 +27,30 @@ axiosInstance.interceptors.request.use((config) => {
 
 // 일부 인증 경로의 401은 로그인 선택 화면으로 보낸다.
 // Forest의 세션 만료 403은 `/users`를 주기 확인하는 AuthContext에서 처리한다.
+const isAuthContextUserRequest = (config) => {
+  if (config?.method?.toLowerCase() !== 'get') return false;
+  try {
+    const requestUrl = new URL(axiosInstance.getUri(config));
+    const currentUserUrl = new URL(axiosInstance.getUri({
+      ...config,
+      url: '/users',
+      params: undefined,
+    }));
+    return requestUrl.origin === currentUserUrl.origin
+      && requestUrl.pathname.replace(/\/+$/, '') === currentUserUrl.pathname.replace(/\/+$/, '');
+  } catch {
+    return false;
+  }
+};
+
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401 && window.location.pathname !== '/login') {
+    if (
+      error.response?.status === 401
+      && !isAuthContextUserRequest(error.config)
+      && window.location.pathname !== '/login'
+    ) {
       const pendingNavigation = readPendingNavigation();
       savePendingNavigation(pendingNavigation?.action
         ? pendingNavigation

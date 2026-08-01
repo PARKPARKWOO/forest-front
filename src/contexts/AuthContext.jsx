@@ -17,10 +17,13 @@ export function AuthProvider({ children }) {
   const [isInitialized, setIsInitialized] = useState(false);
   const intervalRef = useRef(null);
   const hadAuthenticatedSessionRef = useRef(false);
+  const authRequestGenerationRef = useRef(0);
 
   const fetchUserData = useCallback(async () => {
+    const requestGeneration = authRequestGenerationRef.current;
     try {
       const userData = await getCurrentUser();
+      if (requestGeneration !== authRequestGenerationRef.current) return;
       console.log('AuthContext - userData:', userData);
       setUser(userData);
       setIsAuthenticated(true);
@@ -30,6 +33,7 @@ export function AuthProvider({ children }) {
       setIsAdmin(adminStatus);
       setHasMaxAccess(userData.hasMaxAccess ?? false);
     } catch (error) {
+      if (requestGeneration !== authRequestGenerationRef.current) return;
       const isSessionExpired = [401, 403].includes(error.response?.status);
       if (
         hadAuthenticatedSessionRef.current
@@ -94,6 +98,7 @@ export function AuthProvider({ children }) {
     // 실패 시 사용자에게 알리고 재시도 옵션 제공.
     try {
       await revokeToken();
+      authRequestGenerationRef.current += 1;
     } catch (error) {
       console.error('서버 로그아웃 실패:', error);
       // 호출자가 재시도/안내할 수 있도록 throw. 로컬 state 는 초기화하지 않음 (서버 토큰이 살아있어 다음 요청이 자동 인증되므로).

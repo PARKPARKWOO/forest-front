@@ -20,6 +20,8 @@ export async function installOrganizationApiMocks(page) {
   let deferredPutResponseGate = null;
   let nextLegacyGate = null;
   let deferredLegacyGate = null;
+  let nextUserGetGate = null;
+  let deferredUserGetGate = null;
   let homeBanner = structuredClone(publicHomeData.banner);
   const homeBannerPutRequests = [];
   let expectedHomeBannerPutCount = 0;
@@ -108,10 +110,20 @@ export async function installOrganizationApiMocks(page) {
       return route.fulfill({ status: 405, contentType: 'application/json', body: JSON.stringify({ message: 'method not allowed' }) });
     }
     const forcedStatus = failures.get('/users');
-    const response = forcedStatus
+    const gate = nextUserGetGate;
+    const response = gate?.response ?? (forcedStatus
       ? { status: forcedStatus, body: { message: 'forced organization test failure: /users' } }
-      : userResponse;
-    return route.fulfill({ status: response.status, contentType: 'application/json', body: JSON.stringify(response.body) });
+      : structuredClone(userResponse));
+    if (gate) {
+      nextUserGetGate = null;
+      gate.markStarted();
+      await gate.released;
+    }
+    try {
+      await route.fulfill({ status: response.status, contentType: 'application/json', body: JSON.stringify(response.body) });
+    } finally {
+      gate?.markCompleted();
+    }
   });
 
   await page.route(/\/api\/v1\/organization\/manage(?:[?#].*)?$/, async (route) => {
@@ -277,6 +289,33 @@ export async function installOrganizationApiMocks(page) {
       if (!deferredLegacyGate) throw new Error('no deferred intro-people GET');
       deferredLegacyGate.release();
       deferredLegacyGate = null;
+    },
+    deferNextUserGet(response = userResponse) {
+      if (nextUserGetGate) throw new Error('a user GET is already deferred');
+      let release;
+      let markStarted;
+      let markCompleted;
+      const released = new Promise((resolve) => { release = resolve; });
+      const started = new Promise((resolve) => { markStarted = resolve; });
+      const completed = new Promise((resolve) => { markCompleted = resolve; });
+      nextUserGetGate = {
+        response: structuredClone(response),
+        released,
+        release,
+        started,
+        markStarted,
+        completed,
+        markCompleted,
+      };
+      deferredUserGetGate = nextUserGetGate;
+      return started;
+    },
+    releaseDeferredUserGet() {
+      if (!deferredUserGetGate) throw new Error('no deferred user GET');
+      const { release, completed } = deferredUserGetGate;
+      release();
+      deferredUserGetGate = null;
+      return completed;
     },
     setUser(response) {
       userResponse = response;

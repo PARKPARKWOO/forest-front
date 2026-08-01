@@ -226,3 +226,55 @@ test('failed revoke preserves the authenticated route and every logout-owned sto
   await expect.poll(() => organizationApi.getRequests()
     .filter((request) => request === 'GET /users').length).toBe(userRequestCount + 1);
 });
+
+for (const scenario of [
+  { label: '200', response: AUTHENTICATED_USER_RESPONSE, consoleError: null },
+  { label: '401', response: { status: 401, body: { message: 'stale session expired' } }, consoleError: API_401 },
+  { label: '403', response: { status: 403, body: { message: 'stale session forbidden' } }, consoleError: API_403 },
+]) {
+  test(`successful logout ignores a stale ${scenario.label} current-user response`, async ({
+    page,
+    organizationApi,
+    pageQuality,
+  }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'single desktop race contract');
+    await page.clock.install();
+    organizationApi.setUser(AUTHENTICATED_USER_RESPONSE);
+    const posts = await installRevokeRoute(page, [{ status: 204 }]);
+    await page.goto('/admin?section=intro');
+    const logoutButton = await openAuthenticatedControls(page, testInfo.project.name);
+    if (scenario.consoleError) pageQuality.allowConsoleError(scenario.consoleError, USERS_API_URL);
+    const userRequestStarted = organizationApi.deferNextUserGet(scenario.response);
+
+    await page.clock.fastForward(60_000);
+    await userRequestStarted;
+    organizationApi.setUser({ status: 403, body: { message: 'anonymous after revoke' } });
+    await logoutButton.click();
+    await expectSignedOut(page, testInfo.project.name);
+    const delayedResponse = page.waitForResponse((response) => (
+      USERS_API_URL.test(response.url()) && response.status() === scenario.response.status
+    ));
+    await organizationApi.releaseDeferredUserGet();
+    const response = await delayedResponse;
+    await response.finished();
+    await page.waitForLoadState('networkidle');
+    await page.clock.fastForward(32);
+
+    await expect.poll(() => new URL(page.url()).pathname).toBe('/');
+    const header = page.locator('header');
+    await expect(header.getByRole('button', { name: '로그인' })).toBeVisible();
+    await expect(header.getByRole('button', { name: '로그아웃' })).toHaveCount(0);
+    await expect(header.getByRole('link', { name: '관리자' })).toHaveCount(0);
+    const pendingNavigation = await page.evaluate(async () => {
+      const { readPendingNavigation } = await import('/src/utils/pendingNavigation.js');
+      return readPendingNavigation();
+    });
+    expect(pendingNavigation).toBeNull();
+    expect(posts).toEqual([{ method: 'POST', postData: null }]);
+    const completedUserRequestCount = organizationApi.getRequests()
+      .filter((request) => request === 'GET /users').length;
+    await page.clock.fastForward(60_000);
+    expect(organizationApi.getRequests().filter((request) => request === 'GET /users'))
+      .toHaveLength(completedUserRequestCount);
+  });
+}
