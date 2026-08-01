@@ -25,7 +25,7 @@ test('the auth session client has credentials but no content or navigation inter
 });
 
 test('only userService imports the dedicated auth session client', async () => {
-  const importPattern = /from\s+['\"][^'\"]*authSessionClient(?:\.js)?['\"]/;
+  const importPattern = /from\s+['"][^'"]*authSessionClient(?:\.js)?['"]/;
   const importers = [];
 
   for (const path of await listJavaScriptFiles(srcDirectory)) {
@@ -38,6 +38,6 @@ test('only userService imports the dedicated auth session client', async () => {
 
 test('revokeToken posts through the session client without a deployment guard or body parser', async () => {
   const source = await readFile(join(srcDirectory, 'services/userService.js'), 'utf8');
-  assert.match(source, /await authSessionClient\.post\(['\"]\/auth\/token\/revoke['\"]\)/);
+  assert.match(source, /await authSessionClient\.post\(['"]\/auth\/token\/revoke['"]\)/);
   assert.doesNotMatch(source, /FOREST_MUTATIONS_ENABLED|response\.json\(|\bfetch\s*\(/);
 });
