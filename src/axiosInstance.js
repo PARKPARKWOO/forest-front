@@ -30,12 +30,12 @@ axiosInstance.interceptors.request.use((config) => {
 const isAuthContextUserRequest = (config) => {
   if (config?.method?.toLowerCase() !== 'get') return false;
   try {
-    const requestUrl = new URL(axiosInstance.getUri(config));
+    const requestUrl = new URL(axiosInstance.getUri(config), window.location.origin);
     const currentUserUrl = new URL(axiosInstance.getUri({
       ...config,
       url: '/users',
       params: undefined,
-    }));
+    }), window.location.origin);
     return requestUrl.origin === currentUserUrl.origin
       && requestUrl.pathname.replace(/\/+$/, '') === currentUserUrl.pathname.replace(/\/+$/, '');
   } catch {
