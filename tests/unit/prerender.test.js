@@ -98,6 +98,20 @@ test('구조화 데이터의 닫는 태그 문자가 스크립트를 조기 종�
   assert.match(html, /\\u003c\/script/);
 });
 
+test('소유확인 메타는 프리렌더한 모든 페이지에 그대로 남는다', async () => {
+  // 하나라도 사라지면 해당 검색엔진 속성의 소유확인이 풀린다.
+  const shell = await loadShell();
+  const html = renderEntry(shell, { kind: 'post', path: '/post/1/2', name: '글', description: '설명' }, ORIGIN);
+
+  const keys = [...shell.matchAll(/name="naver-site-verification"[^>]*content="([^"]+)"/g)]
+    .map(([, value]) => value);
+
+  assert.ok(keys.length >= 2, `셸에 네이버 키가 ${keys.length}개뿐이다`);
+  for (const key of keys) {
+    assert.ok(html.includes(key), `프리렌더 후 네이버 키가 사라졌다: ${key}`);
+  }
+});
+
 test('셸의 단체 JSON-LD 는 프리렌더 후에도 남는다', async () => {
   const shell = await loadShell();
   const html = renderEntry(shell, { kind: 'notice', path: '/news/notice/1', name: '공지', description: '설명' }, ORIGIN);
