@@ -1,79 +1,114 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
-        xmlns:news="http://www.google.com/schemas/sitemap-news/0.9"
-        xmlns:xhtml="http://www.w3.org/1999/xhtml"
-        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
-  
-  <!-- 메인 페이지 -->
+<!--
+  이 파일은 API 장애·개발 서버용 fallback 이며 정적 공개 경로만 담는다.
+  실제 배포본은 build/sitemapPlugin.js 가 빌드 시 공지·게시글·프로그램까지 채워 덮어쓴다.
+  경로 목록은 src/navigation/publicNavigation.js 에서 파생되므로 여기를 손으로 고치지 말 것.
+  갱신: node -e "..." (build/publicRoutes.js 의 collectStaticPublicPaths 사용)
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>__SITE_ORIGIN__/</loc>
-    <lastmod>2025-11-12</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
-  
-  <!-- 소개 -->
   <url>
     <loc>__SITE_ORIGIN__/intro</loc>
-    <lastmod>2025-11-12</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
-  
-  <!-- 프로그램 -->
   <url>
-    <loc>__SITE_ORIGIN__/programs</loc>
-    <lastmod>2025-11-12</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.9</priority>
-  </url>
-  
-  <url>
-    <loc>__SITE_ORIGIN__/programs/participate</loc>
-    <lastmod>2025-11-12</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.9</priority>
-  </url>
-  
-  <url>
-    <loc>__SITE_ORIGIN__/programs/guide</loc>
-    <lastmod>2025-11-12</lastmod>
+    <loc>__SITE_ORIGIN__/intro/greeting</loc>
     <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  
-  <url>
-    <loc>__SITE_ORIGIN__/programs/volunteer</loc>
-    <lastmod>2025-11-12</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  
-  <!-- 소식 -->
-  <url>
-    <loc>__SITE_ORIGIN__/news</loc>
-    <lastmod>2025-11-12</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.7</priority>
-  </url>
-  
-  <!-- 게시판 -->
-  <url>
-    <loc>__SITE_ORIGIN__/community</loc>
-    <lastmod>2025-11-12</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.7</priority>
-  </url>
-  
-  <!-- 후원하기 -->
-  <url>
-    <loc>__SITE_ORIGIN__/support</loc>
-    <lastmod>2025-11-12</lastmod>
-    <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
-
-  <!-- 동적 프로그램 페이지는 별도로 추가하거나 자동 생성 -->
-  
+  <url>
+    <loc>__SITE_ORIGIN__/intro/declaration</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>__SITE_ORIGIN__/intro/people</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>__SITE_ORIGIN__/intro/activities</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>__SITE_ORIGIN__/intro/location</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>__SITE_ORIGIN__/programs</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>__SITE_ORIGIN__/programs/participate</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>__SITE_ORIGIN__/programs/guide</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>__SITE_ORIGIN__/programs/volunteer</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>__SITE_ORIGIN__/news</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>__SITE_ORIGIN__/news/notice</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>__SITE_ORIGIN__/news/activities</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>__SITE_ORIGIN__/resources</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>__SITE_ORIGIN__/resources/documents</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>__SITE_ORIGIN__/resources/jbforest</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>__SITE_ORIGIN__/donation</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>__SITE_ORIGIN__/donation/individual</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>__SITE_ORIGIN__/esg/activities</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>__SITE_ORIGIN__/esg/report</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
 </urlset>
-

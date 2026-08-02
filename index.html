@@ -35,6 +35,52 @@
     
     <!-- 캐노니컬 URL -->
     <link data-rh="true" rel="canonical" href="__SITE_ORIGIN__/" />
+
+    <!--
+      구조화 데이터.
+
+      SPA 라 화면별 메타는 브라우저에서 삽입되지만, 이 블록은 정적 HTML 에 있으므로
+      자바스크립트를 실행하지 않는 수집기(네이버 Yeti·다음 Daumoa·Bing·AI 크롤러)도 읽는다.
+      그래서 단체 정보처럼 화면과 무관하게 항상 참인 사실만 여기에 둔다.
+      값은 전부 사이트 푸터에 표기된 것과 같다 — 지어내지 말 것.
+
+      `data-rh` 를 붙이지 않는다. Helmet 이 인계 대상으로 보면 화면 이동 시 걷어낸다.
+    -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": ["NGO", "Organization"],
+          "@id": "__SITE_ORIGIN__/#organization",
+          "name": "전북생명의숲",
+          "url": "__SITE_ORIGIN__",
+          "description": "전북 지역의 숲을 보호하고 시민과 함께 가꾸는 비영리 단체입니다. 숲 체험 프로그램, 숲 해설가 양성교육, 자원봉사활동을 운영합니다.",
+          "email": "forestjb@hanmail.net",
+          "telephone": "+82-63-231-4455",
+          "address": {
+            "@type": "PostalAddress",
+            "addressCountry": "KR",
+            "addressRegion": "전북특별자치도",
+            "addressLocality": "전주시 덕진구",
+            "streetAddress": "중상보로 30, 3층"
+          },
+          "sameAs": [
+            "https://www.facebook.com/jbforest",
+            "https://www.instagram.com/jb_forest/"
+          ]
+        },
+        {
+          "@type": "WebSite",
+          "@id": "__SITE_ORIGIN__/#website",
+          "url": "__SITE_ORIGIN__",
+          "name": "전북생명의숲",
+          "inLanguage": "ko-KR",
+          "publisher": { "@id": "__SITE_ORIGIN__/#organization" }
+        }
+      ]
+    }
+    </script>
   </head>
   <body>
     <div id="root"></div>

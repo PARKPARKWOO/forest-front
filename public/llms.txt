@@ -1,0 +1,43 @@
+# 전북생명의숲
+
+> 전북 지역의 숲을 보호하고 시민과 함께 가꾸는 비영리 단체입니다.
+> 숲 체험 프로그램, 숲 해설가 양성교육, 자원봉사활동, 기업 사회공헌(ESG) 연계 활동을 운영합니다.
+
+사이트: __SITE_ORIGIN__
+
+## 단체 소개
+
+- [인사말](__SITE_ORIGIN__/intro/greeting)
+- [창립선언문](__SITE_ORIGIN__/intro/declaration)
+- [함께하는 이들](__SITE_ORIGIN__/intro/people)
+- [주요 활동](__SITE_ORIGIN__/intro/activities)
+- [오시는 길](__SITE_ORIGIN__/intro/location)
+
+## 참여 프로그램
+
+- [참여 프로그램](__SITE_ORIGIN__/programs/participate) — 시민이 신청할 수 있는 숲 체험·교육 프로그램 목록
+- [숲 해설가 양성교육](__SITE_ORIGIN__/programs/guide) — 숲 해설가가 되기 위한 양성 과정
+- [자원봉사활동 신청](__SITE_ORIGIN__/programs/volunteer) — 숲 보전 자원봉사 참여 안내
+
+## 소식
+
+- [공지사항](__SITE_ORIGIN__/news/notice)
+- [활동 보기](__SITE_ORIGIN__/news/activities)
+
+## 자료실
+
+- [문서자료실](__SITE_ORIGIN__/resources/documents)
+- [전북생명의숲 자료실](__SITE_ORIGIN__/resources/jbforest)
+
+## 후원·기업 협력
+
+- [후원 신청](__SITE_ORIGIN__/donation/individual)
+- [기업 사회공헌활동](__SITE_ORIGIN__/esg/activities)
+- [기업 ESG 보고서](__SITE_ORIGIN__/esg/report)
+
+## 참고
+
+- 사이트맵: __SITE_ORIGIN__/sitemap.xml
+- RSS: __SITE_ORIGIN__/rss.xml
+- 프로그램 신청·후원 신청은 각 페이지의 안내를 따르며, 이 문서에는 신청 마감일이나 모집 인원이
+  담겨 있지 않습니다. 최신 값은 해당 페이지를 확인해야 합니다.

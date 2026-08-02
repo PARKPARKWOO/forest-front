@@ -1,26 +1,38 @@
 # 전북생명의숲 - robots.txt
-User-agent: *
-Allow: /
+#
+# 주의: robots.txt 는 "가장 구체적으로 일치하는 그룹 하나"만 적용된다.
+# 예전에는 아래에 `User-agent: Googlebot` / `Allow: /` 같은 빈 그룹이 따로 있었는데,
+# 그러면 Googlebot·Yeti·Daumoa 는 `*` 그룹의 Disallow 를 **전혀 적용받지 않아**
+# /admin·/api/·/login·/signup 이 그대로 크롤링됐다. 그래서 그룹을 하나로 합쳤다.
+#
+# 일반 검색엔진과 생성형(LLM) 크롤러를 같은 규칙으로 함께 허용한다.
+# 연속된 User-agent 줄은 아래 규칙 블록을 공유한다.
 
-# 크롤링 제외 경로
+User-agent: *
+User-agent: Googlebot
+User-agent: Yeti
+User-agent: Yeti-Mobile
+User-agent: NaverBot
+User-agent: Daumoa
+User-agent: bingbot
+User-agent: GPTBot
+User-agent: OAI-SearchBot
+User-agent: ChatGPT-User
+User-agent: Google-Extended
+User-agent: PerplexityBot
+User-agent: ClaudeBot
+User-agent: Claude-User
+User-agent: Claude-SearchBot
+User-agent: anthropic-ai
+User-agent: CCBot
+Allow: /
+# 관리·인증 영역 — 색인 가치가 없고 로그인이 필요하다
 Disallow: /admin
 Disallow: /api/
 Disallow: /login
 Disallow: /signup
-
-# 사이트맵 위치
-Sitemap: __SITE_ORIGIN__/sitemap.xml
-
-# 검색엔진별 설정
-User-agent: Googlebot
-Allow: /
-
-User-agent: Yeti
-Allow: /
-
-User-agent: Daumoa
-Allow: /
-
-# 크롤링 속도 조절
+# 소규모 백엔드라 크롤링 속도를 낮춘다. Googlebot 은 이 지시자를 무시하고
+# GSC 의 크롤링 속도 설정을 따르므로, 나머지 크롤러에만 실효가 있다.
 Crawl-delay: 1
 
+Sitemap: __SITE_ORIGIN__/sitemap.xml

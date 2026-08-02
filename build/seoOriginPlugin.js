@@ -3,7 +3,7 @@ import path from 'node:path';
 import { SITE_ORIGIN, applySiteOrigin, hasSiteOriginToken } from './siteOrigin.js';
 
 // 대표 origin 을 넣어야 하는 정적 SEO 산출물. 그 외 public 파일은 손대지 않는다.
-const SEO_FILES = ['robots.txt', 'sitemap.xml', 'rss.xml'];
+const SEO_FILES = ['robots.txt', 'sitemap.xml', 'rss.xml', 'llms.txt'];
 
 /**
  * `__SITE_ORIGIN__` 토큰을 대표 origin 으로 치환한다.
